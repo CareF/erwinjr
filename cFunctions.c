@@ -24,7 +24,7 @@ void psiFn(double Eq, int startpoint, int xPsiSize, double xres, double *xVc, do
   }
   for(q=0;q<startpoint;q++)
     xPsi[q] = 0;
-  *(xPsi+startpoint) = 1;
+  xPsi[startpoint] = 1;
   //*xPsi=0;
   //*(xPsi+1)=1;
   for(q=startpoint;q<xPsiSize-1;q++)
