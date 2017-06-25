@@ -15,25 +15,25 @@ void psiFn(double Eq, int startpoint, int xPsiSize, double xres, double *xVc, do
   int q=0;
   for(q=0;q<xPsiSize;q++)
   { if(1)
-        *(xMcE+q) = m0 / ((1+2* *(xF+q)) + *(xEp+q)/3 * (2 / ((Eq-*(xVc+q))+*(xEg+q)) 
-                       + 1 / ((Eq-*(xVc+q))+*(xEg+q)+*(xESO+q)) ));
+        xMcE[q] = m0 / ( 1 + 2*xF[q] + xEp[q]/3 * (2 / (Eq - xVc[q] + xEg[q]) 
+                       + 1 / (Eq - xVc[q] + xEg[q] + xESO[q]) ));
     else
-        *(xMcE+q) = m0 * *(xMc+q) * (1 - (*(xVc+q) - Eq) / *(xEg+q));
+        xMcE[q] = m0 * xMc[q] * (1 - (xVc[q] - Eq) / xEg[q]);
     if(q>1)
-      *(xMcE+q-1) = 0.5 * (*(xMcE+q) + *(xMcE+q-1));
+      xMcE[q-1] = 0.5 * (xMcE[q] + xMcE[q-1]);
   }
   for(q=0;q<startpoint;q++)
-    *(xPsi+q) = 0;
+    xPsi[q] = 0;
   *(xPsi+startpoint) = 1;
   //*xPsi=0;
   //*(xPsi+1)=1;
   for(q=startpoint;q<xPsiSize-1;q++)
   {
-    *(xPsi+q+1) = (
-                   (2*xres*1e-10*xres*1e-10 /hbar/hbar * (*(xVc+q) - Eq)*e0 
-                     + 1 / *(xMcE+q) + 1 / *(xMcE+q-1)) * *(xPsi+q) 
-                   - *(xPsi+q-1) / *(xMcE+q-1)
-                  ) * *(xMcE+q);
+    xPsi[q+1] = (
+                   (2*xres*1e-10*xres*1e-10 /hbar/hbar * (xVc[q] - Eq)*e0 
+                     + 1 / xMcE[q] + 1 / xMcE[q-1]) * xPsi[q] 
+                   - xPsi[q-1] / xMcE[q-1]
+                  ) * xMcE[q];
   }
   return;
 }
@@ -47,14 +47,14 @@ int psiFnEnd(double *eEq, int eEqSize, int xPsiSize, double xres, double EField,
   int q=0;
   for(q=0;q<eEqSize;q++)
   {
-    Eq = *(eEq+q);
+    Eq = eEq[q];
     startpoint = xPsiSize - ceil((Eq - *eEq)/(EField * xres)*1e5 + 200/xres);
     if(startpoint<1)
       startpoint = 1;
 
     psiFn(Eq, startpoint, xPsiSize, xres, xVc, xEg, xF, xEp, xESO, xMc, xMcE, xPsi);
-    *(xPsiEnd+q) = *(xPsi+xPsiSize-1);
-    //printf("%d: %g %d        ", q, *(eEq+q), startpoint);
+    xPsiEnd[q] = *(xPsi+xPsiSize-1);
+    //printf("%d: %g %d        ", q, eEq[q], startpoint);
     //printf("%d  ", startpoint);
   }
 
@@ -70,13 +70,13 @@ int inv_quadratic_interp(double *xnew, double *ynew, double *idxs, int EigenESiz
   int q=0;
   for(q=0;q<EigenESize;q++)
   {
-    idx = *(idxs+q);
+    idx = idxs[q];
     //printf("%d\n",idx);
     x0=*(xnew+idx-1); fx0=*(ynew+idx-1);
     x1=*(xnew+idx);   fx1=*(ynew+idx);
     x2=*(xnew+idx+1); fx2=*(ynew+idx+1);
     x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1);
-    *(EigenE+q) = x3;
+    EigenE[q] = x3;
   }
   return 1;
 }
@@ -97,12 +97,12 @@ int psiFill(int xPsiSize, double xres, int EigenESize, double *EigenE, double *x
      int q=0;
       for(q=0;q<xPsiSize;q++)
       { if(1)
-            *(xMcE+q) = m0 / ((1+2* *(xF+q)) + *(xEp+q)/3 * (2 / ((Eq-*(xVc+q))+*(xEg+q)) 
-                           + 1 / ((Eq-*(xVc+q))+*(xEg+q)+*(xESO+q)) ));
+            xMcE[q] = m0 / ((1+2* xF[q]) + xEp[q]/3 * (2 / ((Eq-xVc[q])+xEg[q]) 
+                           + 1 / ((Eq-xVc[q])+xEg[q]+xESO[q]) ));
         else
-            *(xMcE+q) = m0 * *(xMc+q) * (1 - (*(xVc+q) - Eq) / *(xEg+q));
+            xMcE[q] = m0 * xMc[q] * (1 - (xVc[q] - Eq) / xEg[q]);
         if(q>1)
-          *(xMcE+q-1) = 0.5 * (*(xMcE+q) + *(xMcE+q-1));
+          xMcE[q-1] = 0.5 * (xMcE[q] + xMcE[q-1]);
       }
       *(xyPsi+0+col*xPsiSize) = 0.;
       *(xyPsi+1+col*xPsiSize) = 1.;
@@ -110,11 +110,11 @@ int psiFill(int xPsiSize, double xres, int EigenESize, double *EigenE, double *x
       for(q=1;q<xPsiSize-1;q++)
       {
         *(xyPsi+q+1+col*xPsiSize) = (
-                       (2*xres*1e-10*xres*1e-10 /hbar/hbar * (*(xVc+q) - Eq)*e0 
-                         + 1 / *(xMcE+q) + 1 / *(xMcE+q-1)) * *(xyPsi+q+col*xPsiSize)
-                       - *(xyPsi+q-1+col*xPsiSize) / *(xMcE+q-1)
-                      ) * *(xMcE+q);
-        PsiInt += *(xyPsi+q+col*xPsiSize) * *(xyPsi+q+col*xPsiSize) * (1+(Eq-*(xVc+q))/(Eq-*(xVc+q)+*(xEg+q)));
+                       (2*xres*1e-10*xres*1e-10 /hbar/hbar * (xVc[q] - Eq)*e0 
+                         + 1 / xMcE[q] + 1 / xMcE[q-1]) * *(xyPsi+q+col*xPsiSize)
+                       - *(xyPsi+q-1+col*xPsiSize) / xMcE[q-1]
+                      ) * xMcE[q];
+        PsiInt += *(xyPsi+q+col*xPsiSize) * *(xyPsi+q+col*xPsiSize) * (1+(Eq-xVc[q])/(Eq-xVc[q]+xEg[q]));
       }
       double A = 1 / sqrt(xres * 1e-10 * PsiInt);
                 
@@ -161,7 +161,7 @@ void chiImag_array(double wavelength, const double *thicknesses, const double *i
     {
         int j = 0;
     
-        complex beta = cmplx(*(betaInReal+q), *(betaInImag+q));
+        complex beta = cmplx(betaInReal[q], betaInImag[q]);
 
         complex index[MAXLENGTH];
         for (j=0; j < numLayers; j++)
@@ -215,7 +215,7 @@ void chiImag_array(double wavelength, const double *thicknesses, const double *i
                            cxmul(gamma[0],m.bb) );
         //chi = gammac*M[0,0] + gammac*gammas*M[0,1] + M[1,0] + gammas*M[1,1]
         
-        *(chiImag+q) = imag(chi);
+        chiImag[q] = imag(chi);
     }
 }
 
