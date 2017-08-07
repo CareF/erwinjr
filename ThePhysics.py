@@ -21,9 +21,9 @@
 
 from __future__ import division
 # TODO: clear working space name for numpy
-from numpy import *
+#  from numpy import *
 import numpy as np
-from numpy import sqrt, sin, cos, log, pi, conj
+from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
 from scipy import interpolate
 import copy
 from multiprocessing import Process, Queue
@@ -67,7 +67,7 @@ def zero_find(xVals, yVals):
     tck = interpolate.splrep(xVals.real,yVals.real)
     #  print "------debug------ Here zero_find is called"
     return interpolate.sproot(tck, mest=len(xVals))
-    #  xnew = linspace(min(xVals.real),max(xVals.real),5e5)
+    #  xnew = np.linspace(min(xVals.real),max(xVals.real),5e5)
     #  ynew = interpolate.splev(xnew,tck,der=0)
 
     #  #This routine looks for all of the zero crossings, and then picks each one out
@@ -77,7 +77,7 @@ def zero_find(xVals, yVals):
     #  overlap2 = np.bitwise_and(gtz[1:],ltz[0:-1])
     #  overlap  = np.bitwise_or(overlap1, overlap2)
     #  idxs = np.nonzero(overlap == True)[0]
-    #  zeroCrossings = zeros(idxs.size)
+    #  zeroCrossings = np.zeros(idxs.size)
 
     #  if False:
         #  cFunctions.inv_quadratic_interp(xnew.ctypes.data_as(c_void_p), 
@@ -103,9 +103,9 @@ def zero_find(xVals, yVals):
 class Strata(object):
     def __init__(self):
         self.stratumMaterials = ['InP']
-        self.stratumCompositions = array([0.])
-        self.stratumThicknesses = array([0.])
-        self.stratumDopings = array([0.])
+        self.stratumCompositions = np.array([0.])
+        self.stratumThicknesses = np.array([0.])
+        self.stratumDopings = np.array([0.])
         
         self.wavelength = 4.7 # unit? micron?
         self.operatingField = 0
@@ -158,7 +158,7 @@ class Strata(object):
                 + cst['InP'].C2*wl**2/(wl**2-cst['InP'].C3**2) 
                 + cst['InP'].C4*wl**2/(wl**2-cst['InP'].C5**2) )
         
-        self.stratumRIndexes = zeros(self.stratumDopings.size, dtype=complex)
+        self.stratumRIndexes = np.zeros(self.stratumDopings.size, dtype=complex)
         for q, material in enumerate(self.stratumMaterials):
             # Calculate reflection index (complex for decay) for each stratum?
             #TODO: combine codes for different materials
@@ -251,7 +251,7 @@ class Strata(object):
         n_AlAs = sqrt(cst['AlAs'].C1 + cst['AlAs'].C2*wl**2/(wl**2-cst['AlAs'].C3**2) 
                 + cst['AlAs'].C4*wl**2/(wl**2-cst['AlAs'].C5**2) )
         
-        n=zeros(8)
+        n=np.zeros(8)
         # TODO: bowing parameters? 
         for i in range(0, 8, 2):
             n[i] = data.moleFrac[i]*n_InAs + (1-data.moleFrac[i])*n_GaAs
@@ -286,8 +286,8 @@ class Strata(object):
         
         stratumThickNumCumSum = np.concatenate( ([0], 
             self.stratumThickNum.cumsum()) )
-        self.xn = zeros(self.xPoints.size, dtype=complex)
-        self.xAC = zeros(self.xPoints.size) #binary designation for Active Core
+        self.xn = np.zeros(self.xPoints.size, dtype=complex)
+        self.xAC = np.zeros(self.xPoints.size) #binary designation for Active Core
 
         #extend layer data for all xpoints
         for q in xrange(0,self.stratumThickNum.size):
@@ -299,7 +299,7 @@ class Strata(object):
                 
         # make array to show selected stratum in mainCanvas
         # ? what is this used for? 
-        self.xStratumSelected = zeros(self.xPoints.shape) * np.NaN
+        self.xStratumSelected = np.zeros(self.xPoints.shape) * np.NaN
         if self.stratumSelected != -1: #if not no row selected
             self.xStratumSelected[stratumThickNumCumSum[self.stratumSelected]
                         : stratumThickNumCumSum[self.stratumSelected+1] ] \
@@ -325,9 +325,9 @@ class Strata(object):
         #zeta  = k*self.stratumThicknesses/z0
         
         Mj = []
-        M = array([[1+0j,0],[0,1+0j]])
+        M = np.array([[1+0j,0],[0,1+0j]])
         for q in xrange(alpha.size):
-            Mj.append(array([[cos(phi[q]), -1j/gamma[q]*sin(phi[q])],[-1j*gamma[q]*sin(phi[q]), cos(phi[q])]]))
+            Mj.append(np.array([[cos(phi[q]), -1j/gamma[q]*sin(phi[q])],[-1j*gamma[q]*sin(phi[q]), cos(phi[q])]]))
         
         Mj.reverse()
         for mj in Mj:
@@ -345,10 +345,10 @@ class Strata(object):
             betaMax  = max(self.stratumRIndexes.real)
             betaMin  = min(self.stratumRIndexes.real)
 
-            betas = arange(betaMin.real+0.01,betaMax.real,0.01)
+            betas = np.arange(betaMin.real+0.01,betaMax.real,0.01)
 
             if True: #do chi_find in c
-                chiImag = zeros(len(betas),dtype=float)
+                chiImag = np.zeros(len(betas),dtype=float)
                 betasReal = betas.real
                 betasImag = betas.imag
                 stratumRIndexesReal = self.stratumRIndexes.real.copy()
@@ -363,7 +363,7 @@ class Strata(object):
                         int(betasReal.size), chiImag.ctypes.data_as(c_void_p))
                 beta0s = zero_find(betas.real, chiImag)
             else:
-                chi=zeros(betas.size, dtype=complex)
+                chi=np.zeros(betas.size, dtype=complex)
                 for p, beta in enumerate(betas):
                     chi[p] = self.chi_find(beta)
                 beta0s = zero_find(betas.real, chi.imag)
@@ -376,7 +376,7 @@ class Strata(object):
             betaIn = beta
             stratumRIndexesReal = self.stratumRIndexes.real.copy()
             stratumRIndexesImag = self.stratumRIndexes.imag.copy()
-            betaOut = array([0.0, 0.0])
+            betaOut = np.array([0.0, 0.0])
             beta = cFunctions.beta_find(c_double(self.wavelength), 
                     self.stratumThicknesses.ctypes.data_as(c_void_p), 
                     stratumRIndexesReal.ctypes.data_as(c_void_p), 
@@ -393,11 +393,11 @@ class Strata(object):
                          beta+rInc+iInc, beta-rInc-iInc, beta+rInc-iInc,
                          beta-rInc+iInc]
                 if True:
-                    chi = zeros(len(betas),dtype=complex)
+                    chi = np.zeros(len(betas),dtype=complex)
                     for p, betaIn in enumerate(betas):
                         chi[p] = self.chi_find(betaIn)
                 else: #do chi_find in c
-                    chi = zeros(len(betas),dtype=float)
+                    chi = np.zeros(len(betas),dtype=float)
                     abschi_find = cFunctions.abschi_find
                     abschi_find.restype = c_double
                     for p, betaIn in enumerate(betas):
@@ -427,7 +427,7 @@ class Strata(object):
         z0 = 0.003768
         #z0 = 376.8
         k = 2*pi/self.wavelength
-        M = array([[1+0j,0],[0,1+0j]])
+        M = np.array([[1+0j,0],[0,1+0j]])
         
         alpha = sqrt(n**2-self.beta**2)
         if alpha[0].imag < 0:
@@ -439,14 +439,14 @@ class Strata(object):
         #zeta  = k*thicknesses/z0
         
         ncs = stratumThickNumCumSum = np.concatenate( ([0], ThickNum.cumsum()) )
-        xI = zeros(self.xPoints.size, dtype=complex)
+        xI = np.zeros(self.xPoints.size, dtype=complex)
 
         for q in xrange(ThickNum.size-1, -1, -1):
             xvec  = copy.copy(self.xPoints[ncs[q]:ncs[q+1]])[::-1]
             if len(xvec) == 0: #make sure xvec isn't empty
                 continue
             xvec -= min(xvec)
-            field = np.dot(M,array([1,gamma[-1]]))
+            field = np.dot(M,np.array([1,gamma[-1]]))
             U = field[0]
             V = field[1]
             if q == 0 or q == self.stratumThicknesses.size-1:
@@ -455,7 +455,7 @@ class Strata(object):
                 xI[ncs[q]:ncs[q+1]]  = U*cos(-k*alpha[q]*xvec) \
                         + 1j/gamma[q] * V*sin(-k*alpha[q]*xvec)
                 xI[ncs[q]:ncs[q+1]] /= n[q]**2
-                Mj = array([[cos(phi[q]), -1j/gamma[q]*sin(phi[q])],
+                Mj = np.array([[cos(phi[q]), -1j/gamma[q]*sin(phi[q])],
                     [-1j*gamma[q]*sin(phi[q]), cos(phi[q])]])
                 M = np.dot(Mj,M)
         
@@ -521,20 +521,20 @@ class Strata(object):
         #this is Faist's version
         numACs = self.stratumMaterials.count('Active Core')
         try:
-            xVals = arange(self.xres,numACs*self.Np*self.Lp*1e-4,self.xres)
+            xVals = np.arange(self.xres,numACs*self.Np*self.Lp*1e-4,self.xres)
             assert xVals.size == U.size
         except AssertionError:
             try:
-                xVals = arange(0,numACs*self.Np*self.Lp*1e-4,self.xres)
+                xVals = np.arange(0,numACs*self.Np*self.Lp*1e-4,self.xres)
                 assert xVals.size == U.size
             except AssertionError:
-                xVals = arange(self.xres,
+                xVals = np.arange(self.xres,
                         numACs*self.Np*self.Lp*1e-4-self.xres,self.xres)
                 assert xVals.size == U.size
         tck = interpolate.splrep(xVals,U,s=0)
         minx = 0.5*self.Lp*1e-4
         maxx = numACs*self.Np*self.Lp*1e-4-0.5*self.Lp*1e-4
-        xbar = linspace(minx, maxx, numACs*self.Np)
+        xbar = np.linspace(minx, maxx, numACs*self.Np)
         Ubar = interpolate.splev(xbar,tck,der=0)
         self.modalEfficiency = sum(Ubar)**2 / (numACs * self.Np * sum(Ubar**2))
         
@@ -545,12 +545,12 @@ class Strata(object):
 
 class QCLayers(object):
     def __init__(self):
-        self.layerWidths = array([1.,1.])
-        self.layerBarriers = array([0,0])
-        self.layerARs = array([0,0])
-        self.layerMaterials = array([1,1])
-        self.layerDopings = array([0.,0.])
-        self.layerDividers = array([0,0])
+        self.layerWidths = np.array([1.,1.])
+        self.layerBarriers = np.array([0,0])
+        self.layerARs = np.array([0,0])
+        self.layerMaterials = np.array([1,1])
+        self.layerDopings = np.array([0.,0.])
+        self.layerDividers = np.array([0,0])
         
         self.xres = 0.5
         self.EField = 0
@@ -607,13 +607,13 @@ class QCLayers(object):
         #convert to int to prevent machine rounding errors
         self.xPoints = self.xres * np.arange(0, self.layerNum.sum(), 1)
         
-        layerWidthsCumSum = concatenate([[0.],self.layerWidths.cumsum()])
+        layerWidthsCumSum = np.concatenate([[0.],self.layerWidths.cumsum()])
         layerNumCumSum = np.concatenate( ([0], self.layerNum.cumsum()) )
-        self.xBarriers = zeros(self.xPoints.shape)
-        self.xARs = zeros(self.xPoints.shape)
-        self.xMaterials = zeros(self.xPoints.shape)
-        self.xDopings = zeros(self.xPoints.shape)
-        self.xLayerNums = zeros(self.xPoints.shape)
+        self.xBarriers = np.zeros(self.xPoints.shape)
+        self.xARs = np.zeros(self.xPoints.shape)
+        self.xMaterials = np.zeros(self.xPoints.shape)
+        self.xDopings = np.zeros(self.xPoints.shape)
+        self.xLayerNums = np.zeros(self.xPoints.shape)
 
         #extend layer data for all xpoints
         for q in xrange(0,self.layerWidths.size):
@@ -653,11 +653,11 @@ class QCLayers(object):
         self.update_strain()
         # Following are equiv. elec potential for different bands
         # external field is included
-        self.xVc  = zeros(self.xPoints.size)
-        self.xVX  = zeros(self.xPoints.size)
-        self.xVL  = zeros(self.xPoints.size)
-        self.xVLH = zeros(self.xPoints.size)
-        self.xVSO = zeros(self.xPoints.size)
+        self.xVc  = np.zeros(self.xPoints.size)
+        self.xVX  = np.zeros(self.xPoints.size)
+        self.xVL  = np.zeros(self.xPoints.size)
+        self.xVLH = np.zeros(self.xPoints.size)
+        self.xVSO = np.zeros(self.xPoints.size)
         for MLabel in range(1,5):
             indx = np.nonzero(self.xMaterials == MLabel)[0]
             if indx.size != 0:
@@ -682,7 +682,7 @@ class QCLayers(object):
         
         # make array to show selected layer in mainCanvas
         try:
-            self.xLayerSelected = zeros(self.xPoints.shape)*np.NaN
+            self.xLayerSelected = np.zeros(self.xPoints.shape)*np.NaN
             layerSelected = self.layerSelected
             if layerSelected != -1:
                 if layerSelected == 0: #row for first layer is selected
@@ -713,11 +713,11 @@ class QCLayers(object):
     def populate_x_full(self):
         #  print "------debug------- QCLayers populate_x_full called"
         # Following parameters can be looked up in cFunctions.c
-        self.xEg = zeros(self.xPoints.size)  
-        self.xMc = zeros(self.xPoints.size)  # Seems not to be used
-        self.xESO = zeros(self.xPoints.size) 
-        self.xEp = zeros(self.xPoints.size)
-        self.xF = zeros(self.xPoints.size)
+        self.xEg = np.zeros(self.xPoints.size)  
+        self.xMc = np.zeros(self.xPoints.size)  # Seems not to be used
+        self.xESO = np.zeros(self.xPoints.size) 
+        self.xEp = np.zeros(self.xPoints.size)
+        self.xF = np.zeros(self.xPoints.size)
         for MLabel in range(1,5):
             indx = np.nonzero(self.xMaterials == MLabel)[0]
             if indx.size !=0 :
@@ -757,7 +757,7 @@ class QCLayers(object):
         else: 
             raise TypeError('substrate selection not allowed')
 
-        self.h = zeros(self.numMaterials)
+        self.h = np.zeros(self.numMaterials)
         for item in variables:
             setattr(self, item, np.empty(self.numMaterials))
             para = getattr(self, item)
@@ -819,7 +819,7 @@ class QCLayers(object):
         #  print "------debug-----", sum(self.h)
         self.mismatch = 100 * sum(self.h*self.eps_perp) / sum(self.h);
         
-        self.MLThickness = zeros(self.layerMaterials.size)
+        self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
             (0,1)*4)): 
             self.MLThickness[np.nonzero( 
@@ -888,12 +888,12 @@ class QCLayers(object):
         #2nd major assumption: 
         #   Temperature affects sattelite valleys in the same way it does 
         #   the Gamma valley
-        barrs = array([1,3,5,7])
-        wells = array([0,2,4,6])
+        barrs = np.array([1,3,5,7])
+        wells = np.array([0,2,4,6])
         CBOffset = self.EcG[barrs] - self.EcG[wells]
         VBOffset = (self.EcG[barrs] - self.EgLH[barrs]) - (self.EcG[wells] - self.EgLH[wells])
         percentCB = CBOffset / (CBOffset + VBOffset)
-        percentCB = column_stack([percentCB,percentCB]).flatten() 
+        percentCB = np.column_stack([percentCB,percentCB]).flatten() 
         #applies percent CV to both well and barrier slots
         
         self.EcG += percentCB * self.Varsh
@@ -917,10 +917,10 @@ class QCLayers(object):
         # self.me4 = self.EgAV / self.Ep;
 
     def solve_psi(self):
-        Epoints = arange(min(self.xVc),max(self.xVc-115*self.EField*1e-5),self.vertRes/1000)
-        xMcE = zeros(self.xPoints.shape)
-        xPsi = zeros(self.xPoints.shape)
-        psiEnd = zeros(Epoints.size)
+        Epoints = np.arange(min(self.xVc),max(self.xVc-115*self.EField*1e-5),self.vertRes/1000)
+        xMcE = np.zeros(self.xPoints.shape)
+        xPsi = np.zeros(self.xPoints.shape)
+        psiEnd = np.zeros(Epoints.size)
         
         #TODO: add adaptive spacing for Eq
         #TODO: convert nested for loop to C
@@ -960,7 +960,7 @@ class QCLayers(object):
         #interpolate between solved-for E points        
         tck = interpolate.splrep(Epoints,psiEnd,s=0)
         #adds 100 points per solved-for E point
-        xnew = linspace(Epoints[0],Epoints[-1],Epoints.size*1e2) 
+        xnew = np.linspace(Epoints[0],Epoints[-1],Epoints.size*1e2) 
         ynew = interpolate.splev(xnew,tck,der=0)
         
 #        #plot interpolated points over solved-for E points
@@ -972,13 +972,13 @@ class QCLayers(object):
         #This routine looks for all of the zero crossings, and then picks each one out
         gtz = ynew > 0
         ltz = ynew < 0
-        overlap1 = bitwise_and(gtz[0:-1],ltz[1:])
-        overlap2 = bitwise_and(gtz[1:],ltz[0:-1])
-        overlap  = bitwise_or(overlap1, overlap2)
+        overlap1 = np.bitwise_and(gtz[0:-1],ltz[1:])
+        overlap2 = np.bitwise_and(gtz[1:],ltz[0:-1])
+        overlap  = np.bitwise_or(overlap1, overlap2)
         idxs = np.nonzero(overlap == True)[0]
         #need this to maintain compatibility with 32-bit and 64-bit systems
         idxs = idxs.astype(float) 
-        self.EigenE = zeros(idxs.size)
+        self.EigenE = np.zeros(idxs.size)
 
         if True:
             cFunctions.inv_quadratic_interp(xnew.ctypes.data_as(c_void_p), 
@@ -1110,7 +1110,7 @@ class QCLayers(object):
 
         #make array for Psi and fill it in
         if True:
-            self.xyPsi = zeros(self.xPoints.size*self.EigenE.size)
+            self.xyPsi = np.zeros(self.xPoints.size*self.EigenE.size)
             cFunctions.psiFill(int(xPsi.size), c_double(self.xres),
                                int(self.EigenE.size), 
                                self.EigenE.ctypes.data_as(c_void_p), 
@@ -1126,7 +1126,7 @@ class QCLayers(object):
             self.xyPsi = self.xyPsi.reshape(self.xPoints.size, 
                     self.EigenE.size, order='F')
         else:
-            self.xyPsi = zeros((self.xPoints.size,self.EigenE.size))
+            self.xyPsi = np.zeros((self.xPoints.size,self.EigenE.size))
             for p, Eq in enumerate(self.EigenE):
                 if True:
                     xMcE = m0 / (1+2*self.xF + self.xEp/3 * (
@@ -1174,9 +1174,9 @@ class QCLayers(object):
             self.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
 
         #decimate plot points
-        idxs = arange(0, self.xPoints.size, 
+        idxs = np.arange(0, self.xPoints.size, 
                 int(settings.plot_decimate_factor/self.xres), dtype=int)
-        self.xyPsiPsiDec = zeros([idxs.size, self.EigenE.size])
+        self.xyPsiPsiDec = np.zeros([idxs.size, self.EigenE.size])
         for q in xrange(self.EigenE.size):
             self.xyPsiPsiDec[:,q] = self.xyPsiPsi[idxs,q]
         self.xyPsiPsi = self.xyPsiPsiDec
@@ -1264,16 +1264,16 @@ def convert_dCL_to_data(data, dCL):
         numWFs += dCL[q].EigenE.size
 
     #convert to int to prevent machine rounding errors
-    data.xPointsPost = arange(-100,data.xPoints[-1]+30+data.xres,data.xres)
+    data.xPointsPost = np.arange(-100,data.xPoints[-1]+30+data.xres,data.xres)
 
-    data.xyPsi = zeros([data.xPointsPost.size, numWFs])
-    data.xyPsiPsi = np.NaN*zeros([data.xPointsPost.size, numWFs])
-    data.EigenE = zeros(numWFs)
-    data.moduleID = zeros(numWFs)
+    data.xyPsi = np.zeros([data.xPointsPost.size, numWFs])
+    data.xyPsiPsi = np.NaN*np.zeros([data.xPointsPost.size, numWFs])
+    data.EigenE = np.zeros(numWFs)
+    data.moduleID = np.zeros(numWFs)
     counter = 0
     for n in xrange(len(dCL)):
         for q in xrange(dCL[n].EigenE.size):
-            wf = np.NaN*zeros(data.xPointsPost.size)
+            wf = np.NaN*np.zeros(data.xPointsPost.size)
             begin = int(dCL[n].widthOffset/data.xres)
             end = begin + dCL[n].xyPsiPsi2[:,q].size
             wf[begin:end] = dCL[n].xyPsiPsi2[:,q]
@@ -1281,7 +1281,7 @@ def convert_dCL_to_data(data, dCL):
             data.EigenE[counter] = dCL[n].EigenE[q] + dCL[n].fieldOffset
             
             data.moduleID[counter] = n
-            wf = zeros(data.xPointsPost.size)
+            wf = np.zeros(data.xPointsPost.size)
             begin = int(dCL[n].widthOffset/data.xres)
             end = begin + dCL[n].xyPsi[:,q].size
             wf[begin:end] = dCL[n].xyPsi[:,q]
@@ -1302,15 +1302,15 @@ def convert_dCL_to_data(data, dCL):
         data.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
         
     #sort by ascending energy
-    sortID = argsort(data.EigenE)
+    sortID = np.argsort(data.EigenE)
     data.EigenE = data.EigenE[sortID]
     data.xyPsi = data.xyPsi[:,sortID]
     data.xyPsiPsi = data.xyPsiPsi[:,sortID]
     data.moduleID = data.moduleID[sortID]
 
 #    #decimate plot points
-#    idxs = arange(0,data.xPoints.size, int(settings.plot_decimate_factor/data.xres), dtype=int)
-#    data.xyPsiPsiDec = zeros([idxs.size, data.EigenE.size])
+#    idxs = np.arange(0,data.xPoints.size, int(settings.plot_decimate_factor/data.xres), dtype=int)
+#    data.xyPsiPsiDec = np.zeros([idxs.size, data.EigenE.size])
 #    for q in xrange(data.EigenE.size):
 #        data.xyPsiPsiDec[:,q] = data.xyPsiPsi[idxs,q]
 #    data.xyPsiPsi = data.xyPsiPsiDec
@@ -1350,7 +1350,7 @@ def lo_phonon_time(data, upper, lower):
         McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
         
         kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-data.hwLO[0])*e0)
-        dIij = zeros(xPoints.size)
+        dIij = np.zeros(xPoints.size)
         for n in xrange(xPoints.size):
             x1 = xPoints[n]*1e-10
             x2 = xPoints*1e-10
@@ -1436,9 +1436,9 @@ def alphaISB(data, stateR, lower):
         gammas.append(gamma)
         energies.append(data.EigenE[q]-data.EigenE[stateR])
         
-    dipoles = array(dipoles)*1e-10 #in m
-    gammas = array(gammas)/1000 #from meV to eV
-    energies = abs(array(energies)) #in eV
+    dipoles = np.array(dipoles)*1e-10 #in m
+    gammas = np.array(gammas)/1000 #from meV to eV
+    energies = abs(np.array(energies)) #in eV
     
     neff = 3
     Lp = sum(data.layerWidths[1:]) * 1e-10 #in m
@@ -1448,7 +1448,7 @@ def alphaISB(data, stateR, lower):
     Ns *= 100**2 #from cm^-2 to m^-2
     hw = data.EigenE[stateR] - data.EigenE[lower]
     
-#    hw = arange(0.15,0.5,0.01)
+#    hw = np.arange(0.15,0.5,0.01)
 #    for enerG in hw:
 #        alphaISB = sum(energies * dipoles**2 * gammas / ((energies - enerG)**2 + gammas**2))
 
@@ -1464,8 +1464,8 @@ def alphaISB(data, stateR, lower):
     alphaISB /= e0*100
     
     if False: #plot loss diagram
-        hw = arange(0.15,0.5,0.001)
-        alphaISBw = zeros(hw.size)
+        hw = np.arange(0.15,0.5,0.001)
+        alphaISBw = np.zeros(hw.size)
         for q, enerG in enumerate(hw):
             alphaISBw[q] = sum(energies/h/c0 * dipoles**2 * gammas 
                     / ((energies - enerG)**2 + gammas**2))
@@ -1487,4 +1487,3 @@ if __name__  == "__main__":
     print 'hi', cFunctions.returnme()
 
     
-        
