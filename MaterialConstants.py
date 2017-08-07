@@ -20,6 +20,14 @@
 #===============================================================================
 
 
+#===============================================================================
+# Reference
+# [1]Handbook of Optics, Vol.2, ISBN: 0070479747
+# [2]Herve P J L, Vandamme L K J. Empirical temperature dependence of the 
+#    refractive index of semiconductors[J]. Journal of Applied Physics, 
+#    1995, 77(10): 5476-5477.
+#===============================================================================
+
 class MaterialConstants(object):
     def __init__(self):
         Temperature = 300
@@ -49,7 +57,7 @@ class MaterialConstants(object):
         self.XiG_GaAs = 0 #eV, uniaxial deformation potential, NextNano DB
         self.XiL_GaAs = 6.5 #eV
         self.XiX_GaAs = 14.26 #eV
-        self.me0_GaAs = 0.067 #1/m0
+        self.me0_GaAs = 0.067 #1/m0: effective mass
         self.Ep_GaAs  = 28.8 #eV
         self.F_GaAs   = -1.94
         self.alG_GaAs = 0.5405e-3 #eV/K, Varshni alpha(Gamma)
@@ -61,7 +69,14 @@ class MaterialConstants(object):
         self.epss_GaAs = 12.9
         self.epsInf_GaAs = 10.86
         self.hwLO_GaAs = 35.3*1e-3
-        self.C1_GaAs = 3.5 #Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # Table 22 Room-temperature Dispersion Formulas for Crystals
+        # Sellmeier dispersion formula: 
+        # n^2 = permitivity = 2 Lorenzians
+        #     = c1 + c2 * wl**2/(wl**2-c3**2) + c4 * wl**2/(wl**2-c5**2) 
+        # Temperature deps ~5E-5 [2] which can be ignored
+        # TODO: material dependent formula should be here
+        self.C1_GaAs = 3.5 
         self.C2_GaAs = 7.4969
         self.C3_GaAs = 0.4082
         self.C4_GaAs = 1.9347
@@ -243,6 +258,7 @@ class MaterialConstants(object):
         self.C4_InP = 2.765
         self.C5_InP = 32.935
         
+        # TODO: consider transform bowing parameter to function
         # InGaAs constants
         self.EgG_InGaAs = 0.477
         self.EgL_InGaAs = 0.33
@@ -270,7 +286,11 @@ class MaterialConstants(object):
         self.F_AlInAs   = -4.44
          
         # AlGaAs constants
-        self.EgG_AlGaAs = -0.127 #+ 1.310*x
+        self.EgG_AlGaAs = -0.127 #+ 1.310*x(Al)
+        # To describe the band gap bowing at the Gamma point in AlxGa1-xAs,
+        # a linear or even a quadratic interpolation is not sufficient. 
+        # Here, the bowing parameter is not constant, 
+        # it depends on the alloy composition x.
         self.EgL_AlGaAs = 0.055
         self.EgX_AlGaAs = 0
         self.VBO_AlGaAs = 0
@@ -290,7 +310,7 @@ class MaterialConstants(object):
         self.VBO_AlAsSb = -1.71
         
         # AlGaSb constants
-        self.EgG_AlGaSb = -0.044 #+ 1.22*x
+        self.EgG_AlGaSb = -0.044 #+ 1.22*x(Al), same as AlGaAs
         self.EgL_AlGaSb = 0
         self.EgX_AlGaSb = 0
         self.VBO_AlGaSb = 0
