@@ -1721,6 +1721,9 @@ class MainWindow(QMainWindow):
 #===============================================================================
         
     def layerTable_refresh(self):
+        print "-----debug---- layerTable_refresh called"
+        # Block itemChanged SIGNAL while refreshing
+        self.layerTable.blockSignals(True) 
         self.layerTable.clear()
         self.layerTable.setColumnCount(6)
         self.layerTable.setRowCount(self.qclayers.layerWidths.size+1)
@@ -1741,6 +1744,7 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 width.setBackgroundColor(gray)
             self.layerTable.setItem(q, 0, width)
+            #  print "--debug, setItem--(%d,%d)%s"%(q,0,width.text())
             if q == 0:
                 width.setFlags(Qt.NoItemFlags)
                 width.setBackgroundColor(gray2)
@@ -1752,6 +1756,7 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 1, item)
+            #  print "--debug, setItem--(%d,%d)%s"%(q,1,item.text())
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
                 item.setBackgroundColor(gray2)
@@ -1762,6 +1767,7 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 2, item)
+            #  print "--debug, setItem--(%d,%d)%s"%(q,2,item.text())
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
                 item.setBackgroundColor(gray2)
@@ -1772,6 +1778,7 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 3, item)
+            #  print "--debug, setItem--(%d,%d)%s"%(q,3,item.text())
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
                 item.setBackgroundColor(gray2)
@@ -1782,6 +1789,7 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 doping.setBackgroundColor(gray)
             self.layerTable.setItem(q, 4, doping)
+            #  print "--debug, setItem--(%d,%d)%s"%(q,4,item.text())
             if q == 0:
                 doping.setFlags(Qt.NoItemFlags)
                 doping.setBackgroundColor(gray2)
@@ -1792,6 +1800,7 @@ class MainWindow(QMainWindow):
                 item.setBackgroundColor(gray2)
                 item.setFlags(Qt.NoItemFlags)
                 self.layerTable.setItem(q, 5, item)
+                #  print "--debug, setItem--(%d,%d)%s"%(q,5,item.text())
             else:
                 materialWidget = QComboBox()
                 materialWidget.addItems(self.materialList)
@@ -1801,12 +1810,20 @@ class MainWindow(QMainWindow):
         
         self.layerTable.resizeColumnsToContents()
 
+        self.layerTable.blockSignals(False)
+
     def layerTable_itemChanged(self, item):
-        column = self.layerTable.currentColumn()
+        """SLOT connected to SIGNAL self.layerTable.itemChanged(QTableWidgetItem*)"""
+        #  column = self.layerTable.currentColumn()
         row = self.layerTable.currentRow()
+        #  print "---debug, itemChanged--- (%d, %d)"%(column, row)
+        column = item.column()
+        row = item.row()
+        #  print "--debug, itemChanged (%d, %d)"%(item.column(), item.row())
+        #  print item.text()
         if column == -1: #column == -1 on GUI initialization
             return
-        elif column == 0: #column == 0 for item change in Widths column
+        if column == 0: #column == 0 for item change in Widths column
             if mod(float(item.text()), self.qclayers.xres) != 0 and self.qclayers.xres != 0.1:
                 QMessageBox.warning(self,"ErwinJr - Warning",
                              "You entered a width that is not compatible with the minimum horizontal resolution.")
@@ -1905,6 +1922,7 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()        
 
     def layerTable_itemSelectionChanged(self):
+        """SLOT connected to SIGNAL self.layerTable.itemSelectionChanged()"""
         #This is the primary call to update_quantumCanvas
         self.qclayers.layerSelected = self.layerTable.currentRow()
         if self.qclayers.layerSelected >= 0 and self.qclayers.layerSelected < self.qclayers.layerWidths.size:
