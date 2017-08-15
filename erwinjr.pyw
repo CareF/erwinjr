@@ -1975,12 +1975,12 @@ class MainWindow(QMainWindow):
         if row == -1:
             return
         
-        self.qclayers.layerWidths = np.hstack([self.qclayers.layerWidths[0:row], self.qclayers.layerWidths[row+1:,]])
-        self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[0:row], self.qclayers.layerBarriers[row+1:,]])
-        self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[0:row], self.qclayers.layerARs[row+1:,]])
-        self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[0:row], self.qclayers.layerMaterials[row+1:,]])
-        self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[0:row], self.qclayers.layerDopings[row+1:,]])
-        self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[0:row], self.qclayers.layerDividers[row+1:,]])
+        self.qclayers.layerWidths = np.delete(self.qclayers.layerWidths, row)
+        self.qclayers.layerBarriers = np.delete(self.qclayers.layerBarriers, row)
+        self.qclayers.layerARs = np.delete(self.qclayers.layerARs, row)
+        self.qclayers.layerMaterials = np.delete(self.qclayers.layerMaterials, row)
+        self.qclayers.layerDopings = np.delete(self.qclayers.layerDopings, row)
+        self.qclayers.layerDividers = np.delete(self.qclayers.layerDividers, row)
         
         if row == self.qclayers.layerWidths.size: #if row == last_row
             #make first item the same as last item
@@ -2008,27 +2008,23 @@ class MainWindow(QMainWindow):
         if row == -1:
             return
         
-        if row == 0:
-            self.qclayers.layerWidths = np.hstack([0, self.qclayers.layerWidths[row:,]])
-            if self.qclayers.layerBarriers[row] == 1:
-                self.qclayers.layerBarriers = np.hstack([0, self.qclayers.layerBarriers[row:,]])
-            else:
-                self.qclayers.layerBarriers = np.hstack([1, self.qclayers.layerBarriers[row:,]])
-            self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[row], self.qclayers.layerARs[row:,]])
-            self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[row], self.qclayers.layerMaterials[row:,]])
-            self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[row], self.qclayers.layerDopings[row:,]])
-            self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[row], self.qclayers.layerDividers[row:,]])
-
-        else:
-            self.qclayers.layerWidths = np.hstack([self.qclayers.layerWidths[0:row], 0, self.qclayers.layerWidths[row:,]])
-            if self.qclayers.layerBarriers[row] == 1:
-                self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[0:row], 0, self.qclayers.layerBarriers[row:,]])
-            else:
-                self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[0:row], 1, self.qclayers.layerBarriers[row:,]])
-            self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[0:row], self.qclayers.layerARs[row], self.qclayers.layerARs[row:,]])
-            self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[0:row], self.qclayers.layerMaterials[row], self.qclayers.layerMaterials[row:,]])
-            self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[0:row], self.qclayers.layerDopings[row], self.qclayers.layerDopings[row:,]])
-            self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[0:row], self.qclayers.layerDividers[row], self.qclayers.layerDividers[row:,]])
+        self.qclayers.layerWidths = np.insert(
+                self.qclayers.layerWidths, row, 0)
+        self.qclayers.layerBarriers = np.insert(
+                self.qclayers.layerBarriers, row,
+                0 if self.qclayers.layerBarriers == 1 else 1)
+        self.qclayers.layerARs = np.insert(
+                self.qclayers.layerARs, row, 
+                self.qclLoad.layerARs[row])
+        self.qclayers.layerMaterials = np.insert(
+                self.qclayers.layerMaterials, row,
+                self.qclayers.layerMaterials[row])
+        self.qclayers.layerDopings = np.insert(
+                self.qclayers.layerDopings, row,
+                self.qclayers.layerDopings[row])
+        self.qclayers.layerDividers = np.insert(
+                self.qclayers.layerDividers, row,
+                self.qclayers.layerDividers[row])
 
         self.update_Lp_limits()
         self.update_Lp_box()
@@ -3067,12 +3063,18 @@ class MainWindow(QMainWindow):
 #===============================================================================
 
     def bump_first_layer(self):
-        self.qclayers.layerWidths = np.hstack([self.qclayers.layerWidths[-1], self.qclayers.layerWidths])
-        self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[-1], self.qclayers.layerBarriers])
-        self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[-1], self.qclayers.layerARs])
-        self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[-1], self.qclayers.layerMaterials])
-        self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[-1], self.qclayers.layerDopings])
-        self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[-1], self.qclayers.layerDividers])
+        self.qclayers.layerWidths = np.insert(self.qclayers.layerWidths, 
+                0, self.qclayers.layerWidth[-1])
+        self.qclayers.layerBarriers = np.insert(self.qclayers.layerBarriers, 
+                0, self.qclayers.layerBarriers[-1])
+        self.qclayers.layerARs = np.insert(self.qclayers.layerARs, 
+                0, self.qclayers.layerARs[-1])
+        self.qclayers.layerMaterials = np.insert(self.qclayers.layerMaterials, 
+                0, self.qclayers.layerMaterials[-1])
+        self.qclayers.layerDopings = np.insert(self.qclayers.layerDopings, 
+                0, self.qclayers.layerDopings[-1])
+        self.qclayers.layerDividers = np.insert(self.qclayers.layerDividers, 
+                0, self.qclayers.layerDividers[-1])
     
         self.update_inputBoxes()
         self.layerTable_refresh()
