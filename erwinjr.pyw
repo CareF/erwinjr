@@ -28,6 +28,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import PyQt4.Qwt5 as Qwt
 from numpy import *
+import numpy as np
 from functools import partial
 import time
 
@@ -1721,21 +1722,25 @@ class MainWindow(QMainWindow):
 #===============================================================================
         
     def layerTable_refresh(self):
-        print "-----debug---- layerTable_refresh called"
+        """Refresh layer table, called every time after data update"""
+        #  print "-----debug---- layerTable_refresh called"
         # Block itemChanged SIGNAL while refreshing
         self.layerTable.blockSignals(True) 
         self.layerTable.clear()
         self.layerTable.setColumnCount(6)
         self.layerTable.setRowCount(self.qclayers.layerWidths.size+1)
-        self.layerTable.setHorizontalHeaderLabels(['Width', 'ML', 'Brr', 'AR', 'Doping', 'Material'])
-        vertLabels = []
-        for n in xrange(self.qclayers.layerWidths.size+1):
-            vertLabels.append(str(n))
+        self.layerTable.setHorizontalHeaderLabels(['Width', 'ML', 'Brr', 
+            'AR', 'Doping', 'Material'])
+        #  vertLabels = []
+        #  for n in xrange(self.qclayers.layerWidths.size+1):
+            #  vertLabels.append(str(n))
+        vertLabels = [str(n) for n in
+                range(self.qclayers.layerWidths.size+1)]
         self.layerTable.setVerticalHeaderLabels(vertLabels)        
         
         #color for barrier layers
-        gray = QColor(230,230,240)
-        gray2 = QColor(230,230,230)
+        gray = QColor(230,230,240)  # for Barrier layers
+        gray2 = QColor(230,230,230) # for unchangable background
         
         for q, layerWidth in enumerate(self.qclayers.layerWidths):
             #Width Setup
@@ -1763,7 +1768,9 @@ class MainWindow(QMainWindow):
                 
             #Barrier Layer Setup
             item = QTableWidgetItem()
-            item.setCheckState(int(self.qclayers.layerBarriers[q])*2)
+            #  item.setCheckState(int(self.qclayers.layerBarriers[q])*2)
+            item.setCheckState(Qt.Checked if
+                    self.qclayers.layerBarriers[q]==1 else Qt.Unchecked)
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 2, item)
@@ -1774,7 +1781,9 @@ class MainWindow(QMainWindow):
 
             #Active Region Layer Setup
             item = QTableWidgetItem()
-            item.setCheckState(int(self.qclayers.layerARs[q])*2)
+            #  item.setCheckState(int(self.qclayers.layerARs[q])*2)
+            item.setCheckState(Qt.Checked if
+                    self.qclayers.layerARs[q]==1 else Qt.Unchecked)
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 3, item)
@@ -1796,7 +1805,9 @@ class MainWindow(QMainWindow):
                 
             #Material Setup
             if q == 0:
-                item = QTableWidgetItem(unicode(self.materialList[int(self.qclayers.layerMaterials[q]-1)]))
+                item = QTableWidgetItem(unicode(self.materialList[
+                    int(self.qclayers.layerMaterials[q])-1]))
+                #TODO: reformat layerMaterials to int begin at 0
                 item.setBackgroundColor(gray2)
                 item.setFlags(Qt.NoItemFlags)
                 self.layerTable.setItem(q, 5, item)
@@ -1805,7 +1816,9 @@ class MainWindow(QMainWindow):
                 materialWidget = QComboBox()
                 materialWidget.addItems(self.materialList)
                 materialWidget.setCurrentIndex(self.qclayers.layerMaterials[q]-1)
-                self.connect(materialWidget, SIGNAL("currentIndexChanged(int)"), partial(self.layerTable_materialChanged, q))
+                self.connect(materialWidget, 
+                        SIGNAL("currentIndexChanged(int)"), 
+                        partial(self.layerTable_materialChanged, q))
                 self.layerTable.setCellWidget(q, 5, materialWidget)
         
         self.layerTable.resizeColumnsToContents()
@@ -1813,31 +1826,43 @@ class MainWindow(QMainWindow):
         self.layerTable.blockSignals(False)
 
     def layerTable_itemChanged(self, item):
-        """SLOT connected to SIGNAL self.layerTable.itemChanged(QTableWidgetItem*)"""
+        """SLOT connected to SIGNAL self.layerTable.itemChanged(QTableWidgetItem*)
+        Update layer profile after user input"""
+        #TODO: redo illegal input
         #  column = self.layerTable.currentColumn()
-        row = self.layerTable.currentRow()
+        #  row = self.layerTable.currentRow()
         #  print "---debug, itemChanged--- (%d, %d)"%(column, row)
-        column = item.column()
-        row = item.row()
         #  print "--debug, itemChanged (%d, %d)"%(item.column(), item.row())
         #  print item.text()
-        if column == -1: #column == -1 on GUI initialization
-            return
+        #  if column == -1: #column == -1 on GUI initialization
+            #  return
+        column = item.column()
+        row = item.row()
         if column == 0: #column == 0 for item change in Widths column
-            if mod(float(item.text()), self.qclayers.xres) != 0 and self.qclayers.xres != 0.1:
-                QMessageBox.warning(self,"ErwinJr - Warning",
-                             "You entered a width that is not compatible with the minimum horizontal resolution.")
+            if mod(float(item.text()), self.qclayers.xres) != 0 \
+                    and self.qclayers.xres != 0.1:
+                QMessageBox.warning(self,"ErwinJr - Warning", 
+                        "You entered a width that is not compatible with \
+                                the minimum horizontal resolution.")
                 return
             if row == self.qclayers.layerWidths.size: #add row at end of list
-                self.qclayers.layerWidths = hstack([self.qclayers.layerWidths, float(item.text())])
-                if self.qclayers.layerBarriers[-1] == 1:
-                    self.qclayers.layerBarriers = hstack([self.qclayers.layerBarriers, 0])
-                else:
-                    self.qclayers.layerBarriers = hstack([self.qclayers.layerBarriers, 1])
-                self.qclayers.layerARs = hstack([self.qclayers.layerARs, self.qclayers.layerARs[-1]])
-                self.qclayers.layerMaterials = hstack([self.qclayers.layerMaterials, self.qclayers.layerMaterials[-1]])
-                self.qclayers.layerDopings = hstack([self.qclayers.layerDopings, self.qclayers.layerDopings[-1]])
-                self.qclayers.layerDividers = hstack([self.qclayers.layerDividers, self.qclayers.layerDividers[-1]])
+                self.qclayers.layerWidths = np.append(
+                        self.qclayers.layerWidths, float(item.text()))
+                self.qclayers.layerBarriers = np.append(
+                        self.qclayers.layerBarriers, 
+                        0 if self.qclayers.layerBarriers[-1] == 1 else 1)
+                self.qclayers.layerARs = np.append(
+                        self.qclayers.layerARs, 
+                        self.qclayers.layerARs[-1])
+                self.qclayers.layerMaterials = np.append(
+                        self.qclayers.layerMaterials, 
+                        self.qclayers.layerMaterials[-1])
+                self.qclayers.layerDopings = np.append(
+                        self.qclayers.layerDopings, 
+                        self.qclayers.layerDopings[-1])
+                self.qclayers.layerDividers = np.append(
+                        self.qclayers.layerDividers, 
+                        self.qclayers.layerDividers[-1])
                 row += 1 #used so that last (blank) row is again selected
                 
                 #make first item the same as last item
@@ -1855,45 +1880,54 @@ class MainWindow(QMainWindow):
                 
                 #make first item the same as last item
                 self.qclayers.layerWidths[0] = self.qclayers.layerWidths[-1]
-                self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
-                self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
-                self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
-                self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
-                self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]  
+                #  self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
+                #  self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
+                #  self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
+                #  self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
+                #  self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]  
             else: #change Width of selected row in-place
                 self.qclayers.layerWidths[row] = float(item.text())
         elif column == 1: #column == 1 for ML
             if self.qclayers.xres != 0.1:
-                QMessageBox.warning(self,"ErwinJr - Warning",
-                             u"Horizontal Resolution of 0.1 \u212B required when setting monolayer thicknesses.")
+                QMessageBox.warning(self,"ErwinJr - Warning", 
+                        u"Horizontal Resolution of 0.1 \u212B required \
+                                when setting monolayer thicknesses.")
                 return
             if row == self.qclayers.layerWidths.size: #add row at end of list
                 pass
             elif row == self.qclayers.layerWidths.size-1:
-                self.qclayers.layerWidths[row] = self.qclayers.MLThickness[row] * float(item.text())
+                self.qclayers.layerWidths[row] = \
+                        self.qclayers.MLThickness[row] * float(item.text())
                 
                 #make first item the same as last item
                 self.qclayers.layerWidths[0] = self.qclayers.layerWidths[-1]
-                self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
-                self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
-                self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
-                self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
-                self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]
+                #  self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
+                #  self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
+                #  self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
+                #  self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
+                #  self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]
                 
                 self.update_Lp_limits()
                 
             else: #change Width of selected row in-place
-                self.qclayers.layerWidths[row] = self.qclayers.MLThickness[row] * float(item.text())
+                self.qclayers.layerWidths[row] = \
+                        self.qclayers.MLThickness[row] * float(item.text())
         elif column == 2: #column == 2 for item change in Barrier column
-            if row == self.qclayers.layerWidths.size: #don't do anything if row is last row
+            if row == self.qclayers.layerWidths.size: 
+                #don't do anything if row is last row
                 return
-            self.qclayers.layerBarriers[row] = int(item.checkState())//2
+            #  self.qclayers.layerBarriers[row] = int(item.checkState())//2
+            self.qclayers.layerBarriers[row] = (item.checkState() == Qt.Checked)
+            #  print "---debug---,checkstate", item.checkState()
         elif column == 3: #column == 3 for item change in AR column
-            if row == self.qclayers.layerWidths.size: #don't do anything if row is last row
+            if row == self.qclayers.layerWidths.size: 
+                #don't do anything if row is last row
                 return
-            self.qclayers.layerARs[row] = int(item.checkState())//2
+            #  self.qclayers.layerARs[row] = int(item.checkState())//2
+            self.qclayers.layerARs[row] = (item.checkState() == Qt.Checked)
         elif column == 4: #column == 4 for item change in Doping column
-            if row == self.qclayers.layerWidths.size: #don't do anything if row is last row
+            if row == self.qclayers.layerWidths.size: 
+                #don't do anything if row is last row
                 return
             self.qclayers.layerDopings[row] = float(item.text())
         elif column == 5: #column == 5 for item change in Materials column
@@ -1913,6 +1947,9 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()        
         
     def layerTable_materialChanged(self, row, selection):
+        """SLOT as partial(self.layerTable_materialChanged, q)) connected to 
+        SIGNAL self.materialWidget.currentIndexChanged(int) 
+            """
         self.qclayers.layerMaterials[row] = selection+1
         #self.layerTable_refresh()
         self.qclayers.populate_x()
