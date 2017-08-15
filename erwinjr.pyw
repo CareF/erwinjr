@@ -21,6 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #===============================================================================
 
+# TODO: replace np.hstack
 
 from __future__ import division
 import os, sys
@@ -1255,17 +1256,17 @@ class MainWindow(QMainWindow):
         
         if row == 0:
             self.strata.stratumMaterials.insert(row, self.strata.stratumMaterials[row])
-            self.strata.stratumCompositions = hstack([self.strata.stratumCompositions[row], self.strata.stratumCompositions[row:,]])
-            self.strata.stratumThicknesses = hstack([self.strata.stratumThicknesses[row], self.strata.stratumThicknesses[row:,]])
-            self.strata.stratumDopings = hstack([self.strata.stratumDopings[row], self.strata.stratumDopings[row:,]])
-            self.strata.stratumRIndexes = hstack([self.strata.stratumRIndexes[row], self.strata.stratumRIndexes[row:,]])
+            self.strata.stratumCompositions = np.hstack([self.strata.stratumCompositions[row], self.strata.stratumCompositions[row:,]])
+            self.strata.stratumThicknesses = np.hstack([self.strata.stratumThicknesses[row], self.strata.stratumThicknesses[row:,]])
+            self.strata.stratumDopings = np.hstack([self.strata.stratumDopings[row], self.strata.stratumDopings[row:,]])
+            self.strata.stratumRIndexes = np.hstack([self.strata.stratumRIndexes[row], self.strata.stratumRIndexes[row:,]])
 
         else:
             self.strata.stratumMaterials.insert(row, self.strata.stratumMaterials[row])
-            self.strata.stratumCompositions = hstack([self.strata.stratumCompositions[0:row], self.strata.stratumCompositions[row], self.strata.stratumCompositions[row:,]])
-            self.strata.stratumThicknesses = hstack([self.strata.stratumThicknesses[0:row], self.strata.stratumThicknesses[row], self.strata.stratumThicknesses[row:,]])
-            self.strata.stratumDopings = hstack([self.strata.stratumDopings[0:row], self.strata.stratumDopings[row], self.strata.stratumDopings[row:,]])
-            self.strata.stratumRIndexes = hstack([self.strata.stratumRIndexes[0:row], self.strata.stratumRIndexes[row], self.strata.stratumRIndexes[row:,]])
+            self.strata.stratumCompositions = np.hstack([self.strata.stratumCompositions[0:row], self.strata.stratumCompositions[row], self.strata.stratumCompositions[row:,]])
+            self.strata.stratumThicknesses = np.hstack([self.strata.stratumThicknesses[0:row], self.strata.stratumThicknesses[row], self.strata.stratumThicknesses[row:,]])
+            self.strata.stratumDopings = np.hstack([self.strata.stratumDopings[0:row], self.strata.stratumDopings[row], self.strata.stratumDopings[row:,]])
+            self.strata.stratumRIndexes = np.hstack([self.strata.stratumRIndexes[0:row], self.strata.stratumRIndexes[row], self.strata.stratumRIndexes[row:,]])
             
 
         self.stratumTable_refresh()
@@ -1282,17 +1283,17 @@ class MainWindow(QMainWindow):
         
         if row == self.strata.stratumDopings.size-1:
             self.strata.stratumMaterials.insert(row, self.strata.stratumMaterials[row])
-            self.strata.stratumCompositions = hstack([self.strata.stratumCompositions[:], self.strata.stratumCompositions[row]])
-            self.strata.stratumThicknesses = hstack([self.strata.stratumThicknesses[:], self.strata.stratumThicknesses[row]])
-            self.strata.stratumDopings = hstack([self.strata.stratumDopings[:], self.strata.stratumDopings[row]])
-            self.strata.stratumRIndexes = hstack([self.strata.stratumRIndexes[:], self.strata.stratumRIndexes[row]])
+            self.strata.stratumCompositions = np.hstack([self.strata.stratumCompositions[:], self.strata.stratumCompositions[row]])
+            self.strata.stratumThicknesses = np.hstack([self.strata.stratumThicknesses[:], self.strata.stratumThicknesses[row]])
+            self.strata.stratumDopings = np.hstack([self.strata.stratumDopings[:], self.strata.stratumDopings[row]])
+            self.strata.stratumRIndexes = np.hstack([self.strata.stratumRIndexes[:], self.strata.stratumRIndexes[row]])
 
         else:
             self.strata.stratumMaterials.insert(row, self.strata.stratumMaterials[row])
-            self.strata.stratumCompositions = hstack([self.strata.stratumCompositions[0:row+1], self.strata.stratumCompositions[row], self.strata.stratumCompositions[row+1:,]])
-            self.strata.stratumThicknesses = hstack([self.strata.stratumThicknesses[0:row+1], self.strata.stratumThicknesses[row], self.strata.stratumThicknesses[row+1:,]])
-            self.strata.stratumDopings = hstack([self.strata.stratumDopings[0:row+1], self.strata.stratumDopings[row], self.strata.stratumDopings[row+1:,]])
-            self.strata.stratumRIndexes = hstack([self.strata.stratumRIndexes[0:row+1], self.strata.stratumRIndexes[row], self.strata.stratumRIndexes[row+1:,]])
+            self.strata.stratumCompositions = np.hstack([self.strata.stratumCompositions[0:row+1], self.strata.stratumCompositions[row], self.strata.stratumCompositions[row+1:,]])
+            self.strata.stratumThicknesses = np.hstack([self.strata.stratumThicknesses[0:row+1], self.strata.stratumThicknesses[row], self.strata.stratumThicknesses[row+1:,]])
+            self.strata.stratumDopings = np.hstack([self.strata.stratumDopings[0:row+1], self.strata.stratumDopings[row], self.strata.stratumDopings[row+1:,]])
+            self.strata.stratumRIndexes = np.hstack([self.strata.stratumRIndexes[0:row+1], self.strata.stratumRIndexes[row], self.strata.stratumRIndexes[row+1:,]])
 
         self.stratumTable_refresh()
         self.stratumTable.selectRow(row+1)
@@ -1311,10 +1312,10 @@ class MainWindow(QMainWindow):
             return
         
         self.strata.stratumMaterials.pop(row)
-        self.strata.stratumThicknesses = hstack([self.strata.stratumCompositions[0:row], self.strata.stratumCompositions[row+1:,]])
-        self.strata.stratumThicknesses = hstack([self.strata.stratumThicknesses[0:row], self.strata.stratumThicknesses[row+1:,]])
-        self.strata.stratumDopings = hstack([self.strata.stratumDopings[0:row], self.strata.stratumDopings[row+1:,]])
-        self.strata.stratumRIndexes = hstack([self.strata.stratumRIndexes[0:row], self.strata.stratumRIndexes[row+1:,]])
+        self.strata.stratumThicknesses = np.hstack([self.strata.stratumCompositions[0:row], self.strata.stratumCompositions[row+1:,]])
+        self.strata.stratumThicknesses = np.hstack([self.strata.stratumThicknesses[0:row], self.strata.stratumThicknesses[row+1:,]])
+        self.strata.stratumDopings = np.hstack([self.strata.stratumDopings[0:row], self.strata.stratumDopings[row+1:,]])
+        self.strata.stratumRIndexes = np.hstack([self.strata.stratumRIndexes[0:row], self.strata.stratumRIndexes[row+1:,]])
 
         #if current row was last row (now deleted)
         if row+1 > self.strata.stratumThicknesses.size:
@@ -1948,8 +1949,7 @@ class MainWindow(QMainWindow):
         
     def layerTable_materialChanged(self, row, selection):
         """SLOT as partial(self.layerTable_materialChanged, q)) connected to 
-        SIGNAL self.materialWidget.currentIndexChanged(int) 
-            """
+        SIGNAL self.materialWidget.currentIndexChanged(int) """
         self.qclayers.layerMaterials[row] = selection+1
         #self.layerTable_refresh()
         self.qclayers.populate_x()
@@ -1975,12 +1975,12 @@ class MainWindow(QMainWindow):
         if row == -1:
             return
         
-        self.qclayers.layerWidths = hstack([self.qclayers.layerWidths[0:row], self.qclayers.layerWidths[row+1:,]])
-        self.qclayers.layerBarriers = hstack([self.qclayers.layerBarriers[0:row], self.qclayers.layerBarriers[row+1:,]])
-        self.qclayers.layerARs = hstack([self.qclayers.layerARs[0:row], self.qclayers.layerARs[row+1:,]])
-        self.qclayers.layerMaterials = hstack([self.qclayers.layerMaterials[0:row], self.qclayers.layerMaterials[row+1:,]])
-        self.qclayers.layerDopings = hstack([self.qclayers.layerDopings[0:row], self.qclayers.layerDopings[row+1:,]])
-        self.qclayers.layerDividers = hstack([self.qclayers.layerDividers[0:row], self.qclayers.layerDividers[row+1:,]])
+        self.qclayers.layerWidths = np.hstack([self.qclayers.layerWidths[0:row], self.qclayers.layerWidths[row+1:,]])
+        self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[0:row], self.qclayers.layerBarriers[row+1:,]])
+        self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[0:row], self.qclayers.layerARs[row+1:,]])
+        self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[0:row], self.qclayers.layerMaterials[row+1:,]])
+        self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[0:row], self.qclayers.layerDopings[row+1:,]])
+        self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[0:row], self.qclayers.layerDividers[row+1:,]])
         
         if row == self.qclayers.layerWidths.size: #if row == last_row
             #make first item the same as last item
@@ -2009,26 +2009,26 @@ class MainWindow(QMainWindow):
             return
         
         if row == 0:
-            self.qclayers.layerWidths = hstack([0, self.qclayers.layerWidths[row:,]])
+            self.qclayers.layerWidths = np.hstack([0, self.qclayers.layerWidths[row:,]])
             if self.qclayers.layerBarriers[row] == 1:
-                self.qclayers.layerBarriers = hstack([0, self.qclayers.layerBarriers[row:,]])
+                self.qclayers.layerBarriers = np.hstack([0, self.qclayers.layerBarriers[row:,]])
             else:
-                self.qclayers.layerBarriers = hstack([1, self.qclayers.layerBarriers[row:,]])
-            self.qclayers.layerARs = hstack([self.qclayers.layerARs[row], self.qclayers.layerARs[row:,]])
-            self.qclayers.layerMaterials = hstack([self.qclayers.layerMaterials[row], self.qclayers.layerMaterials[row:,]])
-            self.qclayers.layerDopings = hstack([self.qclayers.layerDopings[row], self.qclayers.layerDopings[row:,]])
-            self.qclayers.layerDividers = hstack([self.qclayers.layerDividers[row], self.qclayers.layerDividers[row:,]])
+                self.qclayers.layerBarriers = np.hstack([1, self.qclayers.layerBarriers[row:,]])
+            self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[row], self.qclayers.layerARs[row:,]])
+            self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[row], self.qclayers.layerMaterials[row:,]])
+            self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[row], self.qclayers.layerDopings[row:,]])
+            self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[row], self.qclayers.layerDividers[row:,]])
 
         else:
-            self.qclayers.layerWidths = hstack([self.qclayers.layerWidths[0:row], 0, self.qclayers.layerWidths[row:,]])
+            self.qclayers.layerWidths = np.hstack([self.qclayers.layerWidths[0:row], 0, self.qclayers.layerWidths[row:,]])
             if self.qclayers.layerBarriers[row] == 1:
-                self.qclayers.layerBarriers = hstack([self.qclayers.layerBarriers[0:row], 0, self.qclayers.layerBarriers[row:,]])
+                self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[0:row], 0, self.qclayers.layerBarriers[row:,]])
             else:
-                self.qclayers.layerBarriers = hstack([self.qclayers.layerBarriers[0:row], 1, self.qclayers.layerBarriers[row:,]])
-            self.qclayers.layerARs = hstack([self.qclayers.layerARs[0:row], self.qclayers.layerARs[row], self.qclayers.layerARs[row:,]])
-            self.qclayers.layerMaterials = hstack([self.qclayers.layerMaterials[0:row], self.qclayers.layerMaterials[row], self.qclayers.layerMaterials[row:,]])
-            self.qclayers.layerDopings = hstack([self.qclayers.layerDopings[0:row], self.qclayers.layerDopings[row], self.qclayers.layerDopings[row:,]])
-            self.qclayers.layerDividers = hstack([self.qclayers.layerDividers[0:row], self.qclayers.layerDividers[row], self.qclayers.layerDividers[row:,]])
+                self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[0:row], 1, self.qclayers.layerBarriers[row:,]])
+            self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[0:row], self.qclayers.layerARs[row], self.qclayers.layerARs[row:,]])
+            self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[0:row], self.qclayers.layerMaterials[row], self.qclayers.layerMaterials[row:,]])
+            self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[0:row], self.qclayers.layerDopings[row], self.qclayers.layerDopings[row:,]])
+            self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[0:row], self.qclayers.layerDividers[row], self.qclayers.layerDividers[row:,]])
 
         self.update_Lp_limits()
         self.update_Lp_box()
@@ -3067,12 +3067,12 @@ class MainWindow(QMainWindow):
 #===============================================================================
 
     def bump_first_layer(self):
-        self.qclayers.layerWidths = hstack([self.qclayers.layerWidths[-1], self.qclayers.layerWidths])
-        self.qclayers.layerBarriers = hstack([self.qclayers.layerBarriers[-1], self.qclayers.layerBarriers])
-        self.qclayers.layerARs = hstack([self.qclayers.layerARs[-1], self.qclayers.layerARs])
-        self.qclayers.layerMaterials = hstack([self.qclayers.layerMaterials[-1], self.qclayers.layerMaterials])
-        self.qclayers.layerDopings = hstack([self.qclayers.layerDopings[-1], self.qclayers.layerDopings])
-        self.qclayers.layerDividers = hstack([self.qclayers.layerDividers[-1], self.qclayers.layerDividers])
+        self.qclayers.layerWidths = np.hstack([self.qclayers.layerWidths[-1], self.qclayers.layerWidths])
+        self.qclayers.layerBarriers = np.hstack([self.qclayers.layerBarriers[-1], self.qclayers.layerBarriers])
+        self.qclayers.layerARs = np.hstack([self.qclayers.layerARs[-1], self.qclayers.layerARs])
+        self.qclayers.layerMaterials = np.hstack([self.qclayers.layerMaterials[-1], self.qclayers.layerMaterials])
+        self.qclayers.layerDopings = np.hstack([self.qclayers.layerDopings[-1], self.qclayers.layerDopings])
+        self.qclayers.layerDividers = np.hstack([self.qclayers.layerDividers[-1], self.qclayers.layerDividers])
     
         self.update_inputBoxes()
         self.layerTable_refresh()
