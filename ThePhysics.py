@@ -20,7 +20,6 @@
 #===============================================================================
 
 from __future__ import division
-# TODO: clear working space name for numpy
 #  from numpy import *
 import numpy as np
 from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
@@ -64,6 +63,8 @@ c0 = 299792458;
 #===============================================================================
 
 def zero_find(xVals, yVals):
+    """To find zero points for function y(x) using iterpolation
+    """
     tck = interpolate.splrep(xVals.real,yVals.real)
     #  print "------debug------ Here zero_find is called"
     return interpolate.sproot(tck, mest=len(xVals))
@@ -101,6 +102,8 @@ def zero_find(xVals, yVals):
     
 
 class Strata(object):
+    """Strata property for optical mode solver
+    """
     def __init__(self):
         self.stratumMaterials = ['InP']
         self.stratumCompositions = np.array([0.])
@@ -112,20 +115,23 @@ class Strata(object):
         self.Lp = 1
         self.Np = 1
 
-        # alpha defined in [1], Sec 36.3, (10), measured in cm-1
+        # aCore is the alpha defined in [1], Sec 36.3, (10), measured in cm-1
+        # representing decay rate in the material.. wl independent?
         self.aCore = 0 # = 4\pi k /\lambda
         self.nCore = 4 # index of the active core?
-        self.nD = 0
+        self.nD = 0    # ?not used
         
         self.tauUpper = 0.0
         self.tauLower = 0.0
         self.tauUpperLower = 1.0e-3
         self.opticalDipole = 0.0
-        self.FoM = 0.0
-        self.transitionBroadening = 1.0e-5
-        self.waveguideFacets = 'as-cleaved + as-cleaved'
-        self.customFacet = 0.0
-        self.waveguideLength = 3.0
+        self.FoM = 0.0 # ?
+        self.transitionBroadening = 1.0e-5 # eV
+        self.waveguideFacets = 'as-cleaved + as-cleaved'  
+        # can be combination of "as-cleaved", "perfect HR", "perfect AR",
+        # "custom coating"
+        self.customFacet = 0.0  
+        self.waveguideLength = 3.0 #unit?
         
         self.frontFacet = 0
         self.backFacet = 0
@@ -544,12 +550,22 @@ class Strata(object):
        
 
 class QCLayers(object):
+    """Class for QCLayers
+    Member variables: 
+        parameters for each layer, np.array type, with len = No. of layers: 
+            layerWidths -width of each layer
+            layerBarriers -boolean(TBD), if the layer is barrier or not
+            layerARs -boolean(TBD), if the layer is active region or not
+            layerMaterials -int(TBD), label of material, depending on
+                        substrate, the material is defined in erwinjr.pyw
+            layerDopings -Doping per volumn in unit 1e17 cm-3
+    """
     def __init__(self):
-        self.layerWidths = np.array([1.,1.])
+        self.layerWidths = np.array([1.,1.]) # angstrom
         self.layerBarriers = np.array([0,0])
         self.layerARs = np.array([0,0])
         self.layerMaterials = np.array([1,1])
-        self.layerDopings = np.array([0.,0.])
+        self.layerDopings = np.array([0.,0.]) #1e17 cm-3
         self.layerDividers = np.array([0,0])
         
         self.xres = 0.5
@@ -590,15 +606,17 @@ class QCLayers(object):
                 with len = # of layers and each value repr. a layer
         Position data: xPoints 
                            position grid
-                       xBarriers: from layerBarriers
-                           ?looks like binary material composition 
-                       xARs
-                       xMaterials: from layerMaterials
-                           ?label/index of material
-                       xDopings
+                       xBarriers: from layerBarriers, is barrier layer
+                            should be boolean (TBD)
+                       xARs: from layerARs, is active region
+                            should be boolean (TBD)
+                       xMaterials: from layerMaterials label/index of material
+                            should be int starting from 0 (TBD)
+                       xDopings: from layerDopings, doping per volumn
                        xLayerNums 
                            at xPoints[q] it's xLayerNums[q]-th layer"""
         #  print "-----debug----- QCLayers populate_x called"
+        #  print self.layerBarriers
         #use rounding to work with selected resolution
         self.layerNum = np.round(self.layerWidths /
                 self.xres).astype(np.int64)
@@ -822,6 +840,7 @@ class QCLayers(object):
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
             (0,1)*4)): 
+            #? what's MLThickness???
             self.MLThickness[np.nonzero( 
                   (self.layerMaterials == MLabel) 
                 & (self.layerBarriers == BLabel)
