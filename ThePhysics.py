@@ -561,9 +561,12 @@ class QCLayers(object):
             layerDopings -Doping per volumn in unit 1e17 cm-3
             layerDividers -???
         xres: position resolution, in angstrom
+        vertRes: vertical/energy resolution, in meV
         EField: external (static) electrical field, in kV/cm
         layerSelected: (for GUI) a label which layer is selected in GUI, 
                         with default -1 indicating non selected.
+        Temperature: Temperature of the device, affecting material property
+                      seems not used
     """
     def __init__(self):
         self.layerWidths = np.array([1.,1.]) # angstrom
@@ -576,14 +579,14 @@ class QCLayers(object):
         self.xres = 0.5 # angstrom
         self.EField = 0 # kV/cm = 1e5 V/m
         self.layerSelected = -1 # int
-        self.vertRes = 0.5 # vertical/energy resolution, meV
+        self.vertRes = 0.5 # meV
         self.repeats = 1
         
         self.description = ""
-        self.solver = "SolverH"
+        self.solver = "SolverH" #?
         self.Temperature = 300
-        self.TempFoM = 300
-        self.diffLength = 0
+        self.TempFoM = 300 #?
+        self.diffLength = 0 #?
         self.basisARInjector = True
         self.basisInjectorAR = True
         self.designByAngs = True
@@ -1008,6 +1011,7 @@ class QCLayers(object):
         self.EigenE = np.zeros(idxs.size)
 
         if True:
+            # use inverse quadratic to get an approximation of zeros
             cFunctions.inv_quadratic_interp(xnew.ctypes.data_as(c_void_p), 
                     ynew.ctypes.data_as(c_void_p), 
                     idxs.ctypes.data_as(c_void_p), 
@@ -1027,10 +1031,15 @@ class QCLayers(object):
 #                    self.EigenE[q] = 0
 
         if True:
+            # Near the above approximation result, 
+            # try to get a more precise result
             for q in xrange(self.EigenE.size):
-                x0=self.EigenE[q]-self.vertRes/100000
+                # 100000 is an estimate for the precision of above
+                # approximation
+                approxwidth = self.vertRes/100000
+                x0=self.EigenE[q]-approxwidth 
                 x1=self.EigenE[q]
-                x2=self.EigenE[q]+self.vertRes/100000
+                x2=self.EigenE[q]+approxwidth
                 
                 cFunctions.psiFn(c_double(x0), int(1), int(xPsi.size), 
                         c_double(self.xres), 
@@ -1367,9 +1376,11 @@ def coupling_energy(data, dCL, upper, lower):
         psi_j = data.xyPsi[:,upper]
 
     DeltaV = np.ones(data.xPointsPost.size)
-    first = dCL[int(module_i)].widthOffset/data.xres
-    last = first + dCL[int(module_i)].xBarriers[100/data.xres:].size
-    DeltaV[first:last] = dCL[int(module_i)].xBarriers[100/data.xres:]
+    first = int(dCL[int(module_i)].widthOffset/data.xres)
+    last = first + dCL[int(module_i)].xBarriers[int(100/data.xres):].size
+    #  print "---debug--- coupling_energy"
+    #  print first,last
+    DeltaV[first:last] = dCL[int(module_i)].xBarriers[int(100/data.xres):]
     DeltaV = 1 - DeltaV
     couplingEnergy = sum(psi_i * DeltaV * psi_j) * data.xres*1e-10 \
             * abs(data.EcG[1] - data.EcG[0]) * 1000 #* (1-data.xBarriers)
