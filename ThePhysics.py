@@ -1349,8 +1349,8 @@ def dipole(data, upper, lower):
     xMcE_j = data.xMc * (1 - (data.xVc - E_j) / data.xEg)
     xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
     psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
-    z = sum(psi_i_avg * diff(psi_j/xMcE_i) 
-            + 1/xMcE_j_avg * (psi_i_avg * diff(psi_j)))
+    z = sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
+            + 1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
     z *= hbar**2/(2*(E_i-E_j)*e0) * 1e10/m0
     return z
 
