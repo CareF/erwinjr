@@ -3091,10 +3091,10 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()
 
     def set_temperature(self):
-        nowTemp = ThePhysics.c.Temperature
+        nowTemp = ThePhysics.cst.Temperature
         newTemp, buttonResponse = QInputDialog.getDouble(self, 'ErwinJr Input Dialog', 'Set Temperature', value=nowTemp, min=0)
         if buttonResponse:
-            ThePhysics.c.set_temperature(newTemp)
+            ThePhysics.cst.set_temperature(newTemp)
             self.qclayers.Temperature = newTemp
             self.qclayers.populate_x()
             self.qclayers.populate_x_full()
