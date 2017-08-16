@@ -559,19 +559,24 @@ class QCLayers(object):
             layerMaterials -int(TBD), label of material, depending on
                         substrate, the material is defined in erwinjr.pyw
             layerDopings -Doping per volumn in unit 1e17 cm-3
+            layerDividers -???
+        xres: position resolution, in angstrom
+        EField: external (static) electrical field, in kV/cm
+        layerSelected: (for GUI) a label which layer is selected in GUI, 
+                        with default -1 indicating non selected.
     """
     def __init__(self):
         self.layerWidths = np.array([1.,1.]) # angstrom
-        self.layerBarriers = np.array([0,0])
-        self.layerARs = np.array([0,0])
-        self.layerMaterials = np.array([1,1])
+        self.layerBarriers = np.array([0,0]) # boolean
+        self.layerARs = np.array([0,0])      # boolean
+        self.layerMaterials = np.array([1,1]) #label
         self.layerDopings = np.array([0.,0.]) #1e17 cm-3
         self.layerDividers = np.array([0,0])
         
-        self.xres = 0.5
-        self.EField = 0
-        self.layerSelected = -1
-        self.vertRes = 0.5
+        self.xres = 0.5 # angstrom
+        self.EField = 0 # kV/cm = 1e5 V/m
+        self.layerSelected = -1 # int
+        self.vertRes = 0.5 # vertical/energy resolution, meV
         self.repeats = 1
         
         self.description = ""
@@ -585,14 +590,14 @@ class QCLayers(object):
         self.designByML = False
         self.substrate = 'InP'
         
-        self.moleFrac1 = 0.53
-        self.moleFrac2 = 0.52
-        self.moleFrac3 = 0.53
-        self.moleFrac4 = 0.52
-        self.moleFrac5 = 0.53
-        self.moleFrac6 = 0.52
-        self.moleFrac7 = 0.53
-        self.moleFrac8 = 0.52
+        #  self.moleFrac1 = 0.53
+        #  self.moleFrac2 = 0.52
+        #  self.moleFrac3 = 0.53
+        #  self.moleFrac4 = 0.52
+        #  self.moleFrac5 = 0.53
+        #  self.moleFrac6 = 0.52
+        #  self.moleFrac7 = 0.53
+        #  self.moleFrac8 = 0.52
         self.moleFrac = [0.53, 0.52, 0.53, 0.52, 0.53, 0.52, 0.53, 0.52]
         
         self.update_alloys()
@@ -936,7 +941,10 @@ class QCLayers(object):
         # self.me4 = self.EgAV / self.Ep;
 
     def solve_psi(self):
-        Epoints = np.arange(min(self.xVc),max(self.xVc-115*self.EField*1e-5),self.vertRes/1000)
+        Epoints = np.arange(min(self.xVc),
+                max(self.xVc-115*self.EField*1e-5),
+                self.vertRes/1000)
+        # 115?
         xMcE = np.zeros(self.xPoints.shape)
         xPsi = np.zeros(self.xPoints.shape)
         psiEnd = np.zeros(Epoints.size)
@@ -1060,64 +1068,9 @@ class QCLayers(object):
                         xPsi.ctypes.data_as(c_void_p))
                 fx2 = xPsi[-1]
                 
-                #psiFn(double Eq, int startpoint, int xPsiSize, double xres, double *xVc, double *xEg, 
-                #      double *xF, double *xEp, double *xESO, double *xMc, double *xMcE, double *xPsi)
-                
-               
-                d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1);
-                #inverse quadratic interpolation
-                x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
-                        + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
-                        + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
-                self.EigenE[q] = x3
-                
-                
-        if False:
-            for q in xrange(self.EigenE.size):
-                x0=self.EigenE[q]-self.vertRes/1000000
-                x1=self.EigenE[q]
-                x2=self.EigenE[q]+self.vertRes/1000000
-                
-                cFunctions.psiFn(c_double(x0), int(1), int(xPsi.size), 
-                        c_double(self.xres), 
-                        self.xVc.ctypes.data_as(c_void_p), 
-                        self.xEg.ctypes.data_as(c_void_p), 
-                        self.xF.ctypes.data_as(c_void_p), 
-                        self.xEp.ctypes.data_as(c_void_p), 
-                        self.xESO.ctypes.data_as(c_void_p), 
-                        self.xMc.ctypes.data_as(c_void_p), 
-                        xMcE.ctypes.data_as(c_void_p), 
-                        xPsi.ctypes.data_as(c_void_p))
-                fx0 = xPsi[-1]
-                
-                cFunctions.psiFn(c_double(x1), int(1), int(xPsi.size), 
-                        c_double(self.xres), 
-                        self.xVc.ctypes.data_as(c_void_p), 
-                        self.xEg.ctypes.data_as(c_void_p), 
-                        self.xF.ctypes.data_as(c_void_p), 
-                        self.xEp.ctypes.data_as(c_void_p), 
-                        self.xESO.ctypes.data_as(c_void_p), 
-                        self.xMc.ctypes.data_as(c_void_p), 
-                        xMcE.ctypes.data_as(c_void_p), 
-                        xPsi.ctypes.data_as(c_void_p))
-                fx1 = xPsi[-1]
-                
-                cFunctions.psiFn(c_double(x2), int(1), int(xPsi.size), 
-                        c_double(self.xres), 
-                        self.xVc.ctypes.data_as(c_void_p), 
-                        self.xEg.ctypes.data_as(c_void_p), 
-                        self.xF.ctypes.data_as(c_void_p), 
-                        self.xEp.ctypes.data_as(c_void_p), 
-                        self.xESO.ctypes.data_as(c_void_p), 
-                        self.xMc.ctypes.data_as(c_void_p), 
-                        xMcE.ctypes.data_as(c_void_p), 
-                        xPsi.ctypes.data_as(c_void_p))
-                fx2 = xPsi[-1]
-                
-                #psiFn(double Eq, int startpoint, int xPsiSize, 
-                #      double xres, double *xVc, double *xEg, 
-                #      double *xF, double *xEp, double *xESO, double *xMc, 
-                #      double *xMcE, double *xPsi)
+                #  psiFn(double Eq, int startpoint, int xPsiSize, double xres, 
+                        #  double *xVc, double *xEg, double *xF, double *xEp, 
+                        #  double *xESO, double *xMc, double *xMcE, double *xPsi)
                 
                
                 d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1);
@@ -1413,7 +1366,7 @@ def coupling_energy(data, dCL, upper, lower):
         psi_i = data.xyPsi[:,lower]
         psi_j = data.xyPsi[:,upper]
 
-    DeltaV = ones(data.xPointsPost.size)
+    DeltaV = np.ones(data.xPointsPost.size)
     first = dCL[int(module_i)].widthOffset/data.xres
     last = first + dCL[int(module_i)].xBarriers[100/data.xres:].size
     DeltaV[first:last] = dCL[int(module_i)].xBarriers[100/data.xres:]
@@ -1430,7 +1383,7 @@ def broadening_energy(data, upper, lower):
     psi_i = data.xyPsi[:,upper]
     psi_j = data.xyPsi[:,lower]
     
-    transitions = bitwise_xor(data.xBarriers[0:-1].astype(bool),
+    transitions = np.bitwise_xor(data.xBarriers[0:-1].astype(bool),
             data.xBarriers[1:].astype(bool))
     transitionIdxs = np.nonzero(transitions == True)[0]# + int(100/data.xres)
     psi2int2 = sum((psi_i[transitionIdxs]**2-psi_j[transitionIdxs]**2)**2)

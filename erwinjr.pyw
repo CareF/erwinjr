@@ -2944,10 +2944,13 @@ class MainWindow(QMainWindow):
         
         filehandle.write("# QC layers #\n")
         for row in xrange(self.qclayers.layerWidths.size):
-            string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, self.qclayers.layerWidths[row], 
-                      self.qclayers.layerBarriers[row], self.qclayers.layerARs[row], 
-                      self.qclayers.layerMaterials[row], self.qclayers.layerDopings[row], 
-                      self.qclayers.layerDividers[row])
+            string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, 
+                    self.qclayers.layerWidths[row], 
+                    self.qclayers.layerBarriers[row], 
+                    self.qclayers.layerARs[row], 
+                    self.qclayers.layerMaterials[row], 
+                    self.qclayers.layerDopings[row], 
+                    self.qclayers.layerDividers[row])
             filehandle.write(string)
             
         filehandle.write("# Optical strata #\n")
@@ -2978,10 +2981,13 @@ class MainWindow(QMainWindow):
         
         filehandle.write("regionNum\twellWdiths\tbarrierSwitch\tarSwitch\tmaterial\tdoping\tdivider\n")
         for row in xrange(self.qclayers.layerWidths.size):
-            string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, self.qclayers.layerWidths[row], 
-                      self.qclayers.layerBarriers[row], self.qclayers.layerARs[row], 
-                      self.qclayers.layerMaterials[row], self.qclayers.layerDopings[row], 
-                      self.qclayers.layerDividers[row])
+            string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, 
+                    self.qclayers.layerWidths[row], 
+                    self.qclayers.layerBarriers[row], 
+                    self.qclayers.layerARs[row], 
+                    self.qclayers.layerMaterials[row], 
+                    self.qclayers.layerDopings[row], 
+                    self.qclayers.layerDividers[row])
             filehandle.write(string)
             
         filehandle.close()
