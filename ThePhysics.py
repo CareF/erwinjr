@@ -44,18 +44,20 @@ try:
 except WindowsError:
     cFunctions=CDLL('cFunctions.dll')
 
-
+USE_CLIB = True
 
 #===============================================================================
 # Global Variables
 #===============================================================================
-e0 = 1.60217653e-19;  #electron charge
-eps0 = 8.854187e-12;
-m0 = 9.10938188e-31;   #free electron mass (kg)
-h = 6.6260693e-34;
-hbar = 6.6260693e-34/(2*pi); #Planck's constant (J s)
-kb = 1.386505e-23 / e0; #eV/K
-c0 = 299792458;
+e0 = 1.60217653e-19  #electron charge
+eps0 = 8.854187e-12
+m0 = 9.10938188e-31   #free electron mass (kg)
+h = 6.6260693e-34
+hbar = 6.6260693e-34/(2*pi) #Planck's constant (J s)
+kb = 1.386505e-23 / e0 #eV/K
+c0 = 299792458
+ANG = 1e-10 # angstrom to meter
+KVpCM = 1e5 # KV/cm to V/m
 
 #===============================================================================
 # Reference
@@ -553,20 +555,23 @@ class QCLayers(object):
     """Class for QCLayers
     Member variables: 
         parameters for each layer, np.array type, with len = No. of layers: 
-            layerWidths -width of each layer
+            layerWidths -float in angstrom, width of each layer
             layerBarriers -boolean(TBD), if the layer is barrier or not
             layerARs -boolean(TBD), if the layer is active region or not
+                      only affect basis solver (negelet some coupling
             layerMaterials -int(TBD), label of material, depending on
                         substrate, the material is defined in erwinjr.pyw
             layerDopings -Doping per volumn in unit 1e17 cm-3
             layerDividers -???
         xres: position resolution, in angstrom
         vertRes: vertical/energy resolution, in meV
-        EField: external (static) electrical field, in kV/cm
+        EField: external (static) electrical field, in kV/cm = 1e5 V/m
         layerSelected: (for GUI) a label which layer is selected in GUI, 
                         with default -1 indicating non selected.
         Temperature: Temperature of the device, affecting material property
                       seems not used
+        substrate: The substrate material for the device, which determined
+                      the well and barrier material
     """
     def __init__(self):
         self.layerWidths = np.array([1.,1.]) # angstrom
@@ -585,12 +590,12 @@ class QCLayers(object):
         self.description = ""
         self.solver = "SolverH" #?
         self.Temperature = 300
-        self.TempFoM = 300 #?
-        self.diffLength = 0 #?
+        self.TempFoM = 300 # ?
+        self.diffLength = 0 # ?
         self.basisARInjector = True
         self.basisInjectorAR = True
-        self.designByAngs = True
-        self.designByML = False
+        #  self.designByAngs = True
+        #  self.designByML = False
         self.substrate = 'InP'
         
         #  self.moleFrac1 = 0.53
@@ -631,9 +636,9 @@ class QCLayers(object):
         self.layerWidths = self.layerNum * self.xres
         
         #convert to int to prevent machine rounding errors
-        self.xPoints = self.xres * np.arange(0, self.layerNum.sum(), 1)
+        self.xPoints = self.xres * np.arange(0, self.layerNum.sum())
         
-        layerWidthsCumSum = np.concatenate([[0.],self.layerWidths.cumsum()])
+        #  layerWidthsCumSum = np.concatenate([[0.],self.layerWidths.cumsum()])
         layerNumCumSum = np.concatenate( ([0], self.layerNum.cumsum()) )
         self.xBarriers = np.zeros(self.xPoints.shape)
         self.xARs = np.zeros(self.xPoints.shape)
@@ -687,22 +692,18 @@ class QCLayers(object):
         for MLabel in range(1,5):
             indx = np.nonzero(self.xMaterials == MLabel)[0]
             if indx.size != 0:
-                # TODO: bowing parameters?
-                self.xVc[indx]  = self.EcG[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.EcG[(MLabel-1)*2]*(1-self.xBarriers[indx]) \
-                        - self.xPoints[indx] * self.EField * 1e-5
-                self.xVX[indx]  = self.EcX[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.EcX[(MLabel-1)*2]*(1-self.xBarriers[indx]) \
-                        - self.xPoints[indx] * self.EField * 1e-5
-                self.xVL[indx]  = self.EcL[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.EcL[(MLabel-1)*2]*(1-self.xBarriers[indx]) \
-                        - self.xPoints[indx] * self.EField * 1e-5
-                self.xVLH[indx] = self.EvLH[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.EvLH[(MLabel-1)*2]*(1-self.xBarriers[indx]) \
-                        - self.xPoints[indx] * self.EField * 1e-5
-                self.xVSO[indx] = self.EvSO[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.EvSO[(MLabel-1)*2]*(1-self.xBarriers[indx]) \
-                        - self.xPoints[indx] * self.EField * 1e-5
+                material = np.where(self.xBarriers[indx] == 1, 
+                        MLabel*2-1, (MLabel-1)*2)
+                self.xVc[indx]  = self.EcG[material] \
+                        - self.xPoints[indx] * ANG * self.EField * KVpCM
+                self.xVX[indx]  = self.EcX[material] \
+                        - self.xPoints[indx] * ANG * self.EField * KVpCM
+                self.xVL[indx]  = self.EcL[material] \
+                        - self.xPoints[indx] * ANG * self.EField * KVpCM
+                self.xVLH[indx] = self.EvLH[material] \
+                        - self.xPoints[indx] * ANG * self.EField * KVpCM
+                self.xVSO[indx] = self.EvSO[material] \
+                        - self.xPoints[indx] * ANG * self.EField * KVpCM
             
         #  self.xVc = self.xBarriers * 0.520 - self.xPoints * self.EField * 1e-5
         
@@ -747,17 +748,13 @@ class QCLayers(object):
         for MLabel in range(1,5):
             indx = np.nonzero(self.xMaterials == MLabel)[0]
             if indx.size !=0 :
-                # TODO: bowing parameters?
-                self.xEg[indx] = self.EgLH[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.EgLH[(MLabel-1)*2]*(1-self.xBarriers[indx])
-                self.xMc[indx] = self.me[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.me[(MLabel-1)*2]*(1-self.xBarriers[indx])
-                self.xESO[indx]= self.ESO[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.ESO[(MLabel-1)*2]*(1-self.xBarriers[indx])
-                self.xEp[indx] = self.Ep[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.Ep[(MLabel-1)*2]*(1-self.xBarriers[indx])
-                self.xF[indx]  = self.F[MLabel*2-1]*self.xBarriers[indx] \
-                        + self.F[(MLabel-1)*2]*(1-self.xBarriers[indx])
+                material = np.where(self.xBarriers[indx] == 1, 
+                        MLabel*2-1, (MLabel-1)*2)
+                self.xEg[indx] = self.EgLH[material]
+                self.xMc[indx] = self.me[material]
+                self.xESO[indx]= self.ESO[material]
+                self.xEp[indx] = self.Ep[material]
+                self.xF[indx]  = self.F[material]
         #  self.xMc = self.xMc #??????
 
     def update_alloys(self):  # c is a Material_Constant class instance
@@ -944,17 +941,19 @@ class QCLayers(object):
         # self.me4 = self.EgAV / self.Ep;
 
     def solve_psi(self):
+        """ solve eigen mode
+        TBD 08/16
+        """
         Epoints = np.arange(min(self.xVc),
-                max(self.xVc-115*self.EField*1e-5),
+                max(self.xVc-115*self.EField*1e-5), #?115e-5?
                 self.vertRes/1000)
-        # 115?
         xMcE = np.zeros(self.xPoints.shape)
         xPsi = np.zeros(self.xPoints.shape)
         psiEnd = np.zeros(Epoints.size)
         
         #TODO: add adaptive spacing for Eq
         #TODO: convert nested for loop to C
-        if True:
+        if USE_CLIB:
             cFunctions.psiFnEnd(Epoints.ctypes.data_as(c_void_p), 
                     int(Epoints.size), int(xPsi.size), 
                     c_double(self.xres), c_double(self.EField), 
@@ -967,8 +966,9 @@ class QCLayers(object):
                     xMcE.ctypes.data_as(c_void_p), 
                     xPsi.ctypes.data_as(c_void_p), 
                     psiEnd.ctypes.data_as(c_void_p))
-            #psiFnEnd(double *eEq, int eEqSize, int xPsiSize, double xres, double *xVc, double *xEg, 
-            #  double *xF, double *xEp, double *xESO, double *xMcE, double *xPsi, double *xPsiEnd)
+            #  psiFnEnd(double *eEq, int eEqSize, int xPsiSize, double xres,
+                    #  double *xVc, double *xEg, double *xF, double *xEp, double
+                    #  *xESO, double *xMcE, double *xPsi, double *xPsiEnd) 
             # my_sum.sum(a.ctypes.data_as(c_void_p), int(10))
         else:
             for p, Eq in enumerate(Epoints):
@@ -1010,7 +1010,7 @@ class QCLayers(object):
         idxs = idxs.astype(float) 
         self.EigenE = np.zeros(idxs.size)
 
-        if True:
+        if USE_CLIB:
             # use inverse quadratic to get an approximation of zeros
             cFunctions.inv_quadratic_interp(xnew.ctypes.data_as(c_void_p), 
                     ynew.ctypes.data_as(c_void_p), 
@@ -1090,7 +1090,7 @@ class QCLayers(object):
                 self.EigenE[q] = x3
 
         #make array for Psi and fill it in
-        if True:
+        if USE_CLIB:
             self.xyPsi = np.zeros(self.xPoints.size*self.EigenE.size)
             cFunctions.psiFill(int(xPsi.size), c_double(self.xres),
                                int(self.EigenE.size), 
@@ -1165,13 +1165,25 @@ class QCLayers(object):
 
 
 def basisSolve(data):
+    """ solve basis for the QC device, with each basis being eigen mode of 
+    a seperate part of the layer structure
+    INPUT: 
+        data: a QCLayers class
+    OUTPUT: 
+        dCL: a list, each element is a QCLayers class, with layer structure 
+              limited within a seperate sigle active/injection area
+    """
+    #TODO: move to QCLayers.. should be a member method
     #self.data.basisInjectorAR is 0-to-1
     #self.data.basisARInjector is 1-to-0
         
     #find all 0-to-1 & 1-to-0 transitions
+    # where for all n, 
+    # data.layerARs[zeroTOone[n]] = data.layerARs[oneTOzero[n]] = 0
+    # but data.layerARs[zeroTOone[n]+1] = data.layerARs[oneTOzero[n]-1] = 1
     zeroTOone = []
     oneTOzero = []
-    layerAR = np.hstack([data.layerARs[-1], data.layerARs])
+    layerAR = np.insert(data.layerARs, 0, data.layerARs[-1])
     for q in xrange(0,layerAR.size-1):
         if layerAR[q] == 0 and layerAR[q+1] == 1:
             zeroTOone.append(q-1)
@@ -1189,9 +1201,8 @@ def basisSolve(data):
     dividers.sort()
     
     #the first region is always the "wrap around" region
-    layers = []
-    for q in xrange(len(dividers)-1):
-        layers.append(range(dividers[q],dividers[q+1]+1))
+    #  layers = [range(dividers[q], dividers[q+1]+1) for q in
+            #  range(len(dividers)-1)]
     
     #this is dataClassesList. 
     # it holds all of the Data classes for each individual solve section
@@ -1199,18 +1210,19 @@ def basisSolve(data):
 
     #for first period only
     #this handles all of the solving        
-    for n in xrange(len(layers)):
+    for n in range(len(dividers)-1):
         dCL.append(copy.deepcopy(data))
         dCL[n].repeats = 1
         
         #substitute proper layer characteristics into dCL[n]
-        dCL[n].layerWidths = np.hstack([100, data.layerWidths[layers[n]], 30])
-        dCL[n].layerBarriers = np.hstack([1, data.layerBarriers[layers[n]], 1])
-        dCL[n].layerARs = np.hstack([0, data.layerARs[layers[n]], 0])
-        dCL[n].layerMaterials = np.hstack([data.layerMaterials[layers[n]][0], 
-            data.layerMaterials[layers[n]], data.layerMaterials[layers[n]][-1]])
-        dCL[n].layerDopings = np.hstack([0, data.layerDopings[layers[n]], 0])
-        dCL[n].layerDividers = np.hstack([0, data.layerDividers[layers[n]], 0])
+        layer = range(dividers[n], dividers[n+1]+1)
+        dCL[n].layerWidths = np.hstack([100, data.layerWidths[layer], 30])
+        dCL[n].layerBarriers = np.hstack([1, data.layerBarriers[layer], 1])
+        dCL[n].layerARs = np.hstack([0, data.layerARs[layer], 0])
+        dCL[n].layerMaterials = np.hstack([data.layerMaterials[layer][0], 
+            data.layerMaterials[layer], data.layerMaterials[layer][-1]])
+        dCL[n].layerDopings = np.hstack([0, data.layerDopings[layer], 0])
+        dCL[n].layerDividers = np.hstack([0, data.layerDividers[layer], 0])
        
         #update and solve
         dCL[n].update_alloys()
@@ -1221,7 +1233,8 @@ def basisSolve(data):
         
         #caculate offsets
         dCL[n].widthOffset = sum(data.layerWidths[range(0,dividers[n])]) #- 100/data.xres
-        dCL[n].fieldOffset = -(dCL[n].widthOffset-100) * dCL[n].EField * 1e-5            
+        dCL[n].fieldOffset = -(dCL[n].widthOffset-100) * ANG \
+                * dCL[n].EField * KVpCM            
     
     solvePeriods = len(dCL)
     
@@ -1233,39 +1246,45 @@ def basisSolve(data):
                 dCL.append(copy.deepcopy(dCL[p]))
                 dCL[counter].widthOffset = sum(data.layerWidths[1:])*q \
                         + dCL[p].widthOffset #- 100/data.xres
-                dCL[counter].fieldOffset = -(dCL[counter].widthOffset-100) \
-                        * dCL[counter].EField * 1e-5
+                dCL[counter].fieldOffset = -(dCL[counter].widthOffset-100)*ANG \
+                        * dCL[counter].EField * KVpCM
                 counter += 1
     return dCL
 
 def convert_dCL_to_data(data, dCL):
+    """ post processng of dCL list
+    INPUT: 
+        data: orginal QCLayers class
+        dCL: result of basisSolve(data)
+    OUPUT:
+        ???? in data
+    """
     #count number of wavefunctions
-    numWFs = 0
-    for q in xrange(len(dCL)):
-        numWFs += dCL[q].EigenE.size
+    numWFs = sum([dC.EigenE.size for dC in dCL])
 
-    #convert to int to prevent machine rounding errors
-    data.xPointsPost = np.arange(-100,data.xPoints[-1]+30+data.xres,data.xres)
+    data.xPointsPost = np.arange(-100, 
+            data.xPoints[-1] + 30 + data.xres, 
+            data.xres)
 
-    data.xyPsi = np.zeros([data.xPointsPost.size, numWFs])
-    data.xyPsiPsi = np.NaN*np.zeros([data.xPointsPost.size, numWFs])
+    data.xyPsi = np.zeros((data.xPointsPost.size, numWFs))
+    data.xyPsiPsi = np.NaN*np.zeros(data.xyPsi.shape)
     data.EigenE = np.zeros(numWFs)
     data.moduleID = np.zeros(numWFs)
     counter = 0
-    for n in xrange(len(dCL)):
-        for q in xrange(dCL[n].EigenE.size):
+    for n, dC in enumerate(dCL):
+        for q in xrange(dC.EigenE.size):
             wf = np.NaN*np.zeros(data.xPointsPost.size)
-            begin = int(dCL[n].widthOffset/data.xres)
-            end = begin + dCL[n].xyPsiPsi2[:,q].size
-            wf[begin:end] = dCL[n].xyPsiPsi2[:,q]
+            begin = int(dC.widthOffset/data.xres)
+            end = begin + dC.xyPsiPsi2[:,q].size # what's xyPsiPsi2?
+            wf[begin:end] = dC.xyPsiPsi2[:,q]
             data.xyPsiPsi[:,counter] = wf
-            data.EigenE[counter] = dCL[n].EigenE[q] + dCL[n].fieldOffset
+            data.EigenE[counter] = dC.EigenE[q] + dC.fieldOffset
             
             data.moduleID[counter] = n
             wf = np.zeros(data.xPointsPost.size)
-            begin = int(dCL[n].widthOffset/data.xres)
-            end = begin + dCL[n].xyPsi[:,q].size
-            wf[begin:end] = dCL[n].xyPsi[:,q]
+            begin = int(dC.widthOffset/data.xres)
+            end = begin + dC.xyPsi[:,q].size
+            wf[begin:end] = dC.xyPsi[:,q]
             data.xyPsi[:,counter] = wf
             data.xyPsiPsi[:,counter] = wf**2 * settings.wf_scale
             
