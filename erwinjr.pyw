@@ -181,8 +181,9 @@ class MainWindow(QMainWindow):
         self.connect(insertLayerAboveButton, SIGNAL("clicked()"), self.insert_layerAbove)
         self.goButton = QPushButton("Solve Whole")
         self.connect(self.goButton, SIGNAL("clicked()"), self.solve_whole)
-        self.solveButton = QPushButton("Solve Basis")
-        self.connect(self.solveButton, SIGNAL("clicked()"), self.solve)
+        self.solveBasisButton = QPushButton("Solve Basis")
+        self.connect(self.solveBasisButton, SIGNAL("clicked()"),
+                self.solve_basis)
         
         #set up left inputs
         self.substrateBox = QComboBox()
@@ -225,8 +226,10 @@ class MainWindow(QMainWindow):
         vbox.addWidget(self.inputARInjectorCheck)
         vbox.addWidget(self.inputInjectorARCheck)
         basis_groupBox.setLayout(vbox)
-        self.connect(self.inputARInjectorCheck, SIGNAL("stateChanged(int)"), self.input_basis)
-        self.connect(self.inputInjectorARCheck, SIGNAL("stateChanged(int)"), self.input_basis)
+        self.connect(self.inputARInjectorCheck, SIGNAL("stateChanged(int)"), 
+                self.input_basis)
+        self.connect(self.inputInjectorARCheck, SIGNAL("stateChanged(int)"), 
+                self.input_basis)
         
         # Lp groupbox
         self.LpFirstSpinbox = QSpinBox()
@@ -430,7 +433,7 @@ class MainWindow(QMainWindow):
         
         #vBox3
         vBox3 = QVBoxLayout()
-        vBox3.addWidget(self.solveButton)
+        vBox3.addWidget(self.solveBasisButton)
         vBox3.addWidget(self.goButton)
         vBox3.addWidget(DescLayout_groupBox)
         vBox3.addWidget(self.mtrl_groupBox)
@@ -1659,6 +1662,11 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()
         
     def input_basis(self):
+        """
+        SLOT connected to self.inputARInjectorCheck.stateChanged(int) and
+        self.inputInjectorARCheck.stateChanged(int)
+        update dividers info
+        """
         self.qclayers.basisARInjector = self.inputARInjectorCheck.isChecked()
         self.qclayers.basisInjectorAR = self.inputInjectorARCheck.isChecked()
         self.dirty = True
@@ -2059,9 +2067,11 @@ class MainWindow(QMainWindow):
 
         self.goButton.setEnabled(True)
         
-    def solve(self):  #solves structure with basis
-        self.solveButton.setEnabled(False)
-        self.solveButton.repaint()
+    def solve_basis(self):  #solves structure with basis
+        """SLOT connected to SIGNAL self.solveBasisButton.clicked()
+        """
+        self.solveBasisButton.setEnabled(False)
+        self.solveBasisButton.repaint()
         
         try:
             self.dCL = ThePhysics.basisSolve(self.qclayers)
@@ -2072,7 +2082,7 @@ class MainWindow(QMainWindow):
         except (ValueError,IndexError) as err:
             QMessageBox.warning(self,"ErwinJr - Error", str(err))
         
-        self.solveButton.setEnabled(True)
+        self.solveBasisButton.setEnabled(True)
 
     def pair_select(self, on):
         if on:
