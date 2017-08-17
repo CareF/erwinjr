@@ -944,6 +944,7 @@ class QCLayers(object):
         """ solve eigen mode
         OUTPUT: (doesn't return, but update member variables
             self.EigenE is the eignenergy of the layer structure
+            self.xPointsPost[x] is a shorter version of self.xPoints
             self.xyPsi[x, n] is the wave function at position
                     self.xPointsPost[x] corresiponding to the 
                     eigenenergy EigenE[n], and without solutions near zero
@@ -1287,7 +1288,9 @@ def convert_dCL_to_data(data, dCL):
         data: orginal QCLayers class
         dCL: result of basisSolve(data)
     OUPUT:
-        ???? in data
+        get wave function (dCL[n].xyPsi) and eigenenrgy (dCL[n].EigenE) 
+        in dCL and update them in data, and format it in length for data
+        and update data.xyPsiPsi
     """
     #count number of wavefunctions
     numWFs = sum([dC.EigenE.size for dC in dCL])
@@ -1303,11 +1306,11 @@ def convert_dCL_to_data(data, dCL):
     counter = 0
     for n, dC in enumerate(dCL):
         for q in xrange(dC.EigenE.size):
-            wf = np.NaN*np.zeros(data.xPointsPost.size)
-            begin = int(dC.widthOffset/data.xres)
-            end = begin + dC.xyPsiPsi2[:,q].size # what's xyPsiPsi2?
-            wf[begin:end] = dC.xyPsiPsi2[:,q]
-            data.xyPsiPsi[:,counter] = wf
+            #  wf = np.NaN*np.zeros(data.xPointsPost.size)
+            #  begin = int(dC.widthOffset/data.xres)
+            #  end = begin + dC.xyPsiPsi2[:,q].size 
+            #  wf[begin:end] = dC.xyPsiPsi2[:,q]
+            #  data.xyPsiPsi[:,counter] = wf
             data.EigenE[counter] = dC.EigenE[q] + dC.fieldOffset
             
             data.moduleID[counter] = n
@@ -1319,11 +1322,15 @@ def convert_dCL_to_data(data, dCL):
             data.xyPsiPsi[:,counter] = wf**2 * settings.wf_scale
             
             counter += 1
-    data.xPointsPost = data.xPointsPost[int(100/data.xres):int(-30/data.xres)]
-    data.xyPsi = data.xyPsi[int(100/data.xres):int(-30/data.xres)]
-    data.xyPsiPsi = data.xyPsiPsi[int(100/data.xres):int(-30/data.xres)]
+    # cut head and tial to promise the figure is in the right place?
+    head = int(100/data.xres)
+    tail = -int(30/data.xres)
+    data.xPointsPost = data.xPointsPost[head:tail]
+    data.xyPsi = data.xyPsi[head:tail]
+    data.xyPsiPsi = data.xyPsiPsi[head:tail]
     
     #implement pretty plot
+    # remove long zero head and tail of the wave functions
     for q in xrange(data.EigenE.size):
         prettyIdxs = np.nonzero(data.xyPsiPsi[:,q] > 
                 settings.wf_scale * settings.pretty_plot_factor)[0] 
