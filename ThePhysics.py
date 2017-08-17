@@ -942,7 +942,16 @@ class QCLayers(object):
 
     def solve_psi(self):
         """ solve eigen mode
-        TBD 08/16
+        OUTPUT: (doesn't return, but update member variables
+            self.EigenE is the eignenergy of the layer structure
+            self.xyPsi[x, n] is the wave function at position
+                    self.xPointsPost[x] corresiponding to the 
+                    eigenenergy EigenE[n], and without solutions near zero
+            self.xyPsiPsi[x, n] is the scaled norm of xyPsi 
+             -- and the above two also cut long zero heads and tials --
+             -- for better plot --
+            self.xyPsiPsi2[x, n] is a more precise version corresponding to
+                    position self.xPoints[x]
         """
         Epoints = np.arange(min(self.xVc),
                 max(self.xVc-115*self.EField*1e-5), #?115e-5?
@@ -954,6 +963,9 @@ class QCLayers(object):
         #TODO: add adaptive spacing for Eq
         #TODO: convert nested for loop to C
         if USE_CLIB:
+            # Call C function to get boundary dependence of energy EPoints[n], 
+            # the return value is psiEnd[n]
+            # for n with psiEnd[n]=0, EPoints[n] is eigenenergy
             cFunctions.psiFnEnd(Epoints.ctypes.data_as(c_void_p), 
                     int(Epoints.size), int(xPsi.size), 
                     c_double(self.xres), c_double(self.EField), 
@@ -1000,6 +1012,7 @@ class QCLayers(object):
        
         #find Eigen Energies
         #This routine looks for all of the zero crossings, and then picks each one out
+        #TODO: try to replace this part by zero_find function
         gtz = ynew > 0
         ltz = ynew < 0
         overlap1 = np.bitwise_and(gtz[0:-1],ltz[1:])
@@ -1036,6 +1049,7 @@ class QCLayers(object):
             for q in xrange(self.EigenE.size):
                 # 100000 is an estimate for the precision of above
                 # approximation
+                # TODO: change the three calls of psiFn to loop
                 approxwidth = self.vertRes/100000
                 x0=self.EigenE[q]-approxwidth 
                 x1=self.EigenE[q]
@@ -1091,6 +1105,8 @@ class QCLayers(object):
 
         #make array for Psi and fill it in
         if USE_CLIB:
+            # with eigenenregy EigenE, here call C function to get wave
+            # function
             self.xyPsi = np.zeros(self.xPoints.size*self.EigenE.size)
             cFunctions.psiFill(int(xPsi.size), c_double(self.xres),
                                int(self.EigenE.size), 
@@ -1127,37 +1143,51 @@ class QCLayers(object):
                 self.xyPsi[:,p] = A * xPsi
         
         #remove states that come from oscillating end points
+        # looks like we should change -1 to -2 (following)
         psiEnd = self.xyPsi[-1,:]
-        idxs = np.nonzero(abs(psiEnd)<10)[0]
+        idxs = abs(psiEnd)<10
+        #  idxs = np.nonzero(abs(psiEnd)<10)[0]
+        #  psiEnd = self.xyPsi[-2,:]
+        #  idxs = np.abs(psiEnd)<200/self.xres 
+        # 200 depends on how precise we want about eigenenergy solver 
+        # (TODO: more analysis and test about this value
         self.EigenE = self.EigenE[idxs]
         self.xyPsi = self.xyPsi[:,idxs]
 
         #4.5e-10 scales size of wavefunctions, arbitrary for nice plots
         self.xyPsiPsi = self.xyPsi*self.xyPsi*settings.wf_scale 
 
-        #remove states that are smaller than minimum height
+        #remove states that are smaller than minimum height (remove zero
+        # solutions?)-test case not showing any effect
         # addresses states high above band edge
         #0.014 is arbitrary; changes if 4.5e-10 changes
-        idxs = np.nonzero(self.xyPsiPsi.max(0) > 
-                settings.wf_scale * settings.wf_min_height)[0] 
-        self.EigenE = self.EigenE[idxs]
-        self.xyPsi = self.xyPsi[:,idxs]
-        self.xyPsiPsi = self.xyPsiPsi[:,idxs]
+        #  idxs = np.nonzero(self.xyPsiPsi.max(0) > 
+                #  settings.wf_scale * settings.wf_min_height)[0] 
+        #  idxs = self.xyPsiPsi.max(0) > settings.wf_scale*settings.wf_min_height
+        #  self.EigenE = self.EigenE[idxs]
+        #  self.xyPsi = self.xyPsi[:,idxs]
+        #  self.xyPsiPsi = self.xyPsiPsi[:,idxs]
         
         self.xyPsiPsi2 = copy.deepcopy(self.xyPsiPsi)
 
-        #implement pretty plot
+        # implement pretty plot: 
+        # remove long zero head and tail of the wave functions
+        # test case shows on "solve whole"
         for q in xrange(self.EigenE.size):
             #0.0005 is arbitrary
             prettyIdxs = np.nonzero(self.xyPsiPsi[:,q] > 
                     settings.wf_scale * settings.pretty_plot_factor)[0] 
+            #  prettyIdxs = self.xyPsiPsi[:, q] > \
+                    #  settings.wf_scale * settings.pretty_plot_factor
             self.xyPsiPsi[0:prettyIdxs[0],q] = np.NaN
             self.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
+            #  print q,prettyIdxs
+        #  print self.xyPsiPsi
 
-        #decimate plot points
+        #decimate plot points: seems for better time and memory performance?
         idxs = np.arange(0, self.xPoints.size, 
                 int(settings.plot_decimate_factor/self.xres), dtype=int)
-        self.xyPsiPsiDec = np.zeros([idxs.size, self.EigenE.size])
+        self.xyPsiPsiDec = np.zeros((idxs.size, self.EigenE.size))
         for q in xrange(self.EigenE.size):
             self.xyPsiPsiDec[:,q] = self.xyPsiPsi[idxs,q]
         self.xyPsiPsi = self.xyPsiPsiDec
