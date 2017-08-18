@@ -195,12 +195,16 @@ class MainWindow(QMainWindow):
         self.inputEFieldBox.setDecimals(1)
         self.inputEFieldBox.setSuffix(' kV/cm')
         self.inputEFieldBox.setRange(0.0,250.0)
-        self.connect(self.inputEFieldBox, SIGNAL("valueChanged(double)"), self.input_EField)
+        self.connect(self.inputEFieldBox, 
+                SIGNAL("valueChanged(double)"), 
+                self.input_EField)
         
         inputHorzResLabel = QLabel('<center><b>Horizontal<br>Resolution</b></center>')
         self.inputHorzResBox = QComboBox();
         self.inputHorzResBox.addItems(['1.0','0.5','0.25','0.2','0.1'])
-        self.connect(self.inputHorzResBox, SIGNAL("currentIndexChanged(int)"), self.input_horzRes)
+        self.connect(self.inputHorzResBox, 
+                SIGNAL("currentIndexChanged(int)"), 
+                self.input_horzRes)
         
         inputVertResLabel = QLabel('<center><b>Vertical<br>Resolution</b></center>')
         self.inputVertResBox = QDoubleSpinBox()
@@ -261,6 +265,7 @@ class MainWindow(QMainWindow):
         self.mtrl_header1    = QLabel('<center><b>In<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
         self.mtrl_header2    = QLabel('<center><b>Al<sub>1-x</sub>In<sub>x</sub>As</b></center')
         self.mtrl_header3    = QLabel('<center><b>Offset</b></center')
+        # TODO: change to loop
         self.mtrl_row1 = QLabel('<center><b>#1</b></center')
         self.mtrl_row2 = QLabel('<center><b>#2</b></center')
         self.mtrl_row3 = QLabel('<center><b>#3</b></center')
@@ -1645,6 +1650,10 @@ class MainWindow(QMainWindow):
             
         
     def input_EField(self):
+        """
+        SLOT connected to SIGNAL self.inputEFieldBox.valueChanged(double)
+        update external E field in unit kV/cm
+        """
         self.qclayers.EField = float(self.inputEFieldBox.value())
         
         self.qclayers.populate_x()
@@ -1654,6 +1663,10 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()
         
     def input_horzRes(self):
+        """
+        SLOT connected to SIGNAL self.inputHorzResBox.currentIndexChanged(int)
+        update position resolution (xres), in angstrom
+        """
         horzRes = unicode(self.inputHorzResBox.currentText())
         horzRes = float(horzRes)
         self.qclayers.xres = horzRes
@@ -1697,16 +1710,23 @@ class MainWindow(QMainWindow):
         self.LpLastSpinbox.setValue(self.qclayers.layerWidths.size-1)
         
     def update_Lp_box(self):
-        #self.LpFirstSpinbox.setRange(1,self.qclayers.layerWidths.size-1)
-        #self.LpFirstSpinbox.setValue(1)
-        #self.LpLastSpinbox.setRange(1,self.qclayers.layerWidths.size-1)
-        #self.LpLastSpinbox.setValue(self.qclayers.layerWidths.size-1)
         LpFirst = self.LpFirstSpinbox.value()
         LpLast = self.LpLastSpinbox.value()+1 #+1 because range is not inclusive of last value
-        Lp_string  = u"Lp: %g \u212B<br>" % (sum(self.qclayers.layerWidths[LpFirst:LpLast]))
-        Lp_string += u"wells: %6.1f%%<br>" % (sum((1-self.qclayers.layerBarriers[LpFirst:LpLast])*self.qclayers.layerWidths[LpFirst:LpLast]) / sum(self.qclayers.layerWidths[LpFirst:LpLast]) * 100)
-        Lp_string += u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup><br>" % (sum(self.qclayers.layerDopings[LpFirst:LpLast]*self.qclayers.layerWidths[LpFirst:LpLast]) / sum(self.qclayers.layerWidths[LpFirst:LpLast]))
-        Lp_string += u"n<sub>s</sub>: %6.3f\u00D710<sup>11</sup>" % (sum(self.qclayers.layerDopings[LpFirst:LpLast]*self.qclayers.layerWidths[LpFirst:LpLast])*1e-2)
+        # total length of the layers (1 period)
+        Lp = sum(self.qclayers.layerWidths[LpFirst:LpLast]) 
+        Lp_string  = u"Lp: %g \u212B<br>" % Lp
+        # total length of well (1 period)
+        Lw = sum((1-self.qclayers.layerBarriers[LpFirst:LpLast])
+                *self.qclayers.layerWidths[LpFirst:LpLast]) 
+        Lp_string += u"wells: %6.1f%%<br>" % (100.0*Lw/Lp)
+        # average doping of the layers
+        nD = sum(self.qclayers.layerDopings[LpFirst:LpLast]
+                *self.qclayers.layerWidths[LpFirst:LpLast])/Lp
+        Lp_string += u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup><br>" % nD
+        # what's this?
+        ns = sum(self.qclayers.layerDopings[LpFirst:LpLast]
+                *self.qclayers.layerWidths[LpFirst:LpLast])*1e-2
+        Lp_string += u"n<sub>s</sub>: %6.3f\u00D710<sup>11</sup>" % ns
         self.LpStringBox.setText(Lp_string)
 
     def input_description(self):
