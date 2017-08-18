@@ -1587,25 +1587,47 @@ class MainWindow(QMainWindow):
         """
         if substrateType == 'InP':
             self.qclayers.substrate = 'InP'
-            self.materialList = ['InGaAs/AlInAs #1', 'InGaAs/AlInAs #2', 'InGaAs/AlInAs #3', 'InGaAs/AlInAs #4']
-            self.mtrl_header1.setText('<center><b>In<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
-            self.mtrl_header2.setText('<center><b>Al<sub>1-x</sub>In<sub>x</sub>As</b></center')
+            self.materialList = ['InGaAs/AlInAs #1', 
+                    'InGaAs/AlInAs #2', 
+                    'InGaAs/AlInAs #3', 
+                    'InGaAs/AlInAs #4']
+            self.mtrl_header1.setText( '<center><b>\
+                    In<sub>x</sub>Ga<sub>1-x</sub>As\
+                    </b></center>')
+            self.mtrl_header2.setText('<center><b>\
+                    Al<sub>1-x</sub>In<sub>x</sub>As\
+                    </b></center')
             
         elif substrateType == 'GaAs':
             self.qclayers.substrate = 'GaAs'
-            self.materialList = ['AlGaAs/AlGaAs #1', 'AlGaAs/AlGaAs #2', 'AlGaAs/AlGaAs #3', 'AlGaAs/AlGaAs #4']
-            self.mtrl_header1.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
-            self.mtrl_header2.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
+            self.materialList = ['AlGaAs/AlGaAs #1', 
+                    'AlGaAs/AlGaAs #2', 
+                    'AlGaAs/AlGaAs #3', 
+                    'AlGaAs/AlGaAs #4']
+            self.mtrl_header1.setText('<center><b>\
+                    Al<sub>x</sub>Ga<sub>1-x</sub>As\
+                    </b></center')
+            self.mtrl_header2.setText('<center><b>\
+                    Al<sub>x</sub>Ga<sub>1-x</sub>As\
+                    </b></center')
             
         elif substrateType == 'GaSb':
             self.qclayers.substrate = 'GaSb'
-            self.materialList = ['InAsSb/AlGaSb #1', 'InAsSb/AlGaSb #2', 'InAsSb/AlGaSb #3', 'InAsSb/AlGaSb #4']
-            self.mtrl_header1.setText('<center><b>InAs<sub>y</sub>Sb<sub>1-y</sub></b></center')
-            self.mtrl_header2.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>Sb</b></center')
+            self.materialList = ['InAsSb/AlGaSb #1', 
+                    'InAsSb/AlGaSb #2', 
+                    'InAsSb/AlGaSb #3', 
+                    'InAsSb/AlGaSb #4']
+            self.mtrl_header1.setText('<center><b>\
+                    InAs<sub>y</sub>Sb<sub>1-y</sub>\
+                    </b></center')
+            self.mtrl_header2.setText('<center><b>\
+                    Al<sub>x</sub>Ga<sub>1-x</sub>Sb\
+                    </b></center')
             
         elif substrateType == 'GaN':
             #  self.input_substrate(self.qclayers.substrate)
-            QMessageBox.information(self, 'ErwinJr Error', 'III-Nitride substrates have not yet been implemented.')
+            QMessageBox.information(self, 'ErwinJr Error', 
+                    'III-Nitride substrates have not yet been implemented.')
             self.substrateBox.setCurrentIndex(
                     self.substrateBox.findText(self.qclayers.substrate))
             return
