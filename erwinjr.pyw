@@ -1598,7 +1598,7 @@ class MainWindow(QMainWindow):
             self.qclayers.substrate = 'GaAs'
             self.materialList = ['AlGaAs/AlGaAs #1', 'AlGaAs/AlGaAs #2', 'AlGaAs/AlGaAs #3', 'AlGaAs/AlGaAs #4']
             self.mtrl_header1.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
-            self.mtrl_header2.setText('<center><b>Al<sub>1</sub>Ga<sub>1-x</sub>As</b></center')
+            self.mtrl_header2.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
             
             self.quantumCanvas.clear()
             #self.layerTable_refresh()
