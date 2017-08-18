@@ -19,6 +19,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #===============================================================================
 
+# TODO: 
+# material related codes should be moved to MaterialConstants
+# try separate this file to smaller ones
+
 from __future__ import division
 #  from numpy import *
 import numpy as np
@@ -562,16 +566,28 @@ class QCLayers(object):
             layerMaterials -int(TBD), label of material, depending on
                         substrate, the material is defined in erwinjr.pyw
             layerDopings -Doping per volumn in unit 1e17 cm-3
-            layerDividers -???
+            layerDividers -??? seems not used
         xres: position resolution, in angstrom
         vertRes: vertical/energy resolution, in meV
         EField: external (static) electrical field, in kV/cm = 1e5 V/m
         layerSelected: (for GUI) a label which layer is selected in GUI, 
                         with default -1 indicating non selected.
+        repeats: (int) is the number of repeat times for the given structure
+        solver: ??? seems not used
         Temperature: Temperature of the device, affecting material property
                       seems not used
+        TempFoM: ??? seems not used
+        diffLength: ??? seems not used
         substrate: The substrate material for the device, which determined
                       the well and barrier material
+                      substrate   | well            | barrier
+                      InP         | In_xGa_{1-x}As  | Al_{1-x}In_xAs
+                      GaAs        | Al_xGa_{1-x}As  | Al_xGa_{1-x}As
+                      GaSb        | InAs_ySb_{1-y}  | Al_xGa_{1-x}Sb
+                      GaN  (TBD)
+        basisARInjector & basisInjectorAR: where should the layer separate 
+                    for basis solver
+        moleFrac: mole fraction for each possible layer material, in format [
     """
     def __init__(self):
         self.layerWidths = np.array([1.,1.]) # angstrom
@@ -579,13 +595,13 @@ class QCLayers(object):
         self.layerARs = np.array([0,0])      # boolean
         self.layerMaterials = np.array([1,1]) #label
         self.layerDopings = np.array([0.,0.]) #1e17 cm-3
-        self.layerDividers = np.array([0,0])
+        self.layerDividers = np.array([0,0]) #?
         
         self.xres = 0.5 # angstrom
         self.EField = 0 # kV/cm = 1e5 V/m
         self.layerSelected = -1 # int
         self.vertRes = 0.5 # meV
-        self.repeats = 1
+        self.repeats = 2 # repeats n times for the given structure
         
         self.description = ""
         self.solver = "SolverH" #?
@@ -613,21 +629,22 @@ class QCLayers(object):
         self.populate_x()
 
     def populate_x(self):
-        """Extend layer information to position functions?
+        """Extend layer information to position functions
         Layer data: layerWidth
                     layerNum
                 with len = # of layers and each value repr. a layer
-        Position data: xPoints 
-                           position grid
-                       xBarriers: from layerBarriers, is barrier layer
-                            should be boolean (TBD)
-                       xARs: from layerARs, is active region
-                            should be boolean (TBD)
-                       xMaterials: from layerMaterials label/index of material
-                            should be int starting from 0 (TBD)
-                       xDopings: from layerDopings, doping per volumn
-                       xLayerNums 
-                           at xPoints[q] it's xLayerNums[q]-th layer"""
+        Position data (OUTPUT/update member variables): 
+                    xPoints 
+                       position grid
+                    xBarriers: from layerBarriers, is barrier layer
+                        should be boolean (TBD)
+                    xARs: from layerARs, is active region
+                        should be boolean (TBD)
+                    xMaterials: from layerMaterials label/index of material
+                        should be int starting from 0 (TBD)
+                    xDopings: from layerDopings, doping per volumn
+                    xLayerNums 
+                       at xPoints[q] it's xLayerNums[q]-th layer"""
         #  print "-----debug----- QCLayers populate_x called"
         #  print self.layerBarriers
         #use rounding to work with selected resolution
@@ -732,13 +749,19 @@ class QCLayers(object):
         except IndexError:
             #index error happens in SolveBasis when the selected layer is greater than the number of layers in the solve swath
             # however, xLayerSelected is not used for the SolveBasis function
-            pass
+            print "Index Error for layer selection at function \
+            qclayer.populate_x"
 
         self.xARs[np.nonzero(self.xARs==0)[0]] = np.NaN
         self.xARs *= self.xVc
 
-    def populate_x_full(self):
-        #  print "------debug------- QCLayers populate_x_full called"
+    def populate_x_band(self):
+        """Extend layer information to position functions for band parameter
+        OUTPUT/update member variables):
+            xEg, xMc, xESO, xEp, xF, 
+            whose value is determeined by the layer material
+        """
+        #  print "------debug------- QCLayers populate_x_band called"
         # Following parameters can be looked up in cFunctions.c
         self.xEg = np.zeros(self.xPoints.size)  
         self.xMc = np.zeros(self.xPoints.size)  # Seems not to be used
@@ -758,6 +781,9 @@ class QCLayers(object):
         #  self.xMc = self.xMc #??????
 
     def update_alloys(self):  # c is a Material_Constant class instance
+        """
+        update material parameter for the alloy used.
+        """
         variables = ['EgG', 'EgL', 'EgX', 'VBO', 'DSO', 'me0', 'acG', 'acL', 'acX', 
                  'Ep', 'F', 'XiX', 'b', 'av', 'alG', 'beG', 'alL', 'beL', 'alX', 
                  'beX', 'epss', 'epsInf', 'hwLO', 'alc', 'c11', 'c12']
@@ -1259,7 +1285,7 @@ def basisSolve(data):
         dCL[n].update_alloys()
         dCL[n].update_strain()
         dCL[n].populate_x()
-        dCL[n].populate_x_full()
+        dCL[n].populate_x_band()
         dCL[n].solve_psi()
         
         #caculate offsets
@@ -1409,7 +1435,7 @@ def dipole(data, upper, lower):
     E_i = data.EigenE[upper]
     E_j = data.EigenE[lower]
     
-    data.populate_x_full()
+    data.populate_x_band()
     xMcE_i = data.xMc * (1 - (data.xVc - E_i) / data.xEg)
     xMcE_j = data.xMc * (1 - (data.xVc - E_j) / data.xEg)
     xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])

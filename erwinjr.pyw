@@ -265,7 +265,7 @@ class MainWindow(QMainWindow):
         self.mtrl_header1    = QLabel('<center><b>In<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
         self.mtrl_header2    = QLabel('<center><b>Al<sub>1-x</sub>In<sub>x</sub>As</b></center')
         self.mtrl_header3    = QLabel('<center><b>Offset</b></center')
-        # TODO: change to loop
+        # TODO: change to loop and init with qclayer default setting
         self.mtrl_row1 = QLabel('<center><b>#1</b></center')
         self.mtrl_row2 = QLabel('<center><b>#2</b></center')
         self.mtrl_row3 = QLabel('<center><b>#3</b></center')
@@ -2094,7 +2094,7 @@ class MainWindow(QMainWindow):
         self.goButton.setEnabled(False)
         self.goButton.repaint()
         
-        self.qclayers.populate_x_full()
+        self.qclayers.populate_x_band()
         try:
             self.qclayers.solve_psi()
             self.plotDirty = True
@@ -3145,7 +3145,7 @@ class MainWindow(QMainWindow):
             ThePhysics.cst.set_temperature(newTemp)
             self.qclayers.Temperature = newTemp
             self.qclayers.populate_x()
-            self.qclayers.populate_x_full()
+            self.qclayers.populate_x_band()
             self.update_quantumCanvas()
             
     def copy_structure(self):
