@@ -1581,18 +1581,15 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()
         
     def input_substrate(self, substrateType):
+        """
+        SLOT connected to SIGNAL self.substrateBox.currentIndexChanged(const QString)
+        update substrate chosen
+        """
         if substrateType == 'InP':
             self.qclayers.substrate = 'InP'
             self.materialList = ['InGaAs/AlInAs #1', 'InGaAs/AlInAs #2', 'InGaAs/AlInAs #3', 'InGaAs/AlInAs #4']
             self.mtrl_header1.setText('<center><b>In<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
             self.mtrl_header2.setText('<center><b>Al<sub>1-x</sub>In<sub>x</sub>As</b></center')
-            
-            self.quantumCanvas.clear()
-            #self.layerTable_refresh()
-            self.update_Lp_limits()
-            self.update_inputBoxes()
-            self.layerTable_refresh()
-            self.qclayers.populate_x()
             
         elif substrateType == 'GaAs':
             self.qclayers.substrate = 'GaAs'
@@ -1600,31 +1597,30 @@ class MainWindow(QMainWindow):
             self.mtrl_header1.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
             self.mtrl_header2.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
             
-            self.quantumCanvas.clear()
-            #self.layerTable_refresh()
-            self.update_Lp_limits()
-            self.update_inputBoxes()
-            self.layerTable_refresh()
-            self.qclayers.populate_x()
-            
         elif substrateType == 'GaSb':
             self.qclayers.substrate = 'GaSb'
             self.materialList = ['InAsSb/AlGaSb #1', 'InAsSb/AlGaSb #2', 'InAsSb/AlGaSb #3', 'InAsSb/AlGaSb #4']
             self.mtrl_header1.setText('<center><b>InAs<sub>y</sub>Sb<sub>1-y</sub></b></center')
             self.mtrl_header2.setText('<center><b>Al<sub>x</sub>Ga<sub>1-x</sub>Sb</b></center')
             
-            self.quantumCanvas.clear()
-            #self.layerTable_refresh()
-            self.update_Lp_limits()
-            self.update_inputBoxes()
-            self.layerTable_refresh()
-            self.qclayers.populate_x()
-            
         elif substrateType == 'GaN':
+            #  self.input_substrate(self.qclayers.substrate)
             QMessageBox.information(self, 'ErwinJr Error', 'III-Nitride substrates have not yet been implemented.')
+            self.substrateBox.setCurrentIndex(
+                    self.substrateBox.findText(self.qclayers.substrate))
+            return
             
         else:
             raise TypeError('substrate selection not allowed')
+            return
+
+        self.quantumCanvas.clear()
+        #self.layerTable_refresh()
+        self.update_Lp_limits()
+        self.update_inputBoxes()
+        self.layerTable_refresh()
+        self.qclayers.populate_x()
+            
         
     def input_EField(self):
         self.qclayers.EField = float(self.inputEFieldBox.value())
