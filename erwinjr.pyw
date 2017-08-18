@@ -3285,12 +3285,12 @@ def main():
     splash.finish(form)
     
     # Import Psyco if available
-    try:
-        import psyco
-        psyco.full()
-    except ImportError:
-        noPsycoBox = QMessageBox(QMessageBox.Question, 'EwrinJr '+str(majorVersion), "Psyco could not be loaded.\nExecution will be slowed.")
-        noPsycoBox.exec_()
+    #  try:
+        #  import psyco
+        #  psyco.full()
+    #  except ImportError:
+        #  noPsycoBox = QMessageBox(QMessageBox.Question, 'EwrinJr '+str(majorVersion), "Psyco could not be loaded.\nExecution will be slowed.")
+        #  noPsycoBox.exec_()
     
     qsettings = QSettings()
     if not qsettings.value('firstRun').toInt()[1]:
