@@ -29,6 +29,8 @@
 # [2]Herve P J L, Vandamme L K J. Empirical temperature dependence of the 
 #    refractive index of semiconductors[J]. Journal of Applied Physics, 
 #    1995, 77(10): 5476-5477.
+# [3]Joachim Pipre, Semiconductor Optoelectronic Devices: Introduction to 
+#    Physics and Simulation, SIBN: 0080469787
 #===============================================================================
 class Material(object):
     def __init__(self, Name, Temperature=300):
@@ -40,11 +42,14 @@ class Material(object):
 
 class MaterialConstantsDict(dict):
     def __init__(self, Temperature=300):
+        self.substrateSet = ('InP', 'GaSb', 'GaAs')
         self.set_constants()
         self.set_temperature(Temperature)
         
     def set_temperature(self, Temperature):
         self.Temperature = Temperature
+        # alc for lattice const. including its dependence on temperature
+        # in unit angstrom, Ref[3] Table 2.6
         self["GaAs"].alc = 5.65325 + 3.88e-5*(Temperature-300) #Angs at 80 K
         self['InAs'].alc = 6.0583 + 2.74e-5*(Temperature-300)
         self['AlAs'].alc = 5.6611 + 2.90e-5*(Temperature-300)
