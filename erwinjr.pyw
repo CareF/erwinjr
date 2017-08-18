@@ -21,7 +21,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #===============================================================================
 
-# TODO: replace np.hstack
+# TODO: 
+# replace np.hstack
+# find replacement for psyco, or try to use Cython
+# try to seperate this file to smaller ones
 
 from __future__ import division
 import os, sys
