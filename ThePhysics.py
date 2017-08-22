@@ -865,7 +865,7 @@ class QCLayers(object):
             self.eps_parallel: strain tensor within/parallel to the layer plane
             self.a_perp: lattice const. perpendicular to the layer plane
             self.eps_perp: strain tensor perpendicular to the layer plane
-            self.MaterialWidth
+            self.MaterialWidth: total width of a each material
             self.netStrain: spacial average of eps_perp in unit of percentage
             self.MLThickness
             self.Pec, self.Pe, self.Qe, self.Varsh: correction terms on bans,
@@ -905,9 +905,15 @@ class QCLayers(object):
             #  print self.layerWidths
             self.MaterialWidth[2*i+1] = sum(self.layerWidths[indx]
                     * self.layerBarriers[indx])
-            self.MaterialWidth[2*i] = sum(self.layerWidths[indx]) - self.MaterialWidth[2*i+1]
+            #  print self.MaterialWidth
+            #  self.MaterialWidth[2*i+1] = sum(self.layerWidths[
+                #  np.logical_and(indx, self.layerBarriers)])
+            #  print self.MaterialWidth
+            self.MaterialWidth[2*i] = sum(self.layerWidths[indx]) \
+                    - self.MaterialWidth[2*i+1]
         #  print "------debug-----", sum(self.MaterialWidth)
-        self.netStrain = 100 * sum(self.MaterialWidth*self.eps_perp) / sum(self.MaterialWidth)
+        self.netStrain = 100 * sum(self.MaterialWidth*self.eps_perp) \
+                / sum(self.MaterialWidth)
         
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
