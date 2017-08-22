@@ -67,6 +67,8 @@ KVpCM = 1e5 # KV/cm to V/m
 #===============================================================================
 # Reference
 # [1]Handbook of Optics, Vol.2, ISBN: 0070479747
+# [2]Van de Walle C G. Band lineups and deformation potentials in the 
+#    model-solid theory[J]. Physical review B, 1989, 39(3): 1871.
 #===============================================================================
 
 def zero_find(xVals, yVals):
@@ -794,7 +796,8 @@ class QCLayers(object):
         """
         variables = ['EgG', 'EgL', 'EgX', 'VBO', 'DSO', 'me0', 'acG', 'acL', 'acX', 
                  'Ep', 'F', 'XiX', 'b', 'av', 'alG', 'beG', 'alL', 'beL', 'alX', 
-                 'beX', 'epss', 'epsInf', 'hwLO', 'alc', 'c11', 'c12']
+                 'beX', 'epss', 'epsInf', 'hwLO', # LO phonon energy
+                 'alc', 'c11', 'c12']
         #  print "----debug--- substrate is "+self.substrate
         # substrate restriction on layer material, 
         # see doc string of QCLayers class
@@ -857,9 +860,11 @@ class QCLayers(object):
         update strain and strain related parameters inside each layers
         (Always called after update_alloys)
         OUTPUT/update member variables: 
-            self.eps_parallel
-            self.a_perp
-            self.eps_perp
+            (all below are np.array with len=numMaterials)
+            self.a_parallel: lattice const. within/parallel to the layer plane
+            self.eps_parallel: strain tensor within/parallel to the layer plane
+            self.a_perp: lattice const. perpendicular to the layer plane
+            self.eps_perp: strain tensor perpendicular to the layer plane
             self.h
             self.mismatch
             self.MLThickness
@@ -872,14 +877,15 @@ class QCLayers(object):
         """
         if self.substrate in cst.substrateSet:
             self.a_parallel = cst[self.substrate].alc
+            # parallel littice constant depends on substrate
         else:
             raise TypeError('substrate selection not allowed')
         
-        # Walle eqn 1b
+        # [2]Walle eqn 1b
         self.eps_parallel = self.a_parallel / self.alc - 1
-        # Walle eqn 2a
+        # [2]Walle eqn 2a and 4a
         self.a_perp   = self.alc * (1 - 2* self.c12 / self.c11 * self.eps_parallel)
-        # Walle eqn 2b
+        # [2]Walle eqn 2b
         self.eps_perp = self.a_perp/self.alc - 1
         #             = -2*self.c12/self.c11*self.eps_parallel
         
@@ -887,8 +893,16 @@ class QCLayers(object):
         self.h = np.zeros(self.numMaterials)
         for i in range(4): 
             # Note that material are labeled by sequence [well, barrier]*4
-            indx = np.nonzero(self.layerMaterials[1:] == i+1)[0]
             # [1:] because first layer doesn't count
+            #  indx = np.nonzero(self.layerMaterials[1:] == i+1)[0]
+            #  # print i+1, self.layerMaterials
+            # (BUG FIXED: self.layerMaterials[1:] results in material index
+            # mismatch by 1)
+            # self.layerWidths includes an extra layer to promise first=last
+            indx = self.layerMaterials == i+1
+            indx[0] = False # s.t. 1st layer doesn't count
+            #  print indx
+            #  print self.layerWidths
             self.h[2*i+1] = sum(self.layerWidths[indx]
                     * self.layerBarriers[indx])
             self.h[2*i] = sum(self.layerWidths[indx]) - self.h[2*i+1]
@@ -898,7 +912,7 @@ class QCLayers(object):
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
             (0,1)*4)): 
-            #? what's MLThickness???
+            # MLThickness is monolayer thickness of the material
             self.MLThickness[(self.layerMaterials == MLabel) 
                 & (self.layerBarriers == BLabel)] = self.a_perp[n] / 2.0
     
@@ -1382,10 +1396,21 @@ def convert_dCL_to_data(data, dCL):
 #    data.xPointsPost = data.xPoints[idxs]
 
 def lo_phonon_time(data, upper, lower):
+    """ LO phonon scattering induced decay life time calculator
+    INPUT:
+        data: a QCLayers class
+        upper: the higher energy state index
+        lower: the lower energy state index
+    OUTPUT
+        T1 decay life time between upper and lower states induced by LO 
+        phonon scattering
+    """
+    #TODO: should be a member method for data
     if upper < lower:
-        temp = upper
-        upper = lower
-        lower = temp
+        upper, lower = lower, upper
+        #  temp = upper
+        #  upper = lower
+        #  lower = temp
         
     psi_i = data.xyPsi[:,upper]
     psi_j = data.xyPsi[:,lower]
@@ -1393,19 +1418,24 @@ def lo_phonon_time(data, upper, lower):
     E_j = data.EigenE[lower]
 
     if E_i-E_j-data.hwLO[0] < 0:
+        # energy difference is smaller than a LO phonon
+        # LO phonon scatering doesn't happen
         return 1e20
         
+    # zero head and tail cut off
     idxs_i = np.nonzero(psi_i >
             settings.wf_scale * settings.phonon_integral_factor)[0]
     idxs_j = np.nonzero(psi_j >
             settings.wf_scale * settings.phonon_integral_factor)[0]
-    idx_first = [idxs_i[0], idxs_j[0]]
-    idx_last  = [idxs_i[-1], idxs_j[-1]]
+    idx_first = (idxs_i[0], idxs_j[0])
+    idx_last  = (idxs_i[-1], idxs_j[-1])
     if max(idx_first) > min(idx_last):
+        # wavefunction not overlap
         return 1e20
     else:
-        idx_first = min([idxs_i[0], idxs_j[0]])
-        idx_last  = max([idxs_i[-1], idxs_j[-1]])
+        #TBD? 08.21.2017
+        idx_first = min(idx_first)
+        idx_last  = max(idx_last)
         psi_i = psi_i[idx_first:idx_last]
         psi_j = psi_j[idx_first:idx_last]
         xPoints = data.xPoints[idx_first:idx_last]

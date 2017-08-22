@@ -2180,6 +2180,10 @@ class MainWindow(QMainWindow):
         self.layerTable.setFocus()
 
     def figure_of_merit(self):
+        """
+        SLOT connected to SIGNAL self.FoMButton.clicked()
+        Calculate ???
+        """
         if len(self.stateHolder) < 2:
             return
         
@@ -2189,9 +2193,10 @@ class MainWindow(QMainWindow):
         upper = self.stateHolder[-1]
         lower = self.stateHolder[-2]        
         if upper < lower:
-            temp = upper
-            upper = lower
-            lower = temp
+            upper, lower = lower, upper
+            #  temp = upper
+            #  upper = lower
+            #  lower = temp
         
         self.tauUpper = 0; self.tauLower = 0
         for q in xrange(upper):
@@ -2201,7 +2206,9 @@ class MainWindow(QMainWindow):
             self.tauLower += 1/ThePhysics.lo_phonon_time(self.qclayers, lower, q)
         self.tauLower = 1/self.tauLower
         
-        self.FoM = self.opticalDipole**2 * self.tauUpper * (1- self.tauLower/self.tauUpperLower)
+        self.FoM = self.opticalDipole**2 * self.tauUpper \
+                * (1- self.tauLower/self.tauUpperLower)
+        # tauUpperLower is the inverse of transition rate (lifetime)
         
         self.alphaISB = ThePhysics.alphaISB(self.qclayers, upper, lower)
         
