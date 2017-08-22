@@ -159,6 +159,23 @@ class MainWindow(QMainWindow):
         # Quantum Tab
         #
         # ##########################
+
+        # Platform dependent settings, eg. layerout size settings
+        if sys.platform == 'win32': 
+            self.layerTableSize = 340
+            self.DescriptionBoxWidth = 190
+        elif sys.platform == 'darwin':
+            self.layerTableSize = 405
+            self.DescriptionBoxWidth = 285
+        elif sys.platform == 'linux2':
+            self.layerTableSize = 365
+            self.DescriptionBoxWidth = 240
+        else:
+            QMessageBox.warning(self, 'ErwinJr - Warning', 
+                    'Platform %s not tested.'%sys.platform)
+            self.layerTableSize = 340
+            self.DescriptionBoxSize = 190
+        self.pairSelectStringWidth = self.DescriptionBoxWidth
         
         #set up quantumCanvas for band structure plot
         self.quantumCanvas = Qwt.QwtPlot(self)
@@ -169,11 +186,8 @@ class MainWindow(QMainWindow):
         self.layerTable = QTableWidget()
         self.layerTable.setSelectionBehavior(QTableWidget.SelectRows)
         self.layerTable.setSelectionMode(QTableWidget.SingleSelection)
-        self.layerTable.setMaximumWidth(340)
-        self.layerTable.setMinimumWidth(340)
-        if sys.platform == 'darwin':
-            self.layerTable.setMaximumWidth(405)
-            self.layerTable.setMinimumWidth(405)
+        self.layerTable.setMaximumWidth(self.layerTableSize)
+        self.layerTable.setMinimumWidth(self.layerTableSize)
         self.connect(self.layerTable,SIGNAL("itemChanged(QTableWidgetItem*)"),self.layerTable_itemChanged)
         self.connect(self.layerTable,SIGNAL("itemSelectionChanged()"),self.layerTable_itemSelectionChanged)
         
@@ -249,9 +263,10 @@ class MainWindow(QMainWindow):
         self.connect(self.LpLastSpinbox, SIGNAL("valueChanged(int)"), self.update_inputBoxes)
         self.LpStringBox = QTextEdit('')
         self.LpStringBox.setReadOnly(True)
-        self.LpStringBox.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed))
+        self.LpStringBox.setSizePolicy(
+                QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed))
         self.LpStringBox.setMaximumHeight(75)
-        self.LpStringBox.setMaximumWidth(105)
+        self.LpStringBox.setMaximumWidth(135)
         if sys.platform == "darwin":
             self.LpStringBox.setMaximumWidth(130)
         LpLayout = QGridLayout()
@@ -357,9 +372,7 @@ class MainWindow(QMainWindow):
         self.DescriptionBox.setReadOnly(False)
         self.DescriptionBox.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed))
         self.DescriptionBox.setMaximumHeight(40)
-        self.DescriptionBox.setMaximumWidth(190)
-        if sys.platform == 'darwin':
-            self.DescriptionBox.setMaximumWidth(285)
+        self.DescriptionBox.setMaximumWidth(self.DescriptionBoxWidth)
         self.connect(self.DescriptionBox, SIGNAL("textChanged()"), self.input_description)
         DescLayout = QVBoxLayout()
         DescLayout.addWidget(self.DescriptionBox)
@@ -403,9 +416,7 @@ class MainWindow(QMainWindow):
         self.pairSelectString.setReadOnly(True)
         self.pairSelectString.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed))
         self.pairSelectString.setMaximumHeight(130)
-        self.pairSelectString.setMaximumWidth(190)
-        if sys.platform == 'darwin':
-            self.pairSelectString.setMaximumWidth(285)
+        self.pairSelectString.setMaximumWidth(self.pairSelectStringWidth)
         calculateControl_grid = QGridLayout()
         calculateControl_grid.addWidget(self.pairSelectButton, 0,0, 1,2)
         calculateControl_grid.addWidget(self.FoMButton, 1,0, 1,1)
@@ -1707,12 +1718,22 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()
 
     def update_Lp_limits(self):
+        """
+        Update Lp select range in the Period Info box (GUI)
+        """
         self.LpFirstSpinbox.setRange(1,self.qclayers.layerWidths.size-1)
         self.LpFirstSpinbox.setValue(1)
         self.LpLastSpinbox.setRange(1,self.qclayers.layerWidths.size-1)
         self.LpLastSpinbox.setValue(self.qclayers.layerWidths.size-1)
         
     def update_Lp_box(self):
+        """
+        Update Lp box in the Period Info box (GUI): 
+            Lp:total length
+            well: persentage of well material 
+            nD: average doping (cm-3)
+            ns: ???
+        """
         LpFirst = self.LpFirstSpinbox.value()
         LpLast = self.LpLastSpinbox.value()+1 #+1 because range is not inclusive of last value
         # total length of the layers (1 period)
@@ -1725,7 +1746,8 @@ class MainWindow(QMainWindow):
         # average doping of the layers
         nD = sum(self.qclayers.layerDopings[LpFirst:LpLast]
                 *self.qclayers.layerWidths[LpFirst:LpLast])/Lp
-        Lp_string += u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup><br>" % nD
+        Lp_string += u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup>\
+        cm<sup>-3</sup><br>" % nD
         # what's this?
         ns = sum(self.qclayers.layerDopings[LpFirst:LpLast]
                 *self.qclayers.layerWidths[LpFirst:LpLast])*1e-2
