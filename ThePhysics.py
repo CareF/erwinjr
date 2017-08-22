@@ -857,7 +857,6 @@ class QCLayers(object):
 
     def update_strain(self):  # c is a Material_Constant class instance
         """
-        TODO: haven't finish reading it (08/18/2017)
         update strain and strain related parameters inside each layers
         (Always called after update_alloys)
         OUTPUT/update member variables: 
