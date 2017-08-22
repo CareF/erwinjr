@@ -273,7 +273,7 @@ class Strata(object):
             n[i] = data.moleFrac[i]*n_InAs + (1-data.moleFrac[i])*n_GaAs
         for i in range(1, 8, 2):
             n[i] = data.moleFrac[i]*n_InAs + (1-data.moleFrac[i])*n_AlAs
-        nCore = sum(data.h*n)/sum(data.h) # Average n?
+        nCore = sum(data.MaterialWidth*n)/sum(data.MaterialWidth) # Average n?
         
         kCore = 1/(4*pi) * self.aCore * wl*1e-4 
         # See Def of acore
@@ -865,8 +865,8 @@ class QCLayers(object):
             self.eps_parallel: strain tensor within/parallel to the layer plane
             self.a_perp: lattice const. perpendicular to the layer plane
             self.eps_perp: strain tensor perpendicular to the layer plane
-            self.h
-            self.netStrain
+            self.MaterialWidth
+            self.netStrain: spacial average of eps_perp in unit of percentage
             self.MLThickness
             self.Pec, self.Pe, self.Qe, self.Varsh: correction terms on bans,
                                 See Kales's thesis, sec2
@@ -890,7 +890,7 @@ class QCLayers(object):
         #             = -2*self.c12/self.c11*self.eps_parallel
         
         # total width of different material?
-        self.h = np.zeros(self.numMaterials)
+        self.MaterialWidth = np.zeros(self.numMaterials)
         for i in range(4): 
             # Note that material are labeled by sequence [well, barrier]*4
             # [1:] because first layer doesn't count
@@ -903,11 +903,11 @@ class QCLayers(object):
             indx[0] = False # s.t. 1st layer doesn't count
             #  print indx
             #  print self.layerWidths
-            self.h[2*i+1] = sum(self.layerWidths[indx]
+            self.MaterialWidth[2*i+1] = sum(self.layerWidths[indx]
                     * self.layerBarriers[indx])
-            self.h[2*i] = sum(self.layerWidths[indx]) - self.h[2*i+1]
-        #  print "------debug-----", sum(self.h)
-        self.netStrain = 100 * sum(self.h*self.eps_perp) / sum(self.h)
+            self.MaterialWidth[2*i] = sum(self.layerWidths[indx]) - self.MaterialWidth[2*i+1]
+        #  print "------debug-----", sum(self.MaterialWidth)
+        self.netStrain = 100 * sum(self.MaterialWidth*self.eps_perp) / sum(self.MaterialWidth)
         
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
