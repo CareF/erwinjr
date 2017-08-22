@@ -66,6 +66,7 @@ KVpCM = 1e5 # KV/cm to V/m
 
 #===============================================================================
 # Reference
+# [0]Kale Franz's thesis
 # [1]Handbook of Optics, Vol.2, ISBN: 0070479747
 # [2]Van de Walle C G. Band lineups and deformation potentials in the 
 #    model-solid theory[J]. Physical review B, 1989, 39(3): 1871.
@@ -867,13 +868,18 @@ class QCLayers(object):
             self.eps_perp: strain tensor perpendicular to the layer plane
             self.MaterialWidth: total width of a each material
             self.netStrain: spacial average of eps_perp in unit of percentage
-            self.MLThickness
-            self.Pec, self.Pe, self.Qe, self.Varsh: correction terms on bans,
+            self.MLThickness: monolayer thickness? shown in GUI as
+                    layerWidth/MLThickness??
+            self.Pec, self.Pe, self.Qe, self.Varsh: correction terms on bands,
                                 See Kales's thesis, sec2
-            self.ESO, self.EgLH, self.EgSO
-            self.me
-            self.EcG, self.EcL, self.EcX
-            self.EvLH, self.EvSO
+            self.ESO: spin-orbit splitting, including strain correction 
+            self.EgLH, self.EgSO: band bottom/top at Gamma Epoints respect to
+                                conduction band
+            self.me: effective mass ignoring energy dependence
+            self.EcG, self.EcL, self.EcX: conduction band bottom at
+                                Gamma, L and X points
+            self.EvLH, self.EvSO: valence band (LH/SO) top at Gamma point
+            (EcL, EcX, EvLH, EvSO are only used for plotting?)
         """
         if self.substrate in cst.substrateSet:
             self.a_parallel = cst[self.substrate].alc
@@ -927,7 +933,8 @@ class QCLayers(object):
         baseln = 0.22004154
         
         # Pikus-Bir interaction correction to bands offset, 
-        # According to Kale's, Eq.(2.14), Pe for \delta E_{v}
+        # According to Kale's, Eq.(2.14), 
+        # Pec for \delta E_{c} and Pe for \delta E_{v}
         self.Pec = (2*self.eps_parallel+self.eps_perp) * (self.acG)
         #  self.Pe = 2*self.av * (self.c11-self.c12) / self.c11 * self.eps_parallel
         self.Pe  = (2*self.eps_parallel+self.eps_perp) * (self.av)
@@ -940,31 +947,40 @@ class QCLayers(object):
         #  in part following Sugawara, PRB 48, 8102 (1993)
         
         # Eq.(2.15) in Kale's
+        # ESO is energy difference between SO band and LH bands (adding
+        # strain correction to \Delta_{SO} (DSO)
         self.ESO  = sqrt(9*self.Qe**2+2*self.Qe*self.DSO+self.DSO**2)
+        # EgLH is the band gap between conduction band (c) and LH bands
         self.EgLH = self.EgG + self.Pec + self.Pe + self.Varsh \
                 - 1/2*(self.Qe - self.DSO + self.ESO)
         self.EgSO = self.EgG + self.Pec + self.Pe + self.Varsh \
                 - 1/2*(self.Qe - self.DSO - self.ESO)
+                #= ESO+EgLH
         
+        # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
         self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
                 *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
         
         #corrections to the method used to calculate band edges, thanks to Yu Song
-        # band edge at different point, Eq.(2.7)
+        # conduction band edge at different point, Eq.(2.7)
         self.EcG = self.VBO + self.EgG + self.Pec - baseln # Varsh?
         # band edge at L and X?
+        # only used in diagram..?
         self.EcL = self.VBO + self.EgL \
                 + (2*self.eps_parallel+self.eps_perp) * (self.acL+self.av) - baseln
         self.EcX = self.VBO + self.EgX \
                 + (2*self.eps_parallel+self.eps_perp)*(self.acX+self.av) \
                 + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) - baseln
         
-        # Same as previous lines except for Varsh.. but why?
+        # Same as previous lines except for Varsh.. 
+        # Above Varsh correction is to band gap; 
+        # the correction should be part conduction band, part valence band
         self.EgLH = self.EgG + self.Pec + self.Pe \
                 - 1/2*(self.Qe - self.DSO + self.ESO)
         self.EgSO = self.EgG + self.Pec + self.Pe \
                 - 1/2*(self.Qe - self.DSO - self.ESO)
         
+        # Varsh correction comes here
         #1st MAJOR assumption: 
         #   Varshney contribution to band edge is in proportion to percent 
         #   of band offset
@@ -985,6 +1001,12 @@ class QCLayers(object):
         self.EcX += percentCB * self.Varsh
         self.EvLH = self.EcG - self.EgLH - ((1-percentCB) * self.Varsh)
         self.EvSO = self.EcG - self.EgSO - ((1-percentCB) * self.Varsh)
+
+        # TODO: should be here
+        # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
+        #  self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
+                #  *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
+        
         
 
     def solve_psi(self):
@@ -1192,7 +1214,7 @@ class QCLayers(object):
                 self.xyPsi[:,p] = A * xPsi
         
         #remove states that come from oscillating end points
-        # looks like we should change -1 to -2 (following)
+        # looks like we should change -1 to -2 (following)???
         psiEnd = self.xyPsi[-1,:]
         idxs = abs(psiEnd)<10
         #  idxs = np.nonzero(abs(psiEnd)<10)[0]
