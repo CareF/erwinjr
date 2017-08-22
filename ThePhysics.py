@@ -50,6 +50,7 @@ except WindowsError:
     cFunctions=CDLL('cFunctions.dll')
 
 USE_CLIB = True
+MORE_INTERPOLATION = True
 
 #===============================================================================
 # Global Variables
@@ -1006,10 +1007,9 @@ class QCLayers(object):
         #  self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
                 #  *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
         
-        
 
     def solve_psi(self):
-        """ solve eigen mode
+        """ solve eigen modes
         OUTPUT: (doesn't return, but update member variables
             self.EigenE is the eignenergy of the layer structure
             self.xPointsPost[x] is a shorter version of self.xPoints
@@ -1112,7 +1112,7 @@ class QCLayers(object):
 #                if abs(d1) > 1e15 and abs(d2) > 1e15:
 #                    self.EigenE[q] = 0
 
-        if True:
+        if MORE_INTERPOLATION:
             # Near the above approximation result, 
             # try to get a more precise result
             for q in xrange(self.EigenE.size):
