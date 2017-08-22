@@ -866,7 +866,7 @@ class QCLayers(object):
             self.a_perp: lattice const. perpendicular to the layer plane
             self.eps_perp: strain tensor perpendicular to the layer plane
             self.h
-            self.mismatch
+            self.netStrain
             self.MLThickness
             self.Pec, self.Pe, self.Qe, self.Varsh: correction terms on bans,
                                 See Kales's thesis, sec2
@@ -907,7 +907,7 @@ class QCLayers(object):
                     * self.layerBarriers[indx])
             self.h[2*i] = sum(self.layerWidths[indx]) - self.h[2*i+1]
         #  print "------debug-----", sum(self.h)
-        self.mismatch = 100 * sum(self.h*self.eps_perp) / sum(self.h)
+        self.netStrain = 100 * sum(self.h*self.eps_perp) / sum(self.h)
         
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),

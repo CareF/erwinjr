@@ -1583,7 +1583,7 @@ class MainWindow(QMainWindow):
         self.offset3Label.setText("%6.0f meV" % ((self.qclayers.EcG[5]-self.qclayers.EcG[4])*1000))
         self.offset4Label.setText("%6.0f meV" % ((self.qclayers.EcG[7]-self.qclayers.EcG[6])*1000))
         
-        strainString = "<center>Net Strain: <b>%6.3f%%</b></center>" % self.qclayers.mismatch
+        strainString = "<center>Net Strain: <b>%6.3f%%</b></center>" % self.qclayers.netStrain
         self.strainDescription.setText(strainString)
         
         self.inputVertResBox.setValue(self.qclayers.vertRes)
