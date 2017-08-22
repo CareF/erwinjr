@@ -22,6 +22,7 @@
 # TODO: 
 # material related codes should be moved to MaterialConstants
 # try separate this file to smaller ones
+# try use dict type for substrate restriction on material
 
 from __future__ import division
 #  from numpy import *
@@ -215,16 +216,17 @@ class Strata(object):
                 k_AlInAs = sqrt( 0.5 *(abs(eps) - eps.real))
                 self.stratumRIndexes[q] = n_AlInAs + 1j*k_AlInAs
             elif material == 'Au':
-                C1=-0.1933; C2=0.3321; C3=0.0938;
-                D1=-0.382; D2=6.8522; D3=-0.1289;
+                C1=-0.1933; C2=0.3321; C3=0.0938
+                D1=-0.382; D2=6.8522; D3=-0.1289
                 n_Au = C1+wl*C2+wl*C3**2
                 k_Au = D1+wl*D2+wl*D3**2
                 self.stratumRIndexes[q] = n_Au+k_Au*1j
             elif material == 'SiNx':
                 #from Jean Nguyen's Thesis
                 C1 = 2.0019336; C2 = 0.15265213; C3 = 4.0495557
-                D0=-0.00282; D1=0.003029; D2=-0.0006982; D3=-0.0002839;
-                D4=0.0001816; D5=-3.948e-005; D6=4.276e-006; D7=-2.314e-007; D8=4.982e-009
+                D0=-0.00282; D1=0.003029; D2=-0.0006982
+                D3=-0.0002839; D4=0.0001816; D5=-3.948e-005 
+                D6=4.276e-006; D7=-2.314e-007; D8=4.982e-009
                 n_SiNx = C1 + C2/wl**2 + C3/wl**4
                 k_SiNx = D0 + D1*wl + D2*wl**2 + D3*wl**3 + D4*wl**4 \
                         + D5*wl**5 + D6*wl**6 + D7*wl**7 + D8*wl**8
@@ -576,7 +578,7 @@ class QCLayers(object):
         solver: ??? seems not used
         Temperature: Temperature of the device, affecting material property
                       seems not used
-        TempFoM: ??? seems not used
+        TempFoM: ??? seems not used (Figure of Merit?
         diffLength: ??? seems not used
         substrate: The substrate material for the device, which determined
                       the well and barrier material
@@ -783,11 +785,20 @@ class QCLayers(object):
     def update_alloys(self):  # c is a Material_Constant class instance
         """
         update material parameter for the alloy used.
+        (Always followed by update_strain)
+        OUTPUT/update member variable:
+            all parameters listed in variables
+            self.numMaterials: Number of differenc types of material
+                               supported
+            self.epsrho: ???
         """
         variables = ['EgG', 'EgL', 'EgX', 'VBO', 'DSO', 'me0', 'acG', 'acL', 'acX', 
                  'Ep', 'F', 'XiX', 'b', 'av', 'alG', 'beG', 'alL', 'beL', 'alX', 
                  'beX', 'epss', 'epsInf', 'hwLO', 'alc', 'c11', 'c12']
         #  print "----debug--- substrate is "+self.substrate
+        # substrate restriction on layer material, 
+        # see doc string of QCLayers class
+        # Material are labeled by sequence [well, barrier]*4
         if self.substrate == 'InP':
             self.numMaterials = 8
             Mat1 = ['InAs']*8
@@ -797,16 +808,15 @@ class QCLayers(object):
             self.numMaterials = 8
             Mat1 = ['AlAs']*8
             Mat2 = ['GaAs']*8
-            MatCross = ['AlGaAs']*8 # Note EgG_AlGaAs's moleFrad deps
+            MatCross = ['AlGaAs']*8 # Note EgG_AlGaAs's moleFrac deps
         elif self.substrate == 'GaSb': 
             self.numMaterials = 8
             Mat1 = ['InAs', 'AlSb']*4
             Mat2 = ['InSb', 'GaSb']*4
-            MatCross = ['InAsSb', 'AlGaSb']*4 # Note EgG's bowing moleFrad deps
+            MatCross = ['InAsSb', 'AlGaSb']*4 # Note EgG's bowing moleFrac deps
         else: 
             raise TypeError('substrate selection not allowed')
 
-        self.h = np.zeros(self.numMaterials)
         for item in variables:
             setattr(self, item, np.empty(self.numMaterials))
             para = getattr(self, item)
@@ -838,44 +848,59 @@ class QCLayers(object):
             #  #  print item, getattr(self, item)
             #  setattr(self, item+"_new", ll)
 
-        #set this once the others are set        
+        #set this once the others are set ???
         self.epsrho = 1 / (1/self.epsInf - 1/self.epss)     
 
     def update_strain(self):  # c is a Material_Constant class instance
-
-        if self.substrate == 'InP':
-            self.a_parallel = cst['InP'].alc
-        elif self.substrate == 'GaSb':
-            self.a_parallel = cst['GaSb'].alc
-        elif self.substrate == 'GaAs':
-            self.a_parallel = cst['GaAs'].alc
+        """
+        TODO: haven't finish reading it (08/18/2017)
+        update strain and strain related parameters inside each layers
+        (Always called after update_alloys)
+        OUTPUT/update member variables: 
+            self.eps_parallel
+            self.a_perp
+            self.eps_perp
+            self.h
+            self.mismatch
+            self.MLThickness
+            self.Pec, self.Pe, self.Qe, self.Varsh: correction terms on bans,
+                                See Kales's thesis, sec2
+            self.ESO, self.EgLH, self.EgSO
+            self.me
+            self.EcG, self.EcL, self.EcX
+            self.EvLH, self.EvSO
+        """
+        if self.substrate in cst.substrateSet:
+            self.a_parallel = cst[self.substrate].alc
         else:
             raise TypeError('substrate selection not allowed')
-            
+        
+        # Walle eqn 1b
+        self.eps_parallel = self.a_parallel / self.alc - 1
+        # Walle eqn 2a
+        self.a_perp   = self.alc * (1 - 2* self.c12 / self.c11 * self.eps_parallel)
+        # Walle eqn 2b
+        self.eps_perp = self.a_perp/self.alc - 1
+        #             = -2*self.c12/self.c11*self.eps_parallel
+        
+        # total width of different material?
+        self.h = np.zeros(self.numMaterials)
         for i in range(4): 
+            # Note that material are labeled by sequence [well, barrier]*4
             indx = np.nonzero(self.layerMaterials[1:] == i+1)[0]
             # [1:] because first layer doesn't count
             self.h[2*i+1] = sum(self.layerWidths[indx]
                     * self.layerBarriers[indx])
             self.h[2*i] = sum(self.layerWidths[indx]) - self.h[2*i+1]
-        
-        self.eps_parallel = self.a_parallel / self.alc - 1; #Walle eqn 1b
-        
-        self.a_perp   = self.alc * (1 - 2* self.c12 / self.c11 * self.eps_parallel); #Walle eqn 2a
-        self.eps_perp = self.a_perp/self.alc - 1; #Walle eqn 2b
-        #             = -2*self.c12/self.c11*self.eps_parallel
-        
         #  print "------debug-----", sum(self.h)
-        self.mismatch = 100 * sum(self.h*self.eps_perp) / sum(self.h);
+        self.mismatch = 100 * sum(self.h*self.eps_perp) / sum(self.h)
         
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
             (0,1)*4)): 
             #? what's MLThickness???
-            self.MLThickness[np.nonzero( 
-                  (self.layerMaterials == MLabel) 
-                & (self.layerBarriers == BLabel)
-                )[0] ] = self.a_perp[n] / 2.0
+            self.MLThickness[(self.layerMaterials == MLabel) 
+                & (self.layerBarriers == BLabel)] = self.a_perp[n] / 2.0
     
         # for In0.53Ga0.47As, EcG = 0.22004154
         #    use this as a zero point baseline
@@ -895,42 +920,30 @@ class QCLayers(object):
         #  in part following Sugawara, PRB 48, 8102 (1993)
         
         # Eq.(2.15) in Kale's
-        self.ESO  = sqrt(9*self.Qe**2+2*self.Qe*self.DSO+self.DSO**2);
+        self.ESO  = sqrt(9*self.Qe**2+2*self.Qe*self.DSO+self.DSO**2)
         self.EgLH = self.EgG + self.Pec + self.Pe + self.Varsh \
-                - 1/2*(self.Qe - self.DSO + self.ESO);
+                - 1/2*(self.Qe - self.DSO + self.ESO)
         self.EgSO = self.EgG + self.Pec + self.Pe + self.Varsh \
-                - 1/2*(self.Qe - self.DSO - self.ESO);
+                - 1/2*(self.Qe - self.DSO - self.ESO)
         
-        #  self.alpha = (self.Qe + self.DSO + 
-                #  sqrt(9*self.Qe.^2+2*self.Qe*self.DSO+self.DSO.^2)) \
-                #  / (2*sqrt(9*self.Qe.^2+2*self.Qe*self.DSO+self.DSO.^2));
-        #  self.beta = (-self.Qe - self.DSO + 
-                #  sqrt(9*self.Qe.^2+2*self.Qe*self.DSO+self.DSO.^2)) \
-                #  / (2*sqrt(9*self.Qe.^2+2*self.Qe*self.DSO+self.DSO.^2));
-        #  self.alpha = self.alpha / sqrt(self.alpha.^2 + self.beta.^2);
-        #  self.beta = self.beta / sqrt(self.alpha.^2 + self.beta.^2);
-        self.me = 1 / ((1+2*self.F) + self.Ep/self.EgLH*(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO));
-        #  self.me2 = 1 / ((1+2*self.F) + self.Ep/3 *( 
-            #  (sqrt(2)*self.alpha-self.beta).^2 / self.EgLH 
-            #  + (sqrt(2)*self.beta+self.alpha).^2 / (self.EgLH + self.ESO))); #using Igor's Ep instead of the calculated P2
-        # self.me3 = 1 / ((1+2*self.F) + self.Ep/3 *( 2 / self.EgLH + 1 / (self.EgLH + self.ESO)));
-        # self.me4 = 1 / ((1+2*self.F) + self.Ep/3 *( 2 / self.EgLH + 1 / (self.EgSO)));
+        self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
+                *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
         
         #corrections to the method used to calculate band edges, thanks to Yu Song
         # band edge at different point, Eq.(2.7)
-        self.EcG = self.VBO + self.EgG + self.Pec - baseln; # Varsh?
+        self.EcG = self.VBO + self.EgG + self.Pec - baseln # Varsh?
         # band edge at L and X?
         self.EcL = self.VBO + self.EgL \
-                + (2*self.eps_parallel+self.eps_perp) * (self.acL+self.av) - baseln;
+                + (2*self.eps_parallel+self.eps_perp) * (self.acL+self.av) - baseln
         self.EcX = self.VBO + self.EgX \
                 + (2*self.eps_parallel+self.eps_perp)*(self.acX+self.av) \
-                + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) - baseln;
+                + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) - baseln
         
         # Same as previous lines except for Varsh.. but why?
         self.EgLH = self.EgG + self.Pec + self.Pe \
-                - 1/2*(self.Qe - self.DSO + self.ESO);
+                - 1/2*(self.Qe - self.DSO + self.ESO)
         self.EgSO = self.EgG + self.Pec + self.Pe \
-                - 1/2*(self.Qe - self.DSO - self.ESO);
+                - 1/2*(self.Qe - self.DSO - self.ESO)
         
         #1st MAJOR assumption: 
         #   Varshney contribution to band edge is in proportion to percent 
@@ -941,7 +954,8 @@ class QCLayers(object):
         barrs = np.array([1,3,5,7])
         wells = np.array([0,2,4,6])
         CBOffset = self.EcG[barrs] - self.EcG[wells]
-        VBOffset = (self.EcG[barrs] - self.EgLH[barrs]) - (self.EcG[wells] - self.EgLH[wells])
+        VBOffset = (self.EcG[barrs] - self.EgLH[barrs]) \
+                - (self.EcG[wells] - self.EgLH[wells])
         percentCB = CBOffset / (CBOffset + VBOffset)
         percentCB = np.column_stack([percentCB,percentCB]).flatten() 
         #applies percent CV to both well and barrier slots
@@ -952,19 +966,6 @@ class QCLayers(object):
         self.EvLH = self.EcG - self.EgLH - ((1-percentCB) * self.Varsh)
         self.EvSO = self.EcG - self.EgSO - ((1-percentCB) * self.Varsh)
         
-        
-        #other code that I've junked for some reason or other
-        # self.EgAV = self.EgG - self.alG*c.Temperature.^2/(c.Temperature+self.beG) + (2*self.eps_parallel+self.eps_perp) * (self.acG+self.av);
-        # self.EgEG = self.EgAV + 1/3*self.ESO;
-        # self.P2 = 1/2 * (1/self.me0 - (1+2*self.F)/1) * self.EgG * (self.EgG+self.DSO) / (self.EgG+2/3*self.DSO); #strain independent
-        # self.P2 = 1/2 * (1/self.me0 - (1+2*self.F)/1) * self.EgLH * (self.EgLH+self.ESO) / (self.EgLH+2/3*self.ESO);
-        # Pe = 2*self.acG * (self.c11-self.c12) / self.c11 * self.eps_parallel;
-        # Elh = -Pe + 1/2 * (self.Qe - self.DSO + sqrt(9*self.Qe.^2+2*self.Qe*self.DSO+self.DSO.^2))
-        # Elh = -Pe + 1/2 * (self.Qe - self.DSO + sqrt(9*self.Qe.^2+2*self.Qe*self.DSO+self.DSO.^2));
-        # Eso = -Pe + 1/2 * (self.Qe - self.DSO - sqrt(9*self.Qe.^2+2*self.Qe*self.DSO+self.DSO.^2));
-        # self.me = 1 / ((1+self.F) + 2*self.P2/3 *( (sqrt(2)*self.alpha-self.beta).^2 / self.EgLH + (sqrt(2)*self.beta+self.alpha).^2 / self.EgSO));
-        # self.me3 = 1 / ((2+2*self.F) + self.Ep*(self.EgLH + 2/3*self.ESO) / self.EgLH / (self.EgLH + self.ESO) ); #using Igor's effective mass formula
-        # self.me4 = self.EgAV / self.Ep;
 
     def solve_psi(self):
         """ solve eigen mode
@@ -1123,7 +1124,8 @@ class QCLayers(object):
                         #  double *xESO, double *xMc, double *xMcE, double *xPsi)
                 
                
-                d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1);
+                d1=(fx1-fx0)/(x1-x0)
+                d2=(fx2-fx1)/(x2-x1)
                 #inverse quadratic interpolation
                 x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
                         + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
