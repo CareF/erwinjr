@@ -2263,6 +2263,7 @@ class MainWindow(QMainWindow):
             if self.solveType is 'basis':
                 couplingEnergy = ThePhysics.coupling_energy(self.qclayers, self.dCL, upper, lower)
                 self.transitionBroadening = ThePhysics.broadening_energy(self.qclayers, upper, lower)
+                self.qclayers.populate_x_band()
                 self.opticalDipole = ThePhysics.dipole(self.qclayers, upper, lower)            
                 self.tauUpperLower = ThePhysics.lo_phonon_time(self.qclayers, upper, lower)
                 energyString  = u"selected: %d, %d<br>energy diff: <b>%6.1f meV</b>\
@@ -2271,6 +2272,7 @@ class MainWindow(QMainWindow):
                                (self.stateHolder[-2], self.stateHolder[-1], self.eDiff, couplingEnergy, self.transitionBroadening, self.opticalDipole, self.tauUpperLower)
 
             elif self.solveType is 'whole':
+                self.qclayers.populate_x_band()
                 self.opticalDipole = ThePhysics.dipole(self.qclayers, upper, lower)
                 self.tauUpperLower = ThePhysics.lo_phonon_time(self.qclayers, upper, lower)
                 self.transitionBroadening = 0.1 * self.eDiff

@@ -55,7 +55,7 @@ MORE_INTERPOLATION = True
 #===============================================================================
 # Global Variables
 #===============================================================================
-e0 = 1.60217653e-19  #electron charge
+e0 = 1.60217653e-19  #electron charge, unit coulomb
 eps0 = 8.854187e-12
 m0 = 9.10938188e-31   #free electron mass (kg)
 h = 6.6260693e-34
@@ -796,10 +796,18 @@ class QCLayers(object):
                                supported
             self.epsrho: ???
         """
-        variables = ['EgG', 'EgL', 'EgX', 'VBO', 'DSO', 'me0', 'acG', 'acL', 'acX', 
-                 'Ep', 'F', 'XiX', 'b', 'av', 'alG', 'beG', 'alL', 'beL', 'alX', 
-                 'beX', 'epss', 'epsInf', 'hwLO', # LO phonon energy
-                 'alc', 'c11', 'c12']
+        variables = ['EgG', 'EgL', 'EgX', 'VBO', 'DSO', # unit eV
+                'me0', # seems not used
+                'acG', 'acL', 'acX', # Pikus-Bir interaction parameter 
+                'Ep', 'F', # effective mass parameter, unit eV (Ep) and 1 (F)
+                'XiX', # strain correction to band at X point, unit eV
+                'b', 'av', 'alG',  # strain correction to bands at Gamma, unit eV 
+                'beG', 'alL', # Varsh correction
+                #  'beL', 'alX', 'beX',  # seems not used
+                'epss', 'epsInf',  # static and high-freq permitivity
+                'hwLO', # LO phonon energy, unit eV
+                'alc', # lattice const, unit angstrom
+                'c11', 'c12'] #elestic stiffness constants
         #  print "----debug--- substrate is "+self.substrate
         # substrate restriction on layer material, 
         # see doc string of QCLayers class
@@ -875,7 +883,7 @@ class QCLayers(object):
             self.ESO: spin-orbit splitting, including strain correction 
             self.EgLH, self.EgSO: band bottom/top at Gamma Epoints respect to
                                 conduction band
-            self.me: effective mass ignoring energy dependence
+            self.me: effective mass ignoring energy dependence, unit m0
             self.EcG, self.EcL, self.EcX: conduction band bottom at
                                 Gamma, L and X points
             self.EvLH, self.EvSO: valence band (LH/SO) top at Gamma point
@@ -1357,9 +1365,11 @@ def convert_dCL_to_data(data, dCL):
         data: orginal QCLayers class
         dCL: result of basisSolve(data)
     OUPUT:
-        get wave function (dCL[n].xyPsi) and eigenenrgy (dCL[n].EigenE) 
-        in dCL and update them in data, and format it in length for data
-        and update data.xyPsiPsi
+        get wave functions (dCL[n].xyPsi) and eigenenrgies (dCL[n].EigenE) 
+        in dCL and update them in data; format them in length compatibale for 
+        data and update data.xyPsiPsi
+        data.moduleID: moduleID[n] is the label of the position area for 
+                mode data.eigenE[n] and data.xyPsi[n]
     """
     #count number of wavefunctions
     numWFs = sum([dC.EigenE.size for dC in dCL])
@@ -1485,23 +1495,32 @@ def lo_phonon_time(data, upper, lower):
         return tau
 
 def dipole(data, upper, lower):
+    """
+    Return optical dipole between data(QCLayers class)'s upper level state 
+    and lower level state, in unit angstrom
+    z = i\hbar/(2\Delta E) \<\psi_i|(m*^{-1} P_z + P_z m*^{-1})|\psi_j\>
+    """
+    # TODO: should be a member method for data
     if upper < lower:
-        temp = upper
-        upper = lower
-        lower = temp
+        upper, lower = lower, upper
     psi_i = data.xyPsi[:,upper]
     psi_j = data.xyPsi[:,lower]
     E_i = data.EigenE[upper]
     E_j = data.EigenE[lower]
     
-    data.populate_x_band()
+    #  data.populate_x_band()
+    # This energy dependence can be as large as -70%/+250%... 
     xMcE_i = data.xMc * (1 - (data.xVc - E_i) / data.xEg)
+    #  print max(xMcE_i/data.xMc), min(xMcE_i/data.xMc)
     xMcE_j = data.xMc * (1 - (data.xVc - E_j) / data.xEg)
+    #  print xMcE_j/data.xMc
     xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
     psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
+    # Kale's (2.43) and (2.47), however for varying eff mass model, this
+    # should start with (2.36)
     z = sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
             + 1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
-    z *= hbar**2/(2*(E_i-E_j)*e0) * 1e10/m0
+    z *= hbar**2/(2*(E_i-E_j)*e0*m0) /ANG # e0 transform eV to J
     return z
 
 def coupling_energy(data, dCL, upper, lower):
