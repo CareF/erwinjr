@@ -895,28 +895,7 @@ class MainWindow(QMainWindow):
         self.waveguideLengthBox.setValue(self.strata.waveguideLength)
         self.customFacetBox.setValue(self.strata.customFacet * 100) #display in percent
         
-        # This part should be moved to class strata
-        if self.strata.waveguideFacets == 'as-cleaved + as-cleaved':
-            self.strata.frontFacet = ThePhysics.reflectivity(self.strata.beta)
-            self.strata.backFacet = ThePhysics.reflectivity(self.strata.beta)
-        elif self.strata.waveguideFacets == 'as-cleaved + perfect HR':
-            self.strata.frontFacet = ThePhysics.reflectivity(self.strata.beta)
-            self.strata.backFacet = 1
-        elif self.strata.waveguideFacets == 'as-cleaved + perfect AR':
-            self.strata.frontFacet = 1e-9
-            self.strata.backFacet = ThePhysics.reflectivity(self.strata.beta)
-        elif self.strata.waveguideFacets == 'perfect AR + perfect HR':
-            self.strata.frontFacet = 1e-9
-            self.strata.backFacet = 1
-        elif self.strata.waveguideFacets == 'custom coating + as-cleaved':
-            self.strata.frontFacet = self.strata.customFacet
-            self.strata.backFacet = ThePhysics.reflectivity(self.strata.beta)
-        elif self.strata.waveguideFacets == 'custom coating + perfect HR':
-            self.strata.frontFacet = self.strata.customFacet
-            self.strata.backFacet = 1
-        elif self.strata.waveguideFacets == 'custom coating + perfect AR':
-            self.strata.frontFacet = 1e-9
-            self.strata.backFacet = self.strata.customFacet
+        self.strata.updateFacets()
         
     def update_modeCalculations_box(self):
         

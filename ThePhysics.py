@@ -561,7 +561,35 @@ class Strata(object):
         #Kale's version
         modalEfficiency = sum(Ubar) / self.Np #since Ubar taken from normalized xI
         #I guess we'll go with Faist's version since he probably knows better than I do.
+
+    def updateFacets(self):
+        if self.waveguideFacets == 'as-cleaved + as-cleaved':
+            self.frontFacet = reflectivity(self.beta)
+            self.backFacet = reflectivity(self.beta)
+        elif self.waveguideFacets == 'as-cleaved + perfect HR':
+            self.frontFacet = ThePhysics.reflectivity(self.beta)
+            self.backFacet = 1
+        elif self.waveguideFacets == 'as-cleaved + perfect AR':
+            self.frontFacet = 1e-9
+            self.backFacet = ThePhysics.reflectivity(self.beta)
+        elif self.waveguideFacets == 'perfect AR + perfect HR':
+            self.frontFacet = 1e-9
+            self.backFacet = 1
+        elif self.waveguideFacets == 'custom coating + as-cleaved':
+            self.frontFacet = self.customFacet
+            self.backFacet = ThePhysics.reflectivity(self.beta)
+        elif self.waveguideFacets == 'custom coating + perfect HR':
+            self.frontFacet = self.customFacet
+            self.backFacet = 1
+        elif self.waveguideFacets == 'custom coating + perfect AR':
+            self.frontFacet = 1e-9
+            self.backFacet = self.customFacet
        
+def reflectivity(beta):
+    # should be member method for strata
+    beta = beta.real
+    return ((beta - 1) / (beta + 1))**2
+
 
 class QCLayers(object):
     """Class for QCLayers
@@ -1652,12 +1680,6 @@ class QCLayers(object):
             plt.show()
             
         return alphaISB
-
-def reflectivity(beta):
-    # should be member method for strata
-    beta = beta.real
-    return ((beta - 1) / (beta + 1))**2
-
 
 
 if __name__  == "__main__":
