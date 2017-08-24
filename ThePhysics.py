@@ -21,7 +21,7 @@
 
 # TODO: 
 # material related codes should be moved to MaterialConstants
-# try separate this file to smaller ones
+# try separate this file to QCLayers.py and Strata.py
 # try use dict type for substrate restriction on material
 
 from __future__ import division
@@ -30,7 +30,7 @@ import numpy as np
 from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
 from scipy import interpolate
 import copy
-from multiprocessing import Process, Queue
+#  from multiprocessing import Process, Queue
 
 #import pylab as plt
 
@@ -50,7 +50,8 @@ except WindowsError:
     cFunctions=CDLL('cFunctions.dll')
 
 USE_CLIB = True
-MORE_INTERPOLATION = True
+MORE_INTERPOLATION = True # One more time interpolation for eigen solver
+PAD_WIDTH=100 # width padded in the beginning of the given region for basis solver
 
 #===============================================================================
 # Global Variables
@@ -64,6 +65,7 @@ kb = 1.386505e-23 / e0 #eV/K
 c0 = 299792458
 ANG = 1e-10 # angstrom to meter
 KVpCM = 1e5 # KV/cm to V/m
+meV = 1e-3 # meV to eV
 
 #===============================================================================
 # Reference
@@ -791,7 +793,8 @@ class QCLayers(object):
         update material parameter for the alloy used.
         (Always followed by update_strain)
         OUTPUT/update member variable:
-            all parameters listed in variables
+            all parameters listed in variables: np.array with len=numMaterials
+                        labeled by sequence [well, barrier]*4
             self.numMaterials: Number of differenc types of material
                                supported
             self.epsrho: ???
@@ -870,6 +873,7 @@ class QCLayers(object):
         (Always called after update_alloys)
         OUTPUT/update member variables: 
             (all below are np.array with len=numMaterials)
+            (Material are labeled by sequence [well, barrier]*4)
             self.a_parallel: lattice const. within/parallel to the layer plane
             self.eps_parallel: strain tensor within/parallel to the layer plane
             self.a_perp: lattice const. perpendicular to the layer plane
@@ -885,7 +889,8 @@ class QCLayers(object):
                                 conduction band
             self.me: effective mass ignoring energy dependence, unit m0
             self.EcG, self.EcL, self.EcX: conduction band bottom at
-                                Gamma, L and X points
+                                Gamma, L and X points, respect to a give
+                                baseline
             self.EvLH, self.EvSO: valence band (LH/SO) top at Gamma point
             (EcL, EcX, EvLH, EvSO are only used for plotting?)
         """
@@ -927,7 +932,7 @@ class QCLayers(object):
                     - self.MaterialWidth[2*i+1]
         #  print "------debug-----", sum(self.MaterialWidth)
         self.netStrain = 100 * sum(self.MaterialWidth*self.eps_perp) \
-                / sum(self.MaterialWidth)
+                / sum(self.MaterialWidth) # in percentage
         
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
@@ -1271,356 +1276,385 @@ class QCLayers(object):
         self.xyPsiPsi = self.xyPsiPsiDec
         self.xPointsPost = self.xPoints[idxs]
 
-
-def basisSolve(data):
-    """ solve basis for the QC device, with each basis being eigen mode of 
-    a seperate part of the layer structure
-    INPUT: 
-        data: a QCLayers class
-    OUTPUT: 
-        dCL: a list, each element is a QCLayers class, with layer structure 
-              limited within a seperate sigle active/injection area
-    """
-    #TODO: move to QCLayers.. should be a member method
-    #self.data.basisInjectorAR is 0-to-1
-    #self.data.basisARInjector is 1-to-0
+    def dipole(self, upper, lower):
+        """
+        Return optical dipole between self's upper level state 
+        and lower level state, in unit angstrom
+        z = i\hbar/(2\Delta E) \<\psi_i|(m*^{-1} P_z + P_z m*^{-1})|\psi_j\>
+        """
+        if upper < lower:
+            upper, lower = lower, upper
+        psi_i = self.xyPsi[:,upper]
+        psi_j = self.xyPsi[:,lower]
+        E_i = self.EigenE[upper]
+        E_j = self.EigenE[lower]
         
-    #find all 0-to-1 & 1-to-0 transitions
-    # where for all n, 
-    # data.layerARs[zeroTOone[n]] = data.layerARs[oneTOzero[n]] = 0
-    # but data.layerARs[zeroTOone[n]+1] = data.layerARs[oneTOzero[n]-1] = 1
-    zeroTOone = []
-    oneTOzero = []
-    layerAR = np.insert(data.layerARs, 0, data.layerARs[-1])
-    for q in xrange(0,layerAR.size-1):
-        if layerAR[q] == 0 and layerAR[q+1] == 1:
-            zeroTOone.append(q-1)
-        if layerAR[q] == 1 and layerAR[q+1] == 0:
-            oneTOzero.append(q)
+        #  self.populate_x_band()
+        # This energy dependence can be as large as -70%/+250%... 
+        xMcE_i = self.xMc * (1 - (self.xVc - E_i) / self.xEg)
+        #  print max(xMcE_i/self.xMc), min(xMcE_i/self.xMc)
+        xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)
+        #  print xMcE_j/self.xMc
+        xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
+        psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
+        # Kale's (2.43) and (2.47), however for varying eff mass model, this
+        # should start with (2.36)
+        z = sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
+                + 1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
+        z *= hbar**2/(2*(E_i-E_j)*e0*m0) /ANG # e0 transform eV to J
+        return z
 
-    dividers = [0, data.layerARs.size-1]
-    if data.basisInjectorAR:
-        dividers += zeroTOone
-    if data.basisARInjector:
-        dividers += oneTOzero
-    # This converts the list into a set, thereby removing duplicates,
-    # and then back into a list.
-    dividers = list(set(dividers)) 
-    dividers.sort()
-    
-    #the first region is always the "wrap around" region
-    #  layers = [range(dividers[q], dividers[q+1]+1) for q in
-            #  range(len(dividers)-1)]
-    
-    #this is dataClassesList. 
-    # it holds all of the Data classes for each individual solve section
-    dCL = [] 
+    def coupling_energy(self, dCL, upper, lower):
+        """Calculate the coupling energy between upper level and lower level
+        with levels(basis) defined in dCL
+        coupling energy = <upper|H|lower> with H = H0 + V1 + V2, 
+        H0 + V1 |upper> = E(upper) |upper>; H0 + V2 |lower> = E(lower) |lower>; 
+        so <upper|H|lower> = <upper|V2|lower> + E(upper) <upper|lower>
+                           = <upper|V1|lower> + E(lower) <upper|lower>
+        while H0 includes potential without wells, V1 and V2 are wells for
+        module/dCL corresponds to upper and lower respectively
+        The result is only used in the calculate box..
+        ???this version only includes <upper|V1|lower>
+        """
+        #here, psi_i is the left-most wavefunction, not the wf with the highest energy
+        # but does it matter?..
+        module_i = self.moduleID[upper]
+        module_j = self.moduleID[lower]
+        if module_i > module_j:
+            module_i, module_j = module_j, module_i
+            psi_i = self.xyPsi[:,lower]
+            psi_j = self.xyPsi[:,upper]
+            Ej = self.EigenE[upper]
+        else:
+            psi_i = self.xyPsi[:,upper]
+            psi_j = self.xyPsi[:,lower]
+            Ej = self.EigenE[lower]
 
-    #for first period only
-    #this handles all of the solving        
-    for n in range(len(dividers)-1):
-        dCL.append(copy.deepcopy(data))
-        dCL[n].repeats = 1
+        # Ming's version for calculating coupling, 08.23.2017
+        #  if module_j - module_i != 1:
+            #  return 0
+        #  DeltaV = np.ones(self.xPointsPost.size)
+        #  first = int(dCL[module_i].widthOffset/self.xres)
+        #  last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
+        #  #  print "---debug--- coupling_energy"
+        #  #  print first,last
+        #  DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
+        #  DeltaV = 1 - DeltaV #=is well
+        #  jMat = self.xMaterials[last+1]
+        #  DeltaV *= (self.EcG[2*j-1] - self.EcG[2*(j-1)])/meV # unit meV
+        #  couplingEnergy = (sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG 
         
-        #substitute proper layer characteristics into dCL[n]
-        layer = range(dividers[n], dividers[n+1]+1)
-        dCL[n].layerWidths = np.hstack([100, data.layerWidths[layer], 30])
-        dCL[n].layerBarriers = np.hstack([1, data.layerBarriers[layer], 1])
-        dCL[n].layerARs = np.hstack([0, data.layerARs[layer], 0])
-        dCL[n].layerMaterials = np.hstack([data.layerMaterials[layer][0], 
-            data.layerMaterials[layer], data.layerMaterials[layer][-1]])
-        dCL[n].layerDopings = np.hstack([0, data.layerDopings[layer], 0])
-        dCL[n].layerDividers = np.hstack([0, data.layerDividers[layer], 0])
-       
-        #update and solve
-        dCL[n].update_alloys()
-        dCL[n].update_strain()
-        dCL[n].populate_x()
-        dCL[n].populate_x_band()
-        dCL[n].solve_psi()
+        DeltaV = np.ones(self.xPointsPost.size)
+        first = int(dCL[module_i].widthOffset/self.xres)
+        last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
+        #  print "---debug--- coupling_energy"
+        #  print first,last
+        DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
+        DeltaV = 1 - DeltaV #=is well
+        couplingEnergy = sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
+                * abs(self.EcG[1] - self.EcG[0]) /meV #* (1-self.xBarriers)
+        # DeltaV * (self.EcG[1] (barrier) - dta.Ecg[0] (well)) = Vi(wells)
+        return couplingEnergy #unit meV
+
+    def basisSolve(self):
+        """ solve basis for the QC device, with each basis being eigen mode of 
+        a seperate part of the layer structure
+        OUTPUT: 
+            dCL: a list, each element is a QCLayers class, with layer structure 
+                  limited within a seperate sigle active/injection area, and
+                  layer structure in dCL also includes pedding at head/tail with 
+                  same material as the first/last layer and barrier type
+        """
+        #self.basisInjectorAR is 0-to-1
+        #self.basisARInjector is 1-to-0
+            
+        #find all 0-to-1 & 1-to-0 transition points 
+        # (1 for active region, 0 for injection retion, and active regions are
+        # required to start and end by a well layer)
+        # where for all n, 
+        # self.layerARs[zeroTOone[n]] = self.layerARs[oneTOzero[n]] = 0
+        # but self.layerARs[zeroTOone[n]+1] = self.layerARs[oneTOzero[n]-1] = 1
+        # TODO: try always at left
+        zeroTOone = []
+        oneTOzero = []
+        layerAR = np.insert(self.layerARs, 0, self.layerARs[-1])
+        for q in xrange(0,layerAR.size-1):
+            if layerAR[q] == 0 and layerAR[q+1] == 1:
+                zeroTOone.append(q-1)
+            if layerAR[q] == 1 and layerAR[q+1] == 0:
+                oneTOzero.append(q)
+
+        dividers = [0, self.layerARs.size-1]
+        if self.basisInjectorAR:
+            dividers += zeroTOone
+        if self.basisARInjector:
+            dividers += oneTOzero
+        # This converts the list into a set, thereby removing duplicates,
+        # and then back into a list.
+        dividers = list(set(dividers)) 
+        dividers.sort()
         
-        #caculate offsets
-        dCL[n].widthOffset = sum(data.layerWidths[range(0,dividers[n])]) #- 100/data.xres
-        dCL[n].fieldOffset = -(dCL[n].widthOffset-100) * ANG \
-                * dCL[n].EField * KVpCM            
-    
-    solvePeriods = len(dCL)
-    
-    #create dCL's and offsets for repeat periods
-    counter = solvePeriods
-    if data.repeats > 1:
-        for q in xrange(1,data.repeats):
-            for p in xrange(0,solvePeriods):
-                dCL.append(copy.deepcopy(dCL[p]))
-                dCL[counter].widthOffset = sum(data.layerWidths[1:])*q \
-                        + dCL[p].widthOffset #- 100/data.xres
-                dCL[counter].fieldOffset = -(dCL[counter].widthOffset-100)*ANG \
-                        * dCL[counter].EField * KVpCM
+        #the first region is always the "wrap around" region
+        #  layers = [range(dividers[q], dividers[q+1]+1) for q in
+                #  range(len(dividers)-1)]
+        
+        #this is dataClassesList. 
+        # it holds all of the Data classes for each individual solve section
+        dCL = [] 
+
+        #for first period only
+        #this handles all of the solving        
+        for n in range(len(dividers)-1):
+            dCL.append(copy.deepcopy(self))
+            dCL[n].repeats = 1
+            
+            #substitute proper layer characteristics into dCL[n], hear/tail
+            #  padding
+            layer = range(dividers[n], dividers[n+1]+1)
+            dCL[n].layerWidths = np.hstack([PAD_WIDTH, self.layerWidths[layer], 30])
+            dCL[n].layerBarriers = np.hstack([1, self.layerBarriers[layer], 1])
+            dCL[n].layerARs = np.hstack([0, self.layerARs[layer], 0])
+            dCL[n].layerMaterials = np.hstack([self.layerMaterials[layer][0], 
+                self.layerMaterials[layer], self.layerMaterials[layer][-1]])
+            dCL[n].layerDopings = np.hstack([0, self.layerDopings[layer], 0])
+            dCL[n].layerDividers = np.hstack([0, self.layerDividers[layer], 0])
+           
+            #update and solve
+            dCL[n].update_alloys()
+            dCL[n].update_strain()
+            dCL[n].populate_x()
+            dCL[n].populate_x_band()
+            dCL[n].solve_psi()
+            
+            #caculate offsets
+            dCL[n].widthOffset = sum(self.layerWidths[range(0,dividers[n])]) #- 100/self.xres
+            dCL[n].fieldOffset = -(dCL[n].widthOffset-100) * ANG \
+                    * dCL[n].EField * KVpCM            
+        
+        solvePeriods = len(dCL)
+        
+        #create dCL's and offsets for repeat periods
+        counter = solvePeriods
+        if self.repeats > 1:
+            for q in xrange(1,self.repeats):
+                for p in xrange(0,solvePeriods):
+                    dCL.append(copy.deepcopy(dCL[p]))
+                    dCL[counter].widthOffset = sum(self.layerWidths[1:])*q \
+                            + dCL[p].widthOffset #- 100/self.xres
+                    dCL[counter].fieldOffset = -(dCL[counter].widthOffset-100)*ANG \
+                            * dCL[counter].EField * KVpCM
+                    counter += 1
+        return dCL
+
+    def convert_dCL_to_data(self, dCL):
+        """ post processng of dCL list
+        INPUT: 
+            self: orginal QCLayers class
+            dCL: result of basisSolve(self)
+        OUPUT:
+            get wave functions (dCL[n].xyPsi) and eigenenrgies (dCL[n].EigenE) 
+            in dCL and update them in self; format them in length compatibale for 
+            self and update self.xyPsiPsi
+            self.moduleID: moduleID[n] is the label of the position area for 
+                    mode self.eigenE[n] and self.xyPsi[n]
+        """
+        #count number of wavefunctions
+        numWFs = sum([dC.EigenE.size for dC in dCL])
+
+        self.xPointsPost = np.arange(-100, 
+                self.xPoints[-1] + 30 + self.xres, 
+                self.xres)
+
+        self.xyPsi = np.zeros((self.xPointsPost.size, numWFs))
+        self.xyPsiPsi = np.NaN*np.zeros(self.xyPsi.shape)
+        self.EigenE = np.zeros(numWFs)
+        self.moduleID = np.zeros(numWFs, dtype=np.int8)
+        counter = 0
+        for n, dC in enumerate(dCL):
+            for q in xrange(dC.EigenE.size):
+                #  wf = np.NaN*np.zeros(self.xPointsPost.size)
+                #  begin = int(dC.widthOffset/self.xres)
+                #  end = begin + dC.xyPsiPsi2[:,q].size 
+                #  wf[begin:end] = dC.xyPsiPsi2[:,q]
+                #  self.xyPsiPsi[:,counter] = wf
+                self.EigenE[counter] = dC.EigenE[q] + dC.fieldOffset
+                
+                self.moduleID[counter] = n
+                wf = np.zeros(self.xPointsPost.size)
+                begin = int(dC.widthOffset/self.xres)
+                end = begin + dC.xyPsi[:,q].size
+                wf[begin:end] = dC.xyPsi[:,q]
+                self.xyPsi[:,counter] = wf
+                self.xyPsiPsi[:,counter] = wf**2 * settings.wf_scale
+                
                 counter += 1
-    return dCL
-
-def convert_dCL_to_data(data, dCL):
-    """ post processng of dCL list
-    INPUT: 
-        data: orginal QCLayers class
-        dCL: result of basisSolve(data)
-    OUPUT:
-        get wave functions (dCL[n].xyPsi) and eigenenrgies (dCL[n].EigenE) 
-        in dCL and update them in data; format them in length compatibale for 
-        data and update data.xyPsiPsi
-        data.moduleID: moduleID[n] is the label of the position area for 
-                mode data.eigenE[n] and data.xyPsi[n]
-    """
-    #count number of wavefunctions
-    numWFs = sum([dC.EigenE.size for dC in dCL])
-
-    data.xPointsPost = np.arange(-100, 
-            data.xPoints[-1] + 30 + data.xres, 
-            data.xres)
-
-    data.xyPsi = np.zeros((data.xPointsPost.size, numWFs))
-    data.xyPsiPsi = np.NaN*np.zeros(data.xyPsi.shape)
-    data.EigenE = np.zeros(numWFs)
-    data.moduleID = np.zeros(numWFs)
-    counter = 0
-    for n, dC in enumerate(dCL):
-        for q in xrange(dC.EigenE.size):
-            #  wf = np.NaN*np.zeros(data.xPointsPost.size)
-            #  begin = int(dC.widthOffset/data.xres)
-            #  end = begin + dC.xyPsiPsi2[:,q].size 
-            #  wf[begin:end] = dC.xyPsiPsi2[:,q]
-            #  data.xyPsiPsi[:,counter] = wf
-            data.EigenE[counter] = dC.EigenE[q] + dC.fieldOffset
+        # cut head and tial to promise the figure is in the right place?
+        head = int(100/self.xres)
+        tail = -int(30/self.xres)
+        self.xPointsPost = self.xPointsPost[head:tail]
+        self.xyPsi = self.xyPsi[head:tail]
+        self.xyPsiPsi = self.xyPsiPsi[head:tail]
+        
+        #implement pretty plot
+        # remove long zero head and tail of the wave functions
+        for q in xrange(self.EigenE.size):
+            prettyIdxs = np.nonzero(self.xyPsiPsi[:,q] > 
+                    settings.wf_scale * settings.pretty_plot_factor)[0] 
+            #0.0005 is arbitrary
+            self.xyPsiPsi[0:prettyIdxs[0],q] = np.NaN
+            self.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
             
-            data.moduleID[counter] = n
-            wf = np.zeros(data.xPointsPost.size)
-            begin = int(dC.widthOffset/data.xres)
-            end = begin + dC.xyPsi[:,q].size
-            wf[begin:end] = dC.xyPsi[:,q]
-            data.xyPsi[:,counter] = wf
-            data.xyPsiPsi[:,counter] = wf**2 * settings.wf_scale
+        #sort by ascending energy
+        sortID = np.argsort(self.EigenE)
+        self.EigenE = self.EigenE[sortID]
+        self.xyPsi = self.xyPsi[:,sortID]
+        self.xyPsiPsi = self.xyPsiPsi[:,sortID]
+        self.moduleID = self.moduleID[sortID]
+
+    #    #decimate plot points
+    #    idxs = np.arange(0,self.xPoints.size, int(settings.plot_decimate_factor/self.xres), dtype=int)
+    #    self.xyPsiPsiDec = np.zeros([idxs.size, self.EigenE.size])
+    #    for q in xrange(self.EigenE.size):
+    #        self.xyPsiPsiDec[:,q] = self.xyPsiPsi[idxs,q]
+    #    self.xyPsiPsi = self.xyPsiPsiDec
+    #    self.xPointsPost = self.xPoints[idxs]
+
+    def lo_phonon_time(self, upper, lower):
+        """ LO phonon scattering induced decay life time calculator
+        INPUT:
+            self: a QCLayers class
+            upper: the higher energy state index
+            lower: the lower energy state index
+        OUTPUT
+            T1 decay life time between upper and lower states induced by LO 
+            phonon scattering
+        """
+        #TODO: should be a member method for self
+        if upper < lower:
+            upper, lower = lower, upper
+            #  temp = upper
+            #  upper = lower
+            #  lower = temp
             
-            counter += 1
-    # cut head and tial to promise the figure is in the right place?
-    head = int(100/data.xres)
-    tail = -int(30/data.xres)
-    data.xPointsPost = data.xPointsPost[head:tail]
-    data.xyPsi = data.xyPsi[head:tail]
-    data.xyPsiPsi = data.xyPsiPsi[head:tail]
-    
-    #implement pretty plot
-    # remove long zero head and tail of the wave functions
-    for q in xrange(data.EigenE.size):
-        prettyIdxs = np.nonzero(data.xyPsiPsi[:,q] > 
-                settings.wf_scale * settings.pretty_plot_factor)[0] 
-        #0.0005 is arbitrary
-        data.xyPsiPsi[0:prettyIdxs[0],q] = np.NaN
-        data.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
+        psi_i = self.xyPsi[:,upper]
+        psi_j = self.xyPsi[:,lower]
+        E_i = self.EigenE[upper]
+        E_j = self.EigenE[lower]
+
+        if E_i-E_j-self.hwLO[0] < 0:
+            # energy difference is smaller than a LO phonon
+            # LO phonon scatering doesn't happen
+            return 1e20
+            
+        # zero head and tail cut off
+        idxs_i = np.nonzero(psi_i >
+                settings.wf_scale * settings.phonon_integral_factor)[0]
+        idxs_j = np.nonzero(psi_j >
+                settings.wf_scale * settings.phonon_integral_factor)[0]
+        idx_first = (idxs_i[0], idxs_j[0])
+        idx_last  = (idxs_i[-1], idxs_j[-1])
+        if max(idx_first) > min(idx_last):
+            # wavefunction not overlap
+            return 1e20
+        else:
+            #TBD? 08.21.2017
+            idx_first = min(idx_first)
+            idx_last  = max(idx_last)
+            psi_i = psi_i[idx_first:idx_last]
+            psi_j = psi_j[idx_first:idx_last]
+            xPoints = self.xPoints[idx_first:idx_last]
+
+            xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)        
+            #weight non-parabolic effective mass by probability density
+            McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
+            
+            kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
+            dIij = np.zeros(xPoints.size)
+            for n in xrange(xPoints.size):
+                x1 = xPoints[n]*1e-10
+                x2 = xPoints*1e-10
+                dIij[n] = sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
+                        * psi_i[n]*psi_j[n] * (self.xres*1e-10)**2)
+            Iij = sum(dIij)
+            inverse_tau = McE_j * e0**2 * self.hwLO[0]*e0/hbar * Iij \
+                    / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
+            tau = 1e12/inverse_tau
+            return tau
+
+    def broadening_energy(self, upper, lower):
+        if upper < lower:
+            upper, lower = lower, upper
+        psi_i = self.xyPsi[:,upper]
+        psi_j = self.xyPsi[:,lower]
         
-    #sort by ascending energy
-    sortID = np.argsort(data.EigenE)
-    data.EigenE = data.EigenE[sortID]
-    data.xyPsi = data.xyPsi[:,sortID]
-    data.xyPsiPsi = data.xyPsiPsi[:,sortID]
-    data.moduleID = data.moduleID[sortID]
+        transitions = np.bitwise_xor(self.xBarriers[0:-1].astype(bool),
+                self.xBarriers[1:].astype(bool))
+        transitions = np.append(transitions, False) # last element is not
+        psi2int2 = sum((psi_i[transitions]**2-psi_j[transitions]**2)**2)
+        DeltaLambda = 0.76 * 1e-9 * 1e-9 # 0.79nm^2
+        twogamma = pi*self.me[0]*m0*e0**2/hbar**2 * DeltaLambda**2 \
+                * (self.EcG[1] - self.EcG[0])**2 * psi2int2
+        twogamma /=  meV*e0 #convert to meV
+        return twogamma
 
-#    #decimate plot points
-#    idxs = np.arange(0,data.xPoints.size, int(settings.plot_decimate_factor/data.xres), dtype=int)
-#    data.xyPsiPsiDec = np.zeros([idxs.size, data.EigenE.size])
-#    for q in xrange(data.EigenE.size):
-#        data.xyPsiPsiDec[:,q] = data.xyPsiPsi[idxs,q]
-#    data.xyPsiPsi = data.xyPsiPsiDec
-#    data.xPointsPost = data.xPoints[idxs]
-
-def lo_phonon_time(data, upper, lower):
-    """ LO phonon scattering induced decay life time calculator
-    INPUT:
-        data: a QCLayers class
-        upper: the higher energy state index
-        lower: the lower energy state index
-    OUTPUT
-        T1 decay life time between upper and lower states induced by LO 
-        phonon scattering
-    """
-    #TODO: should be a member method for data
-    if upper < lower:
-        upper, lower = lower, upper
-        #  temp = upper
-        #  upper = lower
-        #  lower = temp
+    def alphaISB(self, stateR, lower):
+        statesQ = []
+        dipoles = []
+        gammas = []
+        energies = []
+        for q in xrange(stateR+1, self.EigenE.size):
+            dp = self.dipole(q, stateR)
+            if abs(dp) > 1e-6:
+                statesQ.append(q)
+                dipoles.append(dp)
+        for q in statesQ:
+            gamma = self.broadening_energy(q, stateR)/2
+            gammas.append(gamma)
+            energies.append(self.EigenE[q]-self.EigenE[stateR])
+            
+        dipoles = np.array(dipoles)*1e-10 #in m
+        gammas = np.array(gammas)/1000 #from meV to eV
+        energies = abs(np.array(energies)) #in eV
         
-    psi_i = data.xyPsi[:,upper]
-    psi_j = data.xyPsi[:,lower]
-    E_i = data.EigenE[upper]
-    E_j = data.EigenE[lower]
+        neff = 3
+        Lp = sum(self.layerWidths[1:]) * 1e-10 #in m
+        Nq = sum(self.layerDopings[1:]*self.layerWidths[1:]) / sum(self.layerWidths[1:])
+        Nq *= 100**3 #convert from cm^-3 to m^-3
+        Ns = sum(self.layerDopings[1:]*1e17 * self.layerWidths[1:]*1e-8) #in cm^-2
+        Ns *= 100**2 #from cm^-2 to m^-2
+        hw = self.EigenE[stateR] - self.EigenE[lower]
+                
+        #    hw = np.arange(0.15,0.5,0.01)
+        #    for enerG in hw:
+        #        alphaISB = sum(energies * dipoles**2 * gammas / ((energies - enerG)**2 + gammas**2))
 
-    if E_i-E_j-data.hwLO[0] < 0:
-        # energy difference is smaller than a LO phonon
-        # LO phonon scatering doesn't happen
-        return 1e20
+        h = 4.1356675e-15 #eV s
+        #eps0 = 5.527e7 #1/eV-m
+        eps0 = 8.854e-12 #C/V-m
+        #print energies/h/c0 * dipoles**2
+        #print gammas / ((energies - hw)**2 + gammas**2)
         
-    # zero head and tail cut off
-    idxs_i = np.nonzero(psi_i >
-            settings.wf_scale * settings.phonon_integral_factor)[0]
-    idxs_j = np.nonzero(psi_j >
-            settings.wf_scale * settings.phonon_integral_factor)[0]
-    idx_first = (idxs_i[0], idxs_j[0])
-    idx_last  = (idxs_i[-1], idxs_j[-1])
-    if max(idx_first) > min(idx_last):
-        # wavefunction not overlap
-        return 1e20
-    else:
-        #TBD? 08.21.2017
-        idx_first = min(idx_first)
-        idx_last  = max(idx_last)
-        psi_i = psi_i[idx_first:idx_last]
-        psi_j = psi_j[idx_first:idx_last]
-        xPoints = data.xPoints[idx_first:idx_last]
-
-        xMcE_j = data.xMc * (1 - (data.xVc - E_j) / data.xEg)        
-        #weight non-parabolic effective mass by probability density
-        McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
+        alphaISB = sum(energies/h/c0 * dipoles**2 * gammas 
+                / ((energies - hw)**2 + gammas**2))
+        alphaISB *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
+        alphaISB /= e0*100
         
-        kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-data.hwLO[0])*e0)
-        dIij = np.zeros(xPoints.size)
-        for n in xrange(xPoints.size):
-            x1 = xPoints[n]*1e-10
-            x2 = xPoints*1e-10
-            dIij[n] = sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
-                    * psi_i[n]*psi_j[n] * (data.xres*1e-10)**2)
-        Iij = sum(dIij)
-        inverse_tau = McE_j * e0**2 * data.hwLO[0]*e0/hbar * Iij \
-                / (4 * hbar**2 * data.epsrho[0]*eps0 * kl)
-        tau = 1e12/inverse_tau
-        return tau
-
-def dipole(data, upper, lower):
-    """
-    Return optical dipole between data(QCLayers class)'s upper level state 
-    and lower level state, in unit angstrom
-    z = i\hbar/(2\Delta E) \<\psi_i|(m*^{-1} P_z + P_z m*^{-1})|\psi_j\>
-    """
-    # TODO: should be a member method for data
-    if upper < lower:
-        upper, lower = lower, upper
-    psi_i = data.xyPsi[:,upper]
-    psi_j = data.xyPsi[:,lower]
-    E_i = data.EigenE[upper]
-    E_j = data.EigenE[lower]
-    
-    #  data.populate_x_band()
-    # This energy dependence can be as large as -70%/+250%... 
-    xMcE_i = data.xMc * (1 - (data.xVc - E_i) / data.xEg)
-    #  print max(xMcE_i/data.xMc), min(xMcE_i/data.xMc)
-    xMcE_j = data.xMc * (1 - (data.xVc - E_j) / data.xEg)
-    #  print xMcE_j/data.xMc
-    xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
-    psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
-    # Kale's (2.43) and (2.47), however for varying eff mass model, this
-    # should start with (2.36)
-    z = sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
-            + 1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
-    z *= hbar**2/(2*(E_i-E_j)*e0*m0) /ANG # e0 transform eV to J
-    return z
-
-def coupling_energy(data, dCL, upper, lower):
-    #here, psi_i is the left-most wavefunction, not the wf with the highest energy
-    module_i = data.moduleID[upper]
-    module_j = data.moduleID[lower]
-    psi_i = data.xyPsi[:,upper]
-    psi_j = data.xyPsi[:,lower]
-    if module_i > module_j:
-        module_i = data.moduleID[lower]
-        module_j = data.moduleID[upper]
-        psi_i = data.xyPsi[:,lower]
-        psi_j = data.xyPsi[:,upper]
-
-    DeltaV = np.ones(data.xPointsPost.size)
-    first = int(dCL[int(module_i)].widthOffset/data.xres)
-    last = first + dCL[int(module_i)].xBarriers[int(100/data.xres):].size
-    #  print "---debug--- coupling_energy"
-    #  print first,last
-    DeltaV[first:last] = dCL[int(module_i)].xBarriers[int(100/data.xres):]
-    DeltaV = 1 - DeltaV
-    couplingEnergy = sum(psi_i * DeltaV * psi_j) * data.xres*1e-10 \
-            * abs(data.EcG[1] - data.EcG[0]) * 1000 #* (1-data.xBarriers)
-    return couplingEnergy
-
-def broadening_energy(data, upper, lower):
-    if upper < lower:
-        temp = upper
-        upper = lower
-        lower = temp
-    psi_i = data.xyPsi[:,upper]
-    psi_j = data.xyPsi[:,lower]
-    
-    transitions = np.bitwise_xor(data.xBarriers[0:-1].astype(bool),
-            data.xBarriers[1:].astype(bool))
-    transitionIdxs = np.nonzero(transitions == True)[0]# + int(100/data.xres)
-    psi2int2 = sum((psi_i[transitionIdxs]**2-psi_j[transitionIdxs]**2)**2)
-    DeltaLambda = 0.76 * 1e-9 * 1e-9
-    twogamma = pi*data.me[0]*m0*e0**2/hbar**2 * DeltaLambda**2 \
-            * (data.EcG[1] - data.EcG[0])**2 * psi2int2
-    twogamma *=  1e3/e0 #convert to meV
-    return twogamma
-
-def alphaISB(data, stateR, lower):
-    statesQ = []
-    dipoles = []
-    gammas = []
-    energies = []
-    for q in xrange(stateR+1, data.EigenE.size):
-        dp = dipole(data, q, stateR)
-        if abs(dp) > 1e-6:
-            statesQ.append(q)
-            dipoles.append(dp)
-    for q in statesQ:
-        gamma = broadening_energy(data, q, stateR)/2
-        gammas.append(gamma)
-        energies.append(data.EigenE[q]-data.EigenE[stateR])
-        
-    dipoles = np.array(dipoles)*1e-10 #in m
-    gammas = np.array(gammas)/1000 #from meV to eV
-    energies = abs(np.array(energies)) #in eV
-    
-    neff = 3
-    Lp = sum(data.layerWidths[1:]) * 1e-10 #in m
-    Nq = sum(data.layerDopings[1:]*data.layerWidths[1:]) / sum(data.layerWidths[1:])
-    Nq *= 100**3 #convert from cm^-3 to m^-3
-    Ns = sum(data.layerDopings[1:]*1e17 * data.layerWidths[1:]*1e-8) #in cm^-2
-    Ns *= 100**2 #from cm^-2 to m^-2
-    hw = data.EigenE[stateR] - data.EigenE[lower]
-    
-#    hw = np.arange(0.15,0.5,0.01)
-#    for enerG in hw:
-#        alphaISB = sum(energies * dipoles**2 * gammas / ((energies - enerG)**2 + gammas**2))
-
-    h = 4.1356675e-15 #eV s
-    #eps0 = 5.527e7 #1/eV-m
-    eps0 = 8.854e-12 #C/V-m
-    #print energies/h/c0 * dipoles**2
-    #print gammas / ((energies - hw)**2 + gammas**2)
-    
-    alphaISB = sum(energies/h/c0 * dipoles**2 * gammas 
-            / ((energies - hw)**2 + gammas**2))
-    alphaISB *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
-    alphaISB /= e0*100
-    
-    if False: #plot loss diagram
-        hw = np.arange(0.15,0.5,0.001)
-        alphaISBw = np.zeros(hw.size)
-        for q, enerG in enumerate(hw):
-            alphaISBw[q] = sum(energies/h/c0 * dipoles**2 * gammas 
-                    / ((energies - enerG)**2 + gammas**2))
-        alphaISBw *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
-        alphaISBw /= e0*100
-        plt.figure()
-        plt.plot(hw,alphaISBw)
-        plt.show()
-        
-    return alphaISB
+        if False: #plot loss diagram
+            hw = np.arange(0.15,0.5,0.001)
+            alphaISBw = np.zeros(hw.size)
+            for q, enerG in enumerate(hw):
+                alphaISBw[q] = sum(energies/h/c0 * dipoles**2 * gammas 
+                        / ((energies - enerG)**2 + gammas**2))
+            alphaISBw *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
+            alphaISBw /= e0*100
+            plt.figure()
+            plt.plot(hw,alphaISBw)
+            plt.show()
+            
+        return alphaISB
 
 def reflectivity(beta):
+    # should be member method for strata
     beta = beta.real
     return ((beta - 1) / (beta + 1))**2
 

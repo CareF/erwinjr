@@ -895,6 +895,7 @@ class MainWindow(QMainWindow):
         self.waveguideLengthBox.setValue(self.strata.waveguideLength)
         self.customFacetBox.setValue(self.strata.customFacet * 100) #display in percent
         
+        # This part should be moved to class strata
         if self.strata.waveguideFacets == 'as-cleaved + as-cleaved':
             self.strata.frontFacet = ThePhysics.reflectivity(self.strata.beta)
             self.strata.backFacet = ThePhysics.reflectivity(self.strata.beta)
@@ -2137,8 +2138,8 @@ class MainWindow(QMainWindow):
         self.solveBasisButton.repaint()
         
         try:
-            self.dCL = ThePhysics.basisSolve(self.qclayers)
-            ThePhysics.convert_dCL_to_data(self.qclayers, self.dCL)
+            self.dCL = self.qclayers.basisSolve()
+            self.qclayers.convert_dCL_to_data(self.dCL)
             self.solveType = 'basis'        
             self.plotDirty = True
             self.update_quantumCanvas()
@@ -2200,17 +2201,17 @@ class MainWindow(QMainWindow):
         
         self.tauUpper = 0; self.tauLower = 0
         for q in xrange(upper):
-            self.tauUpper += 1/ThePhysics.lo_phonon_time(self.qclayers, upper, q)
+            self.tauUpper += 1/self.qclayers.lo_phonon_time(upper, q)
         self.tauUpper = 1/self.tauUpper
         for q in xrange(lower):
-            self.tauLower += 1/ThePhysics.lo_phonon_time(self.qclayers, lower, q)
+            self.tauLower += 1/self.qclayers.lo_phonon_time(lower, q)
         self.tauLower = 1/self.tauLower
         
         self.FoM = self.opticalDipole**2 * self.tauUpper \
                 * (1- self.tauLower/self.tauUpperLower)
         # tauUpperLower is the inverse of transition rate (lifetime)
         
-        self.alphaISB = ThePhysics.alphaISB(self.qclayers, upper, lower)
+        self.alphaISB = self.qclayers.alphaISB(upper, lower)
         
         energyString  = u"<i>\u03C4<sub>upper</sub></i> : %6.2f ps<br><i>\u03C4<sub>lower</sub></i> : %6.2f ps" % (self.tauUpper, self.tauLower)
         energyString += u"<br>FoM: <b>%6.0f ps \u212B<sup>2</sup></b>" % (self.FoM)
@@ -2261,11 +2262,11 @@ class MainWindow(QMainWindow):
             self.eDiff = 1000*(E_i-E_j)
             
             if self.solveType is 'basis':
-                couplingEnergy = ThePhysics.coupling_energy(self.qclayers, self.dCL, upper, lower)
-                self.transitionBroadening = ThePhysics.broadening_energy(self.qclayers, upper, lower)
+                couplingEnergy = self.qclayers.coupling_energy(self.dCL, upper, lower)
+                self.transitionBroadening = self.qclayers.broadening_energy(upper, lower)
                 self.qclayers.populate_x_band()
-                self.opticalDipole = ThePhysics.dipole(self.qclayers, upper, lower)            
-                self.tauUpperLower = ThePhysics.lo_phonon_time(self.qclayers, upper, lower)
+                self.opticalDipole = self.qclayers.dipole(upper, lower)            
+                self.tauUpperLower = self.qclayers.lo_phonon_time(upper, lower)
                 energyString  = u"selected: %d, %d<br>energy diff: <b>%6.1f meV</b>\
                                  <br>coupling: %6.1f meV<br>broadening: %6.1f meV\
                                  <br>dipole: <b>%6.1f \u212B</b><br>LO scattering: <b>%6.2g ps</b>" % \
@@ -2273,8 +2274,8 @@ class MainWindow(QMainWindow):
 
             elif self.solveType is 'whole':
                 self.qclayers.populate_x_band()
-                self.opticalDipole = ThePhysics.dipole(self.qclayers, upper, lower)
-                self.tauUpperLower = ThePhysics.lo_phonon_time(self.qclayers, upper, lower)
+                self.opticalDipole = self.qclayers.dipole(upper, lower)
+                self.tauUpperLower = self.qclayers.lo_phonon_time(upper, lower)
                 self.transitionBroadening = 0.1 * self.eDiff
                 energyString = u"selected: %d, %d<br>energy diff: <b>%6.1f meV</b>\
                                  <br>dipole: %6.1f \u212B<br>LO scattering: %6.2g ps" % \
