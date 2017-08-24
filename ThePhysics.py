@@ -1680,6 +1680,6 @@ class QCLayers(object):
 
 
 if __name__  == "__main__":
-    print 'hi', cFunctions.returnme()
+    print 'Answer to the Ultimate Question of Life, The Universe, and Everything is', cFunctions.returnme()
 
     
