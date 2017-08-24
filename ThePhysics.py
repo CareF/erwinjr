@@ -591,6 +591,10 @@ def reflectivity(beta):
     return ((beta - 1) / (beta + 1))**2
 
 
+# for In0.53Ga0.47As, EcG = 0.22004154
+#    use this as a zero point baseline
+bandBaseln = 0.22004154
+    
 class QCLayers(object):
     """Class for QCLayers
     Member variables: 
@@ -969,10 +973,6 @@ class QCLayers(object):
             self.MLThickness[(self.layerMaterials == MLabel) 
                 & (self.layerBarriers == BLabel)] = self.a_perp[n] / 2.0
     
-        # for In0.53Ga0.47As, EcG = 0.22004154
-        #    use this as a zero point baseline
-        baseln = 0.22004154
-        
         # Pikus-Bir interaction correction to bands offset, 
         # According to Kale's, Eq.(2.14), 
         # Pec for \delta E_{c} and Pe for \delta E_{v}
@@ -1004,14 +1004,14 @@ class QCLayers(object):
         
         #corrections to the method used to calculate band edges, thanks to Yu Song
         # conduction band edge at different point, Eq.(2.7)
-        self.EcG = self.VBO + self.EgG + self.Pec - baseln # Varsh?
+        self.EcG = self.VBO + self.EgG + self.Pec - bandBaseln # Varsh?
         # band edge at L and X?
         # only used in diagram..?
         self.EcL = self.VBO + self.EgL \
-                + (2*self.eps_parallel+self.eps_perp) * (self.acL+self.av) - baseln
+                + (2*self.eps_parallel+self.eps_perp) * (self.acL+self.av) - bandBaseln
         self.EcX = self.VBO + self.EgX \
                 + (2*self.eps_parallel+self.eps_perp)*(self.acX+self.av) \
-                + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) - baseln
+                + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) - bandBaseln
         
         # Same as previous lines except for Varsh.. 
         # Above Varsh correction is to band gap; 
@@ -1043,7 +1043,7 @@ class QCLayers(object):
         self.EvLH = self.EcG - self.EgLH - ((1-percentCB) * self.Varsh)
         self.EvSO = self.EcG - self.EgSO - ((1-percentCB) * self.Varsh)
 
-        # TODO: should be here
+        # TODO: eff mass calculation should be here
         # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
         #  self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
                 #  *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
@@ -1656,13 +1656,10 @@ class QCLayers(object):
         #    for enerG in hw:
         #        alphaISB = sum(energies * dipoles**2 * gammas / ((energies - enerG)**2 + gammas**2))
 
-        h = 4.1356675e-15 #eV s
-        #eps0 = 5.527e7 #1/eV-m
-        eps0 = 8.854e-12 #C/V-m
         #print energies/h/c0 * dipoles**2
         #print gammas / ((energies - hw)**2 + gammas**2)
         
-        alphaISB = sum(energies/h/c0 * dipoles**2 * gammas 
+        alphaISB = sum(energies*e0/h/c0 * dipoles**2 * gammas 
                 / ((energies - hw)**2 + gammas**2))
         alphaISB *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
         alphaISB /= e0*100
@@ -1671,7 +1668,7 @@ class QCLayers(object):
             hw = np.arange(0.15,0.5,0.001)
             alphaISBw = np.zeros(hw.size)
             for q, enerG in enumerate(hw):
-                alphaISBw[q] = sum(energies/h/c0 * dipoles**2 * gammas 
+                alphaISBw[q] = sum(energies*e0/h/c0 * dipoles**2 * gammas 
                         / ((energies - enerG)**2 + gammas**2))
             alphaISBw *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
             alphaISBw /= e0*100
