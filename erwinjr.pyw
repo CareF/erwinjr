@@ -1726,8 +1726,8 @@ class MainWindow(QMainWindow):
         # average doping of the layers
         nD = sum(self.qclayers.layerDopings[LpFirst:LpLast]
                 *self.qclayers.layerWidths[LpFirst:LpLast])/Lp
-        Lp_string += u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup>\
-        cm<sup>-3</sup><br>" % nD
+        Lp_string += (u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup>"
+                u"cm<sup>-3</sup><br>") % nD
         # what's this?
         ns = sum(self.qclayers.layerDopings[LpFirst:LpLast]
                 *self.qclayers.layerWidths[LpFirst:LpLast])*1e-2
@@ -1894,8 +1894,8 @@ class MainWindow(QMainWindow):
             if mod(float(item.text()), self.qclayers.xres) != 0 \
                     and self.qclayers.xres != 0.1:
                 QMessageBox.warning(self,"ErwinJr - Warning", 
-                        "You entered a width that is not compatible with \
-                                the minimum horizontal resolution.")
+                        ("You entered a width that is not compatible with"
+                        "the minimum horizontal resolution."))
                 return
             if row == self.qclayers.layerWidths.size: #add row at end of list
                 self.qclayers.layerWidths = np.append(
@@ -1942,8 +1942,8 @@ class MainWindow(QMainWindow):
         elif column == 1: #column == 1 for ML
             if self.qclayers.xres != 0.1:
                 QMessageBox.warning(self,"ErwinJr - Warning", 
-                        u"Horizontal Resolution of 0.1 \u212B required \
-                                when setting monolayer thicknesses.")
+                        (u"Horizontal Resolution of 0.1 \u212B required" 
+                        u"when setting monolayer thicknesses."))
                 return
             if row == self.qclayers.layerWidths.size: #add row at end of list
                 pass
@@ -2177,14 +2177,9 @@ class MainWindow(QMainWindow):
             #  temp = upper
             #  upper = lower
             #  lower = temp
-        
-        self.tauUpper = 0; self.tauLower = 0
-        for q in xrange(upper):
-            self.tauUpper += 1/self.qclayers.lo_phonon_time(upper, q)
-        self.tauUpper = 1/self.tauUpper
-        for q in xrange(lower):
-            self.tauLower += 1/self.qclayers.lo_phonon_time(lower, q)
-        self.tauLower = 1/self.tauLower
+
+        self.tauLower = self.qclayers.lo_life_time(lower)
+        self.tauUpper = self.qclayers.lo_life_time(upper)
         
         self.FoM = self.opticalDipole**2 * self.tauUpper \
                 * (1- self.tauLower/self.tauUpperLower)
@@ -2245,20 +2240,34 @@ class MainWindow(QMainWindow):
                 self.transitionBroadening = self.qclayers.broadening_energy(upper, lower)
                 self.qclayers.populate_x_band()
                 self.opticalDipole = self.qclayers.dipole(upper, lower)            
-                self.tauUpperLower = self.qclayers.lo_phonon_time(upper, lower)
-                energyString  = u"selected: %d, %d<br>energy diff: <b>%6.1f meV</b>\
-                                 <br>coupling: %6.1f meV<br>broadening: %6.1f meV\
-                                 <br>dipole: <b>%6.1f \u212B</b><br>LO scattering: <b>%6.2g ps</b>" % \
-                               (self.stateHolder[-2], self.stateHolder[-1], self.eDiff, couplingEnergy, self.transitionBroadening, self.opticalDipole, self.tauUpperLower)
+                self.tauUpperLower = 1/self.qclayers.lo_transition_rate(upper, lower)
+                energyString  = (u"selected: %d, %d<br>"
+                                 u"energy diff: <b>%6.1f meV</b><br>"
+                                 u"coupling: %6.1f meV<br>broadening: %6.1f meV<br>"
+                                 u"dipole: <b>%6.1f \u212B</b>"
+                                 u"<br>LO scattering: <b>%6.2g ps</b>") % (
+                                         self.stateHolder[-2], 
+                                         self.stateHolder[-1], 
+                                         self.eDiff, 
+                                         couplingEnergy, 
+                                         self.transitionBroadening, 
+                                         self.opticalDipole, 
+                                         self.tauUpperLower)
 
             elif self.solveType is 'whole':
                 self.qclayers.populate_x_band()
                 self.opticalDipole = self.qclayers.dipole(upper, lower)
-                self.tauUpperLower = self.qclayers.lo_phonon_time(upper, lower)
+                self.tauUpperLower = 1/self.qclayers.lo_transition_rate(upper, lower)
                 self.transitionBroadening = 0.1 * self.eDiff
-                energyString = u"selected: %d, %d<br>energy diff: <b>%6.1f meV</b>\
-                                 <br>dipole: %6.1f \u212B<br>LO scattering: %6.2g ps" % \
-                               (self.stateHolder[-2], self.stateHolder[-1], self.eDiff, self.opticalDipole, self.tauUpperLower)
+                energyString = (u"selected: %d, %d<br>"
+                                u"energy diff: <b>%6.1f meV</b><br>" 
+                                u"dipole: %6.1f \u212B<br>" 
+                                u"LO scattering: %6.2g ps") % (
+                                        self.stateHolder[-2], 
+                                        self.stateHolder[-1], 
+                                        self.eDiff,
+                                        self.opticalDipole,
+                                        self.tauUpperLower)
             else:
                 self.FoMButton.setEnabled(False)
             

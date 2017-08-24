@@ -899,7 +899,8 @@ class QCLayers(object):
         self.epsrho = 1 / (1/self.epsInf - 1/self.epss)     
 
     def update_strain(self):  # c is a Material_Constant class instance
-        """ update strain and strain related parameters inside each layers
+        """
+        update strain and strain related parameters inside each layers
         (Always called after update_alloys)
         OUTPUT/update member variables: 
             (all below are np.array with len=numMaterials)
@@ -1302,85 +1303,6 @@ class QCLayers(object):
         self.xyPsiPsi = self.xyPsiPsiDec
         self.xPointsPost = self.xPoints[idxs]
 
-    def dipole(self, upper, lower):
-        """ Return optical dipole between self's upper level state 
-        and lower level state, in unit angstrom
-        z = i\hbar/(2\Delta E) \<\psi_i|(m*^{-1} P_z + P_z m*^{-1})|\psi_j\>
-        """
-        if upper < lower:
-            upper, lower = lower, upper
-        psi_i = self.xyPsi[:,upper]
-        psi_j = self.xyPsi[:,lower]
-        E_i = self.EigenE[upper]
-        E_j = self.EigenE[lower]
-        
-        #  self.populate_x_band()
-        # This energy dependence can be as large as -70%/+250%... 
-        xMcE_i = self.xMc * (1 - (self.xVc - E_i) / self.xEg)
-        #  print max(xMcE_i/self.xMc), min(xMcE_i/self.xMc)
-        xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)
-        #  print xMcE_j/self.xMc
-        xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
-        psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
-        # Kale's (2.43) and (2.47), however for varying eff mass model, this
-        # should start with (2.36)
-        z = sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
-                + 1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
-        z *= hbar**2/(2*(E_i-E_j)*e0*m0) /ANG # e0 transform eV to J
-        return z
-
-    def coupling_energy(self, dCL, upper, lower):
-        """Calculate the coupling energy between upper level and lower level
-        with levels(basis) defined in dCL
-        coupling energy = <upper|H|lower> with H = H0 + V1 + V2, 
-        H0 + V1 |upper> = E(upper) |upper>; H0 + V2 |lower> = E(lower) |lower>; 
-        so <upper|H|lower> = <upper|V2|lower> + E(upper) <upper|lower>
-                           = <upper|V1|lower> + E(lower) <upper|lower>
-        while H0 includes potential without wells, V1 and V2 are wells for
-        module/dCL corresponds to upper and lower respectively
-        The result is only used in the calculate box..
-        ???this version only includes <upper|V1|lower>
-        """
-        #here, psi_i is the left-most wavefunction, not the wf with the highest energy
-        # but does it matter?..
-        module_i = self.moduleID[upper]
-        module_j = self.moduleID[lower]
-        if module_i > module_j:
-            module_i, module_j = module_j, module_i
-            psi_i = self.xyPsi[:,lower]
-            psi_j = self.xyPsi[:,upper]
-            Ej = self.EigenE[upper]
-        else:
-            psi_i = self.xyPsi[:,upper]
-            psi_j = self.xyPsi[:,lower]
-            Ej = self.EigenE[lower]
-
-        # Ming's version for calculating coupling, 08.23.2017
-        #  if module_j - module_i != 1:
-            #  return 0
-        #  DeltaV = np.ones(self.xPointsPost.size)
-        #  first = int(dCL[module_i].widthOffset/self.xres)
-        #  last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
-        #  #  print "---debug--- coupling_energy"
-        #  #  print first,last
-        #  DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
-        #  DeltaV = 1 - DeltaV #=is well
-        #  jMat = self.xMaterials[last+1]
-        #  DeltaV *= (self.EcG[2*j-1] - self.EcG[2*(j-1)])/meV # unit meV
-        #  couplingEnergy = (sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG 
-        
-        DeltaV = np.ones(self.xPointsPost.size)
-        first = int(dCL[module_i].widthOffset/self.xres)
-        last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
-        #  print "---debug--- coupling_energy"
-        #  print first,last
-        DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
-        DeltaV = 1 - DeltaV #=is well
-        couplingEnergy = sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
-                * abs(self.EcG[1] - self.EcG[0]) /meV #* (1-self.xBarriers)
-        # DeltaV * (self.EcG[1] (barrier) - dta.Ecg[0] (well)) = Vi(wells)
-        return couplingEnergy #unit meV
-
     def basisSolve(self):
         """ solve basis for the QC device, with each basis being eigen mode of 
         a seperate part of the layer structure
@@ -1544,7 +1466,7 @@ class QCLayers(object):
     #    self.xyPsiPsi = self.xyPsiPsiDec
     #    self.xPointsPost = self.xPoints[idxs]
 
-    def lo_phonon_time(self, upper, lower):
+    def lo_transition_rate(self, upper, lower):
         """ LO phonon scattering induced decay life time calculator
         INPUT:
             upper: the higher energy state index
@@ -1567,7 +1489,7 @@ class QCLayers(object):
         if E_i-E_j-self.hwLO[0] < 0:
             # energy difference is smaller than a LO phonon
             # LO phonon scatering doesn't happen
-            return 1e20
+            return 1e-20
             
         # zero head and tail cut off
         idxs_i = np.nonzero(psi_i >
@@ -1578,7 +1500,7 @@ class QCLayers(object):
         idx_last  = (idxs_i[-1], idxs_j[-1])
         if max(idx_first) > min(idx_last):
             # wavefunction not overlap
-            return 1e20
+            return 1e-20
 
         #TBD? 08.21.2017
         idx_first = min(idx_first)
@@ -1601,8 +1523,93 @@ class QCLayers(object):
         Iij = sum(dIij)
         inverse_tau = McE_j * e0**2 * self.hwLO[0]*e0/hbar * Iij \
                 / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
-        tau = 1e12/inverse_tau
-        return tau
+        return inverse_tau/1e12
+
+    def lo_life_time(self, state):
+        """ return the life time due to LO phonon scattering of the 
+        given state(label)"""
+        rate = sum([self.lo_transition_rate(state, q) 
+            for q in range(state)])
+        return 1/rate
+
+    def dipole(self, upper, lower):
+        """ Return optical dipole between self's upper level state 
+        and lower level state, in unit angstrom
+        z = i\hbar/(2\Delta E) \<\psi_i|(m*^{-1} P_z + P_z m*^{-1})|\psi_j\>
+        """
+        if upper < lower:
+            upper, lower = lower, upper
+        psi_i = self.xyPsi[:,upper]
+        psi_j = self.xyPsi[:,lower]
+        E_i = self.EigenE[upper]
+        E_j = self.EigenE[lower]
+        
+        #  self.populate_x_band()
+        # This energy dependence can be as large as -70%/+250%... 
+        xMcE_i = self.xMc * (1 - (self.xVc - E_i) / self.xEg)
+        #  print max(xMcE_i/self.xMc), min(xMcE_i/self.xMc)
+        xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)
+        #  print xMcE_j/self.xMc
+        xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
+        psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
+        # Kale's (2.43) and (2.47), however for varying eff mass model, this
+        # should start with (2.36)
+        z = sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
+                + 1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
+        z *= hbar**2/(2*(E_i-E_j)*e0*m0) /ANG # e0 transform eV to J
+        return z
+
+    def coupling_energy(self, dCL, upper, lower):
+        """Calculate the coupling energy between upper level and lower level
+        with levels(basis) defined in dCL
+        coupling energy = <upper|H|lower> with H = H0 + V1 + V2, 
+        H0 + V1 |upper> = E(upper) |upper>; H0 + V2 |lower> = E(lower) |lower>; 
+        so <upper|H|lower> = <upper|V2|lower> + E(upper) <upper|lower>
+                           = <upper|V1|lower> + E(lower) <upper|lower>
+        while H0 includes potential without wells, V1 and V2 are wells for
+        module/dCL corresponds to upper and lower respectively
+        The result is only used in the calculate box..
+        ???this version only includes <upper|V1|lower>
+        """
+        #here, psi_i is the left-most wavefunction, not the wf with the highest energy
+        # but does it matter?..
+        module_i = self.moduleID[upper]
+        module_j = self.moduleID[lower]
+        if module_i > module_j:
+            module_i, module_j = module_j, module_i
+            psi_i = self.xyPsi[:,lower]
+            psi_j = self.xyPsi[:,upper]
+            Ej = self.EigenE[upper]
+        else:
+            psi_i = self.xyPsi[:,upper]
+            psi_j = self.xyPsi[:,lower]
+            Ej = self.EigenE[lower]
+
+        # Ming's version for calculating coupling, 08.23.2017
+        #  if module_j - module_i != 1:
+            #  return 0
+        #  DeltaV = np.ones(self.xPointsPost.size)
+        #  first = int(dCL[module_i].widthOffset/self.xres)
+        #  last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
+        #  #  print "---debug--- coupling_energy"
+        #  #  print first,last
+        #  DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
+        #  DeltaV = 1 - DeltaV #=is well
+        #  jMat = self.xMaterials[last+1]
+        #  DeltaV *= (self.EcG[2*j-1] - self.EcG[2*(j-1)])/meV # unit meV
+        #  couplingEnergy = (sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG 
+        
+        DeltaV = np.ones(self.xPointsPost.size)
+        first = int(dCL[module_i].widthOffset/self.xres)
+        last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
+        #  print "---debug--- coupling_energy"
+        #  print first,last
+        DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
+        DeltaV = 1 - DeltaV #=is well
+        couplingEnergy = sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
+                * abs(self.EcG[1] - self.EcG[0]) /meV #* (1-self.xBarriers)
+        # DeltaV * (self.EcG[1] (barrier) - dta.Ecg[0] (well)) = Vi(wells)
+        return couplingEnergy #unit meV
 
     def broadening_energy(self, upper, lower):
         if upper < lower:
