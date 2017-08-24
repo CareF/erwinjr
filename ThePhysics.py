@@ -821,8 +821,7 @@ class QCLayers(object):
         #  self.xMc = self.xMc #??????
 
     def update_alloys(self):  # c is a Material_Constant class instance
-        """
-        update material parameter for the alloy used.
+        """ update material parameter for the alloy used.
         (Always followed by update_strain)
         OUTPUT/update member variable:
             all parameters listed in variables: np.array with len=numMaterials
@@ -900,8 +899,7 @@ class QCLayers(object):
         self.epsrho = 1 / (1/self.epsInf - 1/self.epss)     
 
     def update_strain(self):  # c is a Material_Constant class instance
-        """
-        update strain and strain related parameters inside each layers
+        """ update strain and strain related parameters inside each layers
         (Always called after update_alloys)
         OUTPUT/update member variables: 
             (all below are np.array with len=numMaterials)
@@ -1274,10 +1272,10 @@ class QCLayers(object):
         #0.014 is arbitrary; changes if 4.5e-10 changes
         #  idxs = np.nonzero(self.xyPsiPsi.max(0) > 
                 #  settings.wf_scale * settings.wf_min_height)[0] 
-        #  idxs = self.xyPsiPsi.max(0) > settings.wf_scale*settings.wf_min_height
-        #  self.EigenE = self.EigenE[idxs]
-        #  self.xyPsi = self.xyPsi[:,idxs]
-        #  self.xyPsiPsi = self.xyPsiPsi[:,idxs]
+        idxs = self.xyPsiPsi.max(0) > settings.wf_scale*settings.wf_min_height
+        self.EigenE = self.EigenE[idxs]
+        self.xyPsi = self.xyPsi[:,idxs]
+        self.xyPsiPsi = self.xyPsiPsi[:,idxs]
         
         self.xyPsiPsi2 = copy.deepcopy(self.xyPsiPsi)
 
@@ -1305,8 +1303,7 @@ class QCLayers(object):
         self.xPointsPost = self.xPoints[idxs]
 
     def dipole(self, upper, lower):
-        """
-        Return optical dipole between self's upper level state 
+        """ Return optical dipole between self's upper level state 
         and lower level state, in unit angstrom
         z = i\hbar/(2\Delta E) \<\psi_i|(m*^{-1} P_z + P_z m*^{-1})|\psi_j\>
         """
@@ -1550,14 +1547,12 @@ class QCLayers(object):
     def lo_phonon_time(self, upper, lower):
         """ LO phonon scattering induced decay life time calculator
         INPUT:
-            self: a QCLayers class
             upper: the higher energy state index
             lower: the lower energy state index
         OUTPUT
             T1 decay life time between upper and lower states induced by LO 
             phonon scattering
         """
-        #TODO: should be a member method for self
         if upper < lower:
             upper, lower = lower, upper
             #  temp = upper
@@ -1584,30 +1579,30 @@ class QCLayers(object):
         if max(idx_first) > min(idx_last):
             # wavefunction not overlap
             return 1e20
-        else:
-            #TBD? 08.21.2017
-            idx_first = min(idx_first)
-            idx_last  = max(idx_last)
-            psi_i = psi_i[idx_first:idx_last]
-            psi_j = psi_j[idx_first:idx_last]
-            xPoints = self.xPoints[idx_first:idx_last]
 
-            xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)        
-            #weight non-parabolic effective mass by probability density
-            McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
-            
-            kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
-            dIij = np.zeros(xPoints.size)
-            for n in xrange(xPoints.size):
-                x1 = xPoints[n]*1e-10
-                x2 = xPoints*1e-10
-                dIij[n] = sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
-                        * psi_i[n]*psi_j[n] * (self.xres*1e-10)**2)
-            Iij = sum(dIij)
-            inverse_tau = McE_j * e0**2 * self.hwLO[0]*e0/hbar * Iij \
-                    / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
-            tau = 1e12/inverse_tau
-            return tau
+        #TBD? 08.21.2017
+        idx_first = min(idx_first)
+        idx_last  = max(idx_last)
+        psi_i = psi_i[idx_first:idx_last]
+        psi_j = psi_j[idx_first:idx_last]
+        xPoints = self.xPoints[idx_first:idx_last]
+
+        xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)        
+        #weight non-parabolic effective mass by probability density
+        McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
+        
+        kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
+        dIij = np.zeros(xPoints.size)
+        for n in xrange(xPoints.size):
+            x1 = xPoints[n]*1e-10
+            x2 = xPoints*1e-10
+            dIij[n] = sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
+                    * psi_i[n]*psi_j[n] * (self.xres*1e-10)**2)
+        Iij = sum(dIij)
+        inverse_tau = McE_j * e0**2 * self.hwLO[0]*e0/hbar * Iij \
+                / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
+        tau = 1e12/inverse_tau
+        return tau
 
     def broadening_energy(self, upper, lower):
         if upper < lower:
