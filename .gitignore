@@ -2,3 +2,4 @@
 *.so
 PyQwt*
 *.pyc
+*.sh
