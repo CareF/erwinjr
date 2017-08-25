@@ -2,126 +2,201 @@
 #include <math.h>
 #include "complex.h"
 
-#define MAXLENGTH 30
+#define ANG 1E-10 /*angstrom in m */
+#define KVpCM 1E5 /*kV/cm in V/m (SI unit) */
+#define sq(X) (X)*(X)
 
-double hbar = 6.626e-34 / 2 / 3.141592653589793;
-double m0 = 9.109e-31;
-double e0 = 1.602e-19;
+const double hbar = 6.626e-34 / 2 / 3.141592653589793;
+const double m0 = 9.109e-31;
+const double e0 = 1.602e-19;
+const double pi = 3.1415926535897932385;
 
-void psiFn(double Eq, int startpoint, int xPsiSize, double xres, double *xVc, double *xEg, 
-           double *xF, double *xEp, double *xESO, double *xMc, double *xMcE, 
-           double *xPsi)
-{
-  int q=0;
-  for(q=0;q<xPsiSize;q++)
-  { if(1)
-        xMcE[q] = m0 / ( 1 + 2*xF[q] + xEp[q]/3 * (2 / (Eq - xVc[q] + xEg[q]) 
-                       + 1 / (Eq - xVc[q] + xEg[q] + xESO[q]) ));
-    else
-        xMcE[q] = m0 * xMc[q] * (1 - (xVc[q] - Eq) / xEg[q]);
-    if(q>1)
-      xMcE[q-1] = 0.5 * (xMcE[q] + xMcE[q-1]);
-  }
-  for(q=0;q<startpoint;q++)
-    xPsi[q] = 0;
-  xPsi[startpoint] = 1;
-  //*xPsi=0;
-  //*(xPsi+1)=1;
-  for(q=startpoint;q<xPsiSize-1;q++)
-  {
-    xPsi[q+1] = (
-                   (2*xres*1e-10*xres*1e-10 /hbar/hbar * (xVc[q] - Eq)*e0 
-                     + 1 / xMcE[q] + 1 / xMcE[q-1]) * xPsi[q] 
-                   - xPsi[q-1] / xMcE[q-1]
-                  ) * xMcE[q];
-  }
-  return;
+void EffectMass(double Eq, int xSize, const double *xVc, const double *xEg, 
+		const double *xF, const double *xEp, const double *xESO, 
+		const double *xMc, double *xMcE)
+{ /*To generate effective mass, according to Eq.(2.20) in the thesis
+	but subtract xVc for non-material effect
+INPUT & OUTPUT:
+	see the comments in psiFn */
+	for(int q=0; q<xSize; q++)
+	{ 
+		if(1) //?
+			xMcE[q] = m0 / ( 1 + 2*xF[q] + xEp[q]/3 * (2 / (Eq - xVc[q] + xEg[q]) 
+						+ 1 / (Eq - xVc[q] + xEg[q] + xESO[q]) ));
+		else
+			xMcE[q] = m0 * xMc[q] * (1 - (xVc[q] - Eq) / xEg[q]);
+		if(q>1)
+			/*Linear interpolation to move half step, for the recursion of xPsi*/
+			xMcE[q-1] = 0.5 * (xMcE[q] + xMcE[q-1]);
+	}
+	return;
 }
 
-int psiFnEnd(double *eEq, int eEqSize, int xPsiSize, double xres, double EField,
-             double *xVc, double *xEg, double *xF, double *xEp, double *xESO, 
-             double *xMc, double *xMcE, double *xPsi, double *xPsiEnd)
-{
-  double Eq=0;
-  int startpoint=1;
-  int q=0;
-  for(q=0;q<eEqSize;q++)
-  {
-    Eq = eEq[q];
-    startpoint = xPsiSize - ceil((Eq - *eEq)/(EField * xres)*1e5 + 200/xres);
-    if(startpoint<1)
-      startpoint = 1;
+void psiFn(double Eq, int startpoint, int xPsiSize, double xres, 
+		const double *xVc, const double *xEg, const double *xF, 
+		const double *xEp, const double *xESO, const double *xMc, 
+		double *xMcE, double *xPsi)
+{ /*A ODE solver for wave function, using Euler method.  
+	(TB improve: Numerov method)
+	The formular is Eq.(2.6) in the Thesis for ODE solver
+TODO: try remove Eq
+	
+INPUT:
+	Eq is the eigen value in eV (same for xEg, xEp, xESO)
+	startpoint controls the area/startpoint of the wavefunction, 
+		so that the result is the states confined in the first well 
+		after startpoint (if xPsi[end] is 0)
+	xPsiSize is the range for the following arrays
+	xres for the resolution (length per pixal, in Angstrom)
+	xVc[x] is the electrical potential at x, including:
+		- material band offset (for Gamma point and conduction band)
+		- external field
+		- electron distribution (self-consistency calculation required)
+	xEg[x] is the band gap at Gamma point. Correction in Eq.(2.15) should 
+		already been included. 
+		(following from Eq.(2.20) and Eq.(2.17) in the Thesis)
+	xF[x] is the Kane parameter representing the second-order k.p perturbation 
+	xEp[x] is is the energy-unit representatiation of the momentum matrix 
+		element between the s-like conduction bands and p-like valence bands
+	xESO[x] is spin-orbit splitting (noted as \Delta_{SO} in the thesis)
+		--- Q_\epsilon is negeleted for approximation
+	xMc[x] is effective mass calculate for 2nd order perturbation (no kinetic 
+		energy dependence), and is actually not used
 
-    psiFn(Eq, startpoint, xPsiSize, xres, xVc, xEg, xF, xEp, xESO, xMc, xMcE, xPsi);
-    xPsiEnd[q] = *(xPsi+xPsiSize-1);
-    //printf("%d: %g %d        ", q, eEq[q], startpoint);
-    //printf("%d  ", startpoint);
-  }
-
-  return 1;
+RESUTL:
+	xPsi[x] is the wave function
+	xMcE[x] is the effective mass at position x, 
+		and is calculated according to Eq.(2.20)
+	*/
+	for(int q=0; q<xPsiSize; q++)
+	{ 
+		if(1) //?
+			/*Calculate effective mass by Eq.(2.20)
+			 * but subtract xVc for non-material effect */
+			xMcE[q] = m0 / ( 1 + 2*xF[q] + xEp[q]/3 * (2 / (Eq - xVc[q] + xEg[q]) 
+						+ 1 / (Eq - xVc[q] + xEg[q] + xESO[q]) ));
+		else
+			xMcE[q] = m0 * xMc[q] * (1 - (xVc[q] - Eq) / xEg[q]);
+		if(q>1)
+			/*Linear interpolation to move half step, for the recursion of xPsi*/
+			xMcE[q-1] = 0.5 * (xMcE[q] + xMcE[q-1]);
+	}
+	for(int q=0; q<startpoint; q++) 
+		xPsi[q] = 0; 
+	xPsi[startpoint] = 1;
+	//*xPsi=0;
+	//*(xPsi+1)=1;
+	for(int q=startpoint; q<xPsiSize-1; q++)
+	{
+		/* (xVc[q] - Eq) is in unit eV, need a e0 factor to transform unit */
+		xPsi[q+1] = (
+				(2*sq(xres*ANG /hbar) * (xVc[q] - Eq)*e0 
+				 + 1 / xMcE[q] + 1 / xMcE[q-1]) * xPsi[q] 
+				- xPsi[q-1] / xMcE[q-1]
+				) * xMcE[q];
+	}
+	return;
 }
 
-int inv_quadratic_interp(double *xnew, double *ynew, double *idxs, int EigenESize, double *EigenE)
-{
-  double x0=0, fx0=0,
-         x1=0, fx1=0,
-         x2=0, fx2=0, x3=0;
-  int idx=0;
-  int q=0;
-  for(q=0;q<EigenESize;q++)
-  {
-    idx = idxs[q];
-    //printf("%d\n",idx);
-    x0=*(xnew+idx-1); fx0=*(ynew+idx-1);
-    x1=*(xnew+idx);   fx1=*(ynew+idx);
-    x2=*(xnew+idx+1); fx2=*(ynew+idx+1);
-    x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1);
-    EigenE[q] = x3;
-  }
-  return 1;
+int psiFnEnd(const double *eEq, int eEqSize, int xPsiSize, double xres, 
+		double EField, const double *xVc, const double *xEg, const double *xF, 
+		const double *xEp, const double *xESO, const double *xMc, 
+		double *xMcE, double *xPsi, double *xPsiEnd)
+{ /*To get boundary dependence of energy Eq (Fig.2.1 left in the thesis) 
+	to help decide the eigenvalue for zero boundary condition 
+ 
+INPUT:
+	eEq[n] is the required energy series
+	eEqSize is the size of eEq
+	xPsiSize, xres, xVc, ..., xPsi are parameters for psiFn
+	EField is static external electrical field, in unit kV/cm
+
+OUTPUT:
+	xPsiEnd is wavefunction (non-normalized) at the end, 
+		supposed to be 0 for eigenenergy 
+  */
+	const double extLength=200; /*nm, the extend length for start point*/ 
+	for(int q=0; q<eEqSize; q++)
+	{
+		double Eq = eEq[q];
+		/* set start point, according to energy offset and external field */
+		int startpoint = xPsiSize - ceil(
+				(Eq - eEq[0])/(EField * KVpCM * ANG * xres) + extLength/xres);
+		if(startpoint<1) 
+			startpoint = 1;
+
+		psiFn(Eq, startpoint, xPsiSize, xres, 
+				xVc, xEg, xF, xEp, xESO, xMc, xMcE, xPsi);
+		xPsiEnd[q] = xPsi[xPsiSize-1];
+		//printf("%d: %g %d        ", q, eEq[q], startpoint);
+		//printf("%d  ", startpoint);
+	}
+
+	return 1;
+}
+
+int inv_quadratic_interp(const double *x, const double *y, 
+		const double *idxs, int idxLength, double *root)
+{ /* Using inverse quadratic interpolation to get x so that y(x)=0, 
+	and thus x is the eigen-energy satisfies zero boundary condition
+
+INPUT:
+	y[n] is the boundary value for E=x[n]
+	x[ idxs[n] ] is the approximate n-th eigen-energy, 
+	idxLength is size of idxs
+
+OUTPUT:
+	root[n] is the interpolation result for y(x)=0, 
+		with length idxLength */
+	int n;
+	int q;
+	for(q=0; q<idxLength; q++)
+	{
+		n = idxs[q];
+		//printf("%d\n",n);
+		root[q] = x[n-1]*y[n]*y[n+1] / ( (y[n-1]-y[n]  )*(y[n-1]-y[n+1]) ) 
+			      + x[n]*y[n-1]*y[n+1] / ( (y[n]  -y[n-1])*(y[n]  -y[n+1]) )
+			      + x[n+1]*y[n-1]*y[n] / ( (y[n+1]-y[n-1])*(y[n+1]-y[n]  ) );
+	}
+	return 1;
 }
 
 
 int returnme()
 {return 42;}
 
-int psiFill(int xPsiSize, double xres, int EigenESize, double *EigenE, double *xVc, double *xEg, 
-            double *xF, double *xEp, double *xESO, double *xMc, double *xMcE, double *xyPsi)
-{
-  int col=0; //column
-  double Eq=0;
-  for(col=0;col<EigenESize;col++)
-  {
+int psiFill(int xPsiSize, double xres, int EigenESize, double *EigenE, 
+		double *xVc, double *xEg, double *xF, double *xEp, double *xESO, 
+		double *xMc, double *xMcE, double *xyPsi)
+{ /* To calculate a series of wave function according to given eigen energy
+INPUT:
+	EigenE[n] is the n-th eigen-energy, with length EigenESize
+	others see psiFn
+OUTPUT:
+	xyPsi[n] is the wave function corresponding to EigenE[n] */
+	for(int col=0; col<EigenESize; col++) // loop on column
+	{
+		double Eq = EigenE[col];
+		psiFn(Eq, 1, xPsiSize, xres, xVc, xEg, xF, xEp, xESO, xMc, xMcE, 
+				xyPsi+col*xPsiSize);
+		/* Normalization */
+		/*double PsiInt = 1; //one for xPsi[1]
+		for(int q=1; q<xPsiSize-1; q++)
+		{ 
+			PsiInt += sq(xyPsi[q+col*xPsiSize]) * ( 
+					1 + ( Eq-xVc[q] ) / ( Eq-xVc[q]+xEg[q] ) );
+		}*/
+		/* TODO: positive charge holes? */
+		double PsiInt = 0; 
+		for(int q=0; q<xPsiSize; q++) /* Eq.(2.55) in the thesis*/
+			PsiInt += sq(xyPsi[col*xPsiSize + q]) * (
+						1 + ( Eq - xVc[q] ) / ( Eq - xVc[q] + xEg[q] ) );
+		double NormFactor = 1 / sqrt(xres * ANG * PsiInt);
 
-     Eq = *(EigenE+col);
-     int q=0;
-      for(q=0;q<xPsiSize;q++)
-      { if(1)
-            xMcE[q] = m0 / ((1+2* xF[q]) + xEp[q]/3 * (2 / ((Eq-xVc[q])+xEg[q]) 
-                           + 1 / ((Eq-xVc[q])+xEg[q]+xESO[q]) ));
-        else
-            xMcE[q] = m0 * xMc[q] * (1 - (xVc[q] - Eq) / xEg[q]);
-        if(q>1)
-          xMcE[q-1] = 0.5 * (xMcE[q] + xMcE[q-1]);
-      }
-      *(xyPsi+0+col*xPsiSize) = 0.;
-      *(xyPsi+1+col*xPsiSize) = 1.;
-      double PsiInt = 1; //one for xPsi[1]
-      for(q=1;q<xPsiSize-1;q++)
-      {
-        *(xyPsi+q+1+col*xPsiSize) = (
-                       (2*xres*1e-10*xres*1e-10 /hbar/hbar * (xVc[q] - Eq)*e0 
-                         + 1 / xMcE[q] + 1 / xMcE[q-1]) * *(xyPsi+q+col*xPsiSize)
-                       - *(xyPsi+q-1+col*xPsiSize) / xMcE[q-1]
-                      ) * xMcE[q];
-        PsiInt += *(xyPsi+q+col*xPsiSize) * *(xyPsi+q+col*xPsiSize) * (1+(Eq-xVc[q])/(Eq-xVc[q]+xEg[q]));
-      }
-      double A = 1 / sqrt(xres * 1e-10 * PsiInt);
-                
-      for(q=0;q<xPsiSize;q++)
-        *(xyPsi+q+col*xPsiSize) *= A;
-  }
-  return 1;
+		for(int q=0; q<xPsiSize; q++)
+			xyPsi[col*xPsiSize+q] *= NormFactor;
+	}
+	return 1;
 }
 
 
@@ -147,76 +222,80 @@ matrix mmult(matrix m1, matrix m2)
     return c;
 }
 
-void chiImag_array(double wavelength, const double *thicknesses, const double *indexesReal, 
-                const double *indexesImag, int numLayers, double *betaInReal, 
-                double *betaInImag, int numBetas, double *chiImag)
+#define MAXLENGTH 30
+void chiImag_array(double wavelength, const double *thicknesses, 
+		const double *indexesReal, const double *indexesImag, int numLayers, 
+		const double *betaInReal, const double *betaInImag, 
+		int numBetas, double *chiImag)
 {
 
-    double pi = 3.1415926535897932385;
-    double k = 2 * pi / wavelength;
-    double z0 = 0.003768;
+	double k = 2 * pi / wavelength;
+	double z0 = 0.003768;
 
-    int q=0;
-    for (q=0; q<numBetas; q++)
-    {
-        int j = 0;
-    
-        complex beta = cmplx(betaInReal[q], betaInImag[q]);
+	complex index[MAXLENGTH];
 
-        complex index[MAXLENGTH];
-        for (j=0; j < numLayers; j++)
-            index[j] = cmplx(indexesReal[j],indexesImag[j]);
-        
-        //alpha = sqrt(self.stratumRIndexes**2-beta**2)
-        complex alpha[MAXLENGTH];
-        for (j=0; j < numLayers; j++)
-            alpha[j] = cxsqrt(cxsub(cxsqr(index[j]),cxsqr(beta)));
-        //make sure correct sign of alphac and alphas are chosen, see Chilwell
-        if(imag(alpha[0]) < 0)
-            alpha[0] = cxneg(alpha[0]);
-        if(imag(alpha[numLayers-1]) < 0)
-            alpha[numLayers-1] = cxneg(alpha[numLayers-1]);
-    
-        //gamma = z0*alpha/self.stratumRIndexes**2
-        complex gamma[MAXLENGTH];
-        for (j=0; j < numLayers; j++)
-            gamma[j] = cmuld(cxdiv(alpha[j],cxsqr(index[j])),z0);
-        
-        //phi = k*self.stratumThicknesses*alpha
-        complex phi[MAXLENGTH];
-        for (j=0; j < numLayers; j++)
-            phi[j] = cmuld(alpha[j],k*thicknesses[j]);
-    
-        double zeta[MAXLENGTH];
-        for (j=0; j < numLayers; j++)
-            zeta[j] = k*thicknesses[j]/z0;
-        
-        complex chi;
-        matrix m=identity(), mt=identity();
-        complex ni=cmplx(0,-1);
-    
-        for (j=numLayers-1; j>-1; j--)
-        //array([[cos(phi[q]), -1j/gamma[q]*sin(phi[q])],[-1j*gamma[q]*sin(phi[q]), cos(phi[q])]])
-        {
-            if (real(index[j]) == real(beta) && imag(index[j]) == imag(beta))
-                mt.ab = cxmul(cmuld(ni,zeta[j]),cxsqr(index[j]));  // -i*k*thickness*n^2/z0
-            else
-                mt.ab = cxdiv(cxmul(ni,cxsin(phi[j])),gamma[j]);  // -i*sin(phi)/gamma
-    
-            mt.aa = cxcos(phi[j]);
-            mt.ba = cxmul(cxmul(ni,cxsin(phi[j])),gamma[j]);   // -i*sin(phi)*gamma
-            mt.bb = mt.aa;
-            
-            m = mmult(mt,m);
-        }
-        chi = cxadd4(cxmul(gamma[numLayers-1],m.aa) , 
-                           cxmul(gamma[0],cxmul(gamma[numLayers-1],m.ab)) , 
-                           m.ba , 
-                           cxmul(gamma[0],m.bb) );
-        //chi = gammac*M[0,0] + gammac*gammas*M[0,1] + M[1,0] + gammas*M[1,1]
-        
-        chiImag[q] = imag(chi);
-    }
+	for (int j=0; j < numLayers; j++)
+		index[j] = cmplx(indexesReal[j],indexesImag[j]);
+
+	int q=0;
+	for (q=0; q<numBetas; q++)
+	{
+		int j = 0;
+
+		complex beta = cmplx(betaInReal[q], betaInImag[q]);
+
+		//alpha = sqrt(self.stratumRIndexes**2-beta**2)
+		complex alpha[MAXLENGTH];
+		for (j=0; j < numLayers; j++)
+			alpha[j] = cxsqrt(cxsub(cxsqr(index[j]),cxsqr(beta)));
+		//make sure correct sign of alphac and alphas are chosen, see Chilwell
+		//TODO: why only alpha0 and alpha[n-1]
+		if(imag(alpha[0]) < 0)
+			alpha[1] = cxneg(alpha[0]); // Why neg? in ThePhysics.py it's conj
+		if(imag(alpha[numLayers-1]) < 0)
+			alpha[numLayers-1] = cxneg(alpha[numLayers-1]);
+
+		//gamma = z0*alpha/self.stratumRIndexes**2
+		complex gamma[MAXLENGTH];
+		for (j=0; j < numLayers; j++)
+			gamma[j] = cmuld(cxdiv(alpha[j],cxsqr(index[j])),z0);
+
+		//phi = k*self.stratumThicknesses*alpha
+		complex phi[MAXLENGTH];
+		for (j=0; j < numLayers; j++)
+			phi[j] = cmuld(alpha[j],k*thicknesses[j]);
+
+		double zeta[MAXLENGTH];
+		for (j=0; j < numLayers; j++)
+			zeta[j] = k*thicknesses[j]/z0;
+
+		complex chi;
+		matrix m=identity(), mt=identity();
+		complex ni=cmplx(0,-1);
+
+		for (j=numLayers-1; j>-1; j--)
+			//array([[cos(phi[q]),              -1j/gamma[q]*sin(phi[q])],
+			//       [-1j*gamma[q]*sin(phi[q]), cos(phi[q])]])
+		{
+			if (real(index[j]) == real(beta) && imag(index[j]) == imag(beta))
+				mt.ab = cxmul(cmuld(ni,zeta[j]),cxsqr(index[j]));  // -i*k*thickness*n^2/z0
+			else
+				mt.ab = cxdiv(cxmul(ni,cxsin(phi[j])),gamma[j]);  // -i*sin(phi)/gamma
+
+			mt.aa = cxcos(phi[j]);
+			mt.ba = cxmul(cxmul(ni,cxsin(phi[j])),gamma[j]);   // -i*sin(phi)*gamma
+			mt.bb = mt.aa;
+
+			m = mmult(mt,m); 
+		}
+		chi = cxadd4(cxmul(gamma[numLayers-1],m.aa) , 
+				cxmul(gamma[0],cxmul(gamma[numLayers-1],m.ab)) , 
+				m.ba , 
+				cxmul(gamma[0],m.bb) );
+		//chi = gammac*M[0,0] + gammac*gammas*M[0,1] + M[1,0] + gammas*M[1,1]
+
+		chiImag[q] = imag(chi);
+	}
 }
 
 double abschi_find(double wavelength, const double *thicknesses, const double *indexesReal, 
