@@ -73,6 +73,7 @@ meV = 1e-3 # meV to eV
 # [1]Handbook of Optics, Vol.2, ISBN: 0070479747
 # [2]Van de Walle C G. Band lineups and deformation potentials in the 
 #    model-solid theory[J]. Physical review B, 1989, 39(3): 1871.
+# [3]Peter Qiang Liu's thesis
 #===============================================================================
 
 def zero_find(xVals, yVals):
@@ -986,21 +987,6 @@ class QCLayers(object):
         # calculations for effective mass
         #  in part following Sugawara, PRB 48, 8102 (1993)
         
-        # Eq.(2.15) in Kale's
-        # ESO is energy difference between SO band and LH bands (adding
-        # strain correction to \Delta_{SO} (DSO)
-        self.ESO  = sqrt(9*self.Qe**2+2*self.Qe*self.DSO+self.DSO**2)
-        # EgLH is the band gap between conduction band (c) and LH bands
-        self.EgLH = self.EgG + self.Pec + self.Pe + self.Varsh \
-                - 1/2*(self.Qe - self.DSO + self.ESO)
-        self.EgSO = self.EgG + self.Pec + self.Pe + self.Varsh \
-                - 1/2*(self.Qe - self.DSO - self.ESO)
-                #= ESO+EgLH
-        
-        # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
-        self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
-                *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
-        
         #corrections to the method used to calculate band edges, thanks to Yu Song
         # conduction band edge at different point, Eq.(2.7)
         self.EcG = self.VBO + self.EgG + self.Pec - bandBaseln # Varsh?
@@ -1012,9 +998,8 @@ class QCLayers(object):
                 + (2*self.eps_parallel+self.eps_perp)*(self.acX+self.av) \
                 + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) - bandBaseln
         
-        # Same as previous lines except for Varsh.. 
-        # Above Varsh correction is to band gap; 
-        # the correction should be part conduction band, part valence band
+        # the Varsh correction should be part conduction band, part valence band
+        self.ESO  = sqrt(9*self.Qe**2+2*self.Qe*self.DSO+self.DSO**2)
         self.EgLH = self.EgG + self.Pec + self.Pe \
                 - 1/2*(self.Qe - self.DSO + self.ESO)
         self.EgSO = self.EgG + self.Pec + self.Pe \
@@ -1042,10 +1027,9 @@ class QCLayers(object):
         self.EvLH = self.EcG - self.EgLH - ((1-percentCB) * self.Varsh)
         self.EvSO = self.EcG - self.EgSO - ((1-percentCB) * self.Varsh)
 
-        # TODO: eff mass calculation should be here
         # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
-        #  self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
-                #  *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
+        self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
+                *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
         
 
     def solve_psi(self):
@@ -1108,6 +1092,7 @@ class QCLayers(object):
                         * xPsi[q] - xPsi[q-1] / xMcE[q-1]) 
                 psiEnd[p] = xPsi[-1]
                 
+        #TODO: replace this by zero_find() function
         #interpolate between solved-for E points        
         tck = interpolate.splrep(Epoints,psiEnd,s=0)
         #adds 100 points per solved-for E point
@@ -1254,11 +1239,11 @@ class QCLayers(object):
         
         #remove states that come from oscillating end points
         # looks like we should change -1 to -2 (following)???
-        psiEnd = self.xyPsi[-1,:]
-        idxs = abs(psiEnd)<10
+        #  psiEnd = self.xyPsi[-1,:]
+        #  idxs = abs(psiEnd)<10
         #  idxs = np.nonzero(abs(psiEnd)<10)[0]
-        #  psiEnd = self.xyPsi[-2,:]
-        #  idxs = np.abs(psiEnd)<200/self.xres 
+        psiEnd = self.xyPsi[-2,:]
+        idxs = np.abs(psiEnd)<200/self.xres 
         # 200 depends on how precise we want about eigenenergy solver 
         # (TODO: more analysis and test about this value
         self.EigenE = self.EigenE[idxs]
@@ -1465,6 +1450,12 @@ class QCLayers(object):
     #        self.xyPsiPsiDec[:,q] = self.xyPsiPsi[idxs,q]
     #    self.xyPsiPsi = self.xyPsiPsiDec
     #    self.xPointsPost = self.xPoints[idxs]
+    def eff_mass(self, E):
+        xMcE = self.xMc * (1 - (self.xVc - E) / self.xEg)        
+        xMcE = 1 / (1+2*self.xF + self.xEp/3 * (
+            2 / ((E-self.xVc)+self.xEg) + 1 / (
+                 (E-self.xVc)+self.xEg+self.xESO) ))
+        return xMcE
 
     def lo_transition_rate(self, upper, lower):
         """ LO phonon scattering induced decay life time calculator
@@ -1502,16 +1493,19 @@ class QCLayers(object):
             # wavefunction not overlap
             return 1e-20
 
-        #TBD? 08.21.2017
         idx_first = min(idx_first)
         idx_last  = max(idx_last)
         psi_i = psi_i[idx_first:idx_last]
         psi_j = psi_j[idx_first:idx_last]
         xPoints = self.xPoints[idx_first:idx_last]
 
-        xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)        
+        xMcE_j = self.eff_mass(E_j)
         #weight non-parabolic effective mass by probability density
         McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
+        xMcE_i = self.eff_mass(E_i)
+        #weight non-parabolic effective mass by probability density
+        McE_i = m0*sum(xMcE_i[idx_first:idx_last] * psi_i**2) / sum(psi_i**2) 
+        #  print McE_i, McE_j
         
         # Kale's thesis Eq.(2.68)
         kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
@@ -1524,9 +1518,9 @@ class QCLayers(object):
                     * psi_i[n]*psi_j[n] * (self.xres*ANG)**2)
         Iij = sum(dIij)
         # looks similiar with eq.(2.69) but not exact in detail
-        inverse_tau = McE_j * e0**2 * self.hwLO[0]*e0/hbar * Iij \
+        inverse_tau = sqrt(McE_j*McE_i) * e0**2 * self.hwLO[0]*e0/hbar * Iij \
                 / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
-        return inverse_tau/1e12
+        return inverse_tau/1e12 # to ps
 
     def lo_life_time(self, state):
         """ return the life time due to LO phonon scattering of the 
@@ -1549,9 +1543,9 @@ class QCLayers(object):
         
         #  self.populate_x_band()
         # This energy dependence can be as large as -70%/+250%... 
-        xMcE_i = self.xMc * (1 - (self.xVc - E_i) / self.xEg)
+        xMcE_i = self.eff_mass(E_i)
         #  print max(xMcE_i/self.xMc), min(xMcE_i/self.xMc)
-        xMcE_j = self.xMc * (1 - (self.xVc - E_j) / self.xEg)
+        xMcE_j = self.eff_mass(E_j)
         #  print xMcE_j/self.xMc
         xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
         psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
@@ -1587,21 +1581,21 @@ class QCLayers(object):
             psi_i = self.xyPsi[:,upper]
             psi_j = self.xyPsi[:,lower]
             Ej = self.EigenE[lower]
-
-        # Ming's version for calculating coupling, 08.23.2017
-        #  if module_j - module_i != 1:
-            #  return 0
+        
         #  DeltaV = np.ones(self.xPointsPost.size)
         #  first = int(dCL[module_i].widthOffset/self.xres)
         #  last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
-        #  #  print "---debug--- coupling_energy"
-        #  #  print first,last
+        #  print "---debug--- coupling_energy"
+        #  print first,last
         #  DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
         #  DeltaV = 1 - DeltaV #=is well
-        #  jMat = self.xMaterials[last+1]
-        #  DeltaV *= (self.EcG[2*j-1] - self.EcG[2*(j-1)])/meV # unit meV
-        #  couplingEnergy = (sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG 
-        
+        #  couplingEnergy = sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
+                #  * abs(self.EcG[1] - self.EcG[0]) /meV #* (1-self.xBarriers)
+        # DeltaV * (self.EcG[1] (barrier) - dta.Ecg[0] (well)) = Vi(wells)
+
+        # Ming's version for calculating coupling, 08.23.2017
+        if module_j - module_i != 1:
+            return 0
         DeltaV = np.ones(self.xPointsPost.size)
         first = int(dCL[module_i].widthOffset/self.xres)
         last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
@@ -1609,12 +1603,13 @@ class QCLayers(object):
         #  print first,last
         DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
         DeltaV = 1 - DeltaV #=is well
-        couplingEnergy = sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
-                * abs(self.EcG[1] - self.EcG[0]) /meV #* (1-self.xBarriers)
-        # DeltaV * (self.EcG[1] (barrier) - dta.Ecg[0] (well)) = Vi(wells)
+        jMat = int(self.xMaterials[last+1])
+        DeltaV *= (self.EcG[2*jMat-1] - self.EcG[2*(jMat-1)])/meV # unit meV
+        couplingEnergy = (sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG 
         return couplingEnergy #unit meV
 
     def broadening_energy(self, upper, lower):
+        """interface roughness induced broadening: Khurgin, yentings thesis"""
         if upper < lower:
             upper, lower = lower, upper
         psi_i = self.xyPsi[:,upper]
@@ -1631,6 +1626,7 @@ class QCLayers(object):
         return twogamma
 
     def alphaISB(self, stateR, lower):
+        """intersubband transition.. etc."""
         statesQ = []
         dipoles = []
         gammas = []
@@ -1682,7 +1678,6 @@ class QCLayers(object):
             plt.show()
             
         return alphaISB
-
 
 if __name__  == "__main__":
     print 'Answer to the Ultimate Question of Life, The Universe, and Everything is', cFunctions.returnme()
