@@ -1513,14 +1513,17 @@ class QCLayers(object):
         #weight non-parabolic effective mass by probability density
         McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
         
+        # Kale's thesis Eq.(2.68)
         kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
-        dIij = np.zeros(xPoints.size)
+        dIij = np.empty(xPoints.size)
         for n in xrange(xPoints.size):
-            x1 = xPoints[n]*1e-10
-            x2 = xPoints*1e-10
+            x1 = xPoints[n]*ANG
+            x2 = xPoints*ANG
+            # first integral for eq.(2.69)
             dIij[n] = sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
-                    * psi_i[n]*psi_j[n] * (self.xres*1e-10)**2)
+                    * psi_i[n]*psi_j[n] * (self.xres*ANG)**2)
         Iij = sum(dIij)
+        # looks similiar with eq.(2.69) but not exact in detail
         inverse_tau = McE_j * e0**2 * self.hwLO[0]*e0/hbar * Iij \
                 / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
         return inverse_tau/1e12
