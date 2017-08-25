@@ -2162,7 +2162,7 @@ class MainWindow(QMainWindow):
     def figure_of_merit(self):
         """
         SLOT connected to SIGNAL self.FoMButton.clicked()
-        Calculate ???
+        Calculate Figure of merit
         """
         if len(self.stateHolder) < 2:
             return
