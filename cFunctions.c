@@ -188,7 +188,10 @@ OUTPUT:
 		}*/
 		/* TODO: positive charge holes? */
 		double PsiInt = 0; 
-		for(int q=0; q<xPsiSize; q++) /* Eq.(2.55) in the thesis*/
+		for(int q=0; q<xPsiSize; q++) 
+			/*Usual normalization*/
+			/* PsiInt += sq(xyPsi[col*xPsiSize + q]);  */
+			/* Eq.(2.55) in the thesis*/
 			PsiInt += sq(xyPsi[col*xPsiSize + q]) * (
 						1 + ( Eq - xVc[q] ) / ( Eq - xVc[q] + xEg[q] ) );
 		double NormFactor = 1 / sqrt(xres * ANG * PsiInt);
