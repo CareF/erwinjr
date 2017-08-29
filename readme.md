@@ -29,7 +29,7 @@ Built and tested on Python 2.6.
 
 == For Arch Linux User ==
 
-community/python2-pyqwt package on the official source has some compiling bug, which will result in `Segmentation fault (core dumped)' when import PyQt4.Qwt5. See [bug report](https://bugs.archlinux.org/task/53918?project=5&cat%5B0%5D=33&string=python2-pyqwt) 
+community/python2-pyqwt package on the official source has some compiling bug, which will result in `Segmentation fault (core dumped)` when import PyQt4.Qwt5. See [bug report](https://bugs.archlinux.org/task/53918?project=5&cat%5B0%5D=33&string=python2-pyqwt) 
 
 This can be fixed by building the package locally, using following commands: 
 	asp export pacman community/python2-pyqwt
