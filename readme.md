@@ -26,3 +26,13 @@ PyQt4, PyQwt5, numpy, scipy, matplotlib
 psyco is also useful
 
 Built and tested on Python 2.6.
+
+== For Arch Linux User ==
+
+community/python2-pyqwt package on the official source has some compiling bug, which will result in `Segmentation fault (core dumped)' when import PyQt4.Qwt5. See [bug report](https://bugs.archlinux.org/task/53918?project=5&cat%5B0%5D=33&string=python2-pyqwt) 
+
+This can be fixed by building the package locally, using following commands: 
+	asp export pacman community/python2-pyqwt
+	cd python2-pyqwt
+	makepkg
+	sudo pacman -U pyton2-pyqwt-5.2.0-2-x86_64.pkg.tar.xz
