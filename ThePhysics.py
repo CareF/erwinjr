@@ -1092,12 +1092,12 @@ class QCLayers(object):
                         * xPsi[q] - xPsi[q-1] / xMcE[q-1]) 
                 psiEnd[p] = xPsi[-1]
                 
-        #TODO: replace this by zero_find() function
+        self.EigenE = zero_find(Epoints, psiEnd)
         #interpolate between solved-for E points        
-        tck = interpolate.splrep(Epoints,psiEnd,s=0)
+        #  tck = interpolate.splrep(Epoints,psiEnd,s=0)
         #adds 100 points per solved-for E point
-        xnew = np.linspace(Epoints[0],Epoints[-1],Epoints.size*1e2) 
-        ynew = interpolate.splev(xnew,tck,der=0)
+        #  xnew = np.linspace(Epoints[0],Epoints[-1],Epoints.size*1e2) 
+        #  ynew = interpolate.splev(xnew,tck,der=0)
         
 #        #plot interpolated points over solved-for E points
 #        plt.figure()
@@ -1106,45 +1106,48 @@ class QCLayers(object):
        
         #find Eigen Energies
         #This routine looks for all of the zero crossings, and then picks each one out
-        #TODO: try to replace this part by zero_find function
-        gtz = ynew > 0
-        ltz = ynew < 0
-        overlap1 = np.bitwise_and(gtz[0:-1],ltz[1:])
-        overlap2 = np.bitwise_and(gtz[1:],ltz[0:-1])
-        overlap  = np.bitwise_or(overlap1, overlap2)
-        idxs = np.nonzero(overlap == True)[0]
-        #need this to maintain compatibility with 32-bit and 64-bit systems
-        idxs = idxs.astype(float) 
-        self.EigenE = np.zeros(idxs.size)
+        #  gtz = ynew > 0
+        #  ltz = ynew < 0
+        #  overlap1 = np.bitwise_and(gtz[0:-1],ltz[1:])
+        #  overlap2 = np.bitwise_and(gtz[1:],ltz[0:-1])
+        #  overlap  = np.bitwise_or(overlap1, overlap2)
+        #  idxs = np.nonzero(overlap == True)[0]
+        #  #need this to maintain compatibility with 32-bit and 64-bit systems
+        #  idxs = idxs.astype(float) 
+        #  self.EigenE = np.zeros(idxs.size)
 
-        if USE_CLIB:
-            # use inverse quadratic to get an approximation of zeros
-            cFunctions.inv_quadratic_interp(xnew.ctypes.data_as(c_void_p), 
-                    ynew.ctypes.data_as(c_void_p), 
-                    idxs.ctypes.data_as(c_void_p), 
-                    int(idxs.size), self.EigenE.ctypes.data_as(c_void_p))
-        else:
-            for q, idx in enumerate(idxs): # do quadratic interpolation
-                x0=xnew[idx-1]; fx0=ynew[idx-1]
-                x1=xnew[idx];   fx1=ynew[idx]
-                x2=xnew[idx+1]; fx2=ynew[idx+1]
-                d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1)
-                #inverse quadratic interpolation
-                x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
-                        + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
-                        + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
-                self.EigenE[q] = x3
-#                if abs(d1) > 1e15 and abs(d2) > 1e15:
-#                    self.EigenE[q] = 0
+        #  if USE_CLIB:
+            #  # use inverse quadratic to get an approximation of zeros
+            #  cFunctions.inv_quadratic_interp(xnew.ctypes.data_as(c_void_p), 
+                    #  ynew.ctypes.data_as(c_void_p), 
+                    #  idxs.ctypes.data_as(c_void_p), 
+                    #  int(idxs.size), self.EigenE.ctypes.data_as(c_void_p))
+        #  else:
+            #  for q, idx in enumerate(idxs): # do quadratic interpolation
+                #  x0=xnew[idx-1]; fx0=ynew[idx-1]
+                #  x1=xnew[idx];   fx1=ynew[idx]
+                #  x2=xnew[idx+1]; fx2=ynew[idx+1]
+                #  d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1)
+                #  #inverse quadratic interpolation
+                #  x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
+                        #  + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
+                        #  + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
+                #  self.EigenE[q] = x3
+#  #                if abs(d1) > 1e15 and abs(d2) > 1e15:
+#  #                    self.EigenE[q] = 0
 
         if MORE_INTERPOLATION:
             # Near the above approximation result, 
             # try to get a more precise result
+            xnear = np.empty(3*len(self.EigenE))
+            fxnear = np.empty(3*len(self.EigenE))
             for q in xrange(self.EigenE.size):
                 # 100000 is an estimate for the precision of above
                 # approximation
                 # TODO: change the three calls of psiFn to loop
                 approxwidth = self.vertRes/100000
+                xnear[3*q:3*q+3] = self.EigenE[q] + approxwidth * np.arange(-1, 2)
+
                 x0=self.EigenE[q]-approxwidth 
                 x1=self.EigenE[q]
                 x2=self.EigenE[q]+approxwidth
@@ -1197,6 +1200,42 @@ class QCLayers(object):
                         + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
                         + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
                 self.EigenE[q] = x3
+            print self.EigenE
+            EEold = copy.copy(self.EigenE)
+
+            #  print xnear[0::3]-self.EigenE
+            #  print xnear[1::3]-self.EigenE
+            #  print xnear[2::3]-self.EigenE
+            for n, x in enumerate(xnear):
+                cFunctions.psiFn(c_double(x), int(1), int(xPsi.size), 
+                        c_double(self.xres), 
+                        self.xVc.ctypes.data_as(c_void_p),
+                        self.xEg.ctypes.data_as(c_void_p), 
+                        self.xF.ctypes.data_as(c_void_p), 
+                        self.xEp.ctypes.data_as(c_void_p), 
+                        self.xESO.ctypes.data_as(c_void_p), 
+                        self.xMc.ctypes.data_as(c_void_p), 
+                        xMcE.ctypes.data_as(c_void_p), 
+                        xPsi.ctypes.data_as(c_void_p))
+                fxnear[n] = xPsi[-1]
+            idxs = 3*np.arange(len(self.EigenE))+1
+            if USE_CLIB:
+                cFunctions.inv_quadratic_interp(xnear.ctypes.data_as(c_void_p), 
+                        fxnear.ctypes.data_as(c_void_p), 
+                        idxs.ctypes.data_as(POINTER(c_int)), 
+                        int(idxs.size), self.EigenE.ctypes.data_as(c_void_p))
+            else: 
+                for q, idx in enumerate(idxs): # do quadratic interpolation
+                    x0=xnear[idx-1]; fx0=fxnear[idx-1]
+                    x1=xnear[idx];   fx1=fxnear[idx]
+                    x2=xnear[idx+1]; fx2=fxnear[idx+1]
+                    d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1)
+                    #inverse quadratic interpolation
+                    x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
+                            + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
+                            + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
+                    self.EigenE[q] = x3
+            print self.EigenE-EEold
 
         #make array for Psi and fill it in
         if USE_CLIB:

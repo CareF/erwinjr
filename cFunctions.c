@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdint.h>
 #include "complex.h"
 
 #define ANG 1E-10 /*angstrom in m */
@@ -136,7 +137,7 @@ OUTPUT:
 }
 
 int inv_quadratic_interp(const double *x, const double *y, 
-		const double *idxs, int idxLength, double *root)
+		const int64_t *idxs, int idxLength, double *root)
 { /* Using inverse quadratic interpolation to get x so that y(x)=0, 
 	and thus x is the eigen-energy satisfies zero boundary condition
 
@@ -153,7 +154,8 @@ OUTPUT:
 	for(q=0; q<idxLength; q++)
 	{
 		n = idxs[q];
-		//printf("%d\n",n);
+		/* printf("No. %d at %d\n",q, n); */
+		/* printf("xnear: %f, %f, %f\n",x[n-1]-x[n],x[n],x[n+1]-x[n]); */
 		root[q] = x[n-1]*y[n]*y[n+1] / ( (y[n-1]-y[n]  )*(y[n-1]-y[n+1]) ) 
 			      + x[n]*y[n-1]*y[n+1] / ( (y[n]  -y[n-1])*(y[n]  -y[n+1]) )
 			      + x[n+1]*y[n-1]*y[n] / ( (y[n+1]-y[n-1])*(y[n+1]-y[n]  ) );
