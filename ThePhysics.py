@@ -1054,7 +1054,6 @@ class QCLayers(object):
         psiEnd = np.zeros(Epoints.size)
         
         #TODO: add adaptive spacing for Eq
-        #TODO: convert nested for loop to C
         if USE_CLIB:
             # Call C function to get boundary dependence of energy EPoints[n], 
             # the return value is psiEnd[n]
@@ -1148,64 +1147,6 @@ class QCLayers(object):
                 approxwidth = self.vertRes/100000
                 xnear[3*q:3*q+3] = self.EigenE[q] + approxwidth * np.arange(-1, 2)
 
-                x0=self.EigenE[q]-approxwidth 
-                x1=self.EigenE[q]
-                x2=self.EigenE[q]+approxwidth
-                
-                cFunctions.psiFn(c_double(x0), int(1), int(xPsi.size), 
-                        c_double(self.xres), 
-                        self.xVc.ctypes.data_as(c_void_p),
-                        self.xEg.ctypes.data_as(c_void_p), 
-                        self.xF.ctypes.data_as(c_void_p), 
-                        self.xEp.ctypes.data_as(c_void_p), 
-                        self.xESO.ctypes.data_as(c_void_p), 
-                        self.xMc.ctypes.data_as(c_void_p), 
-                        xMcE.ctypes.data_as(c_void_p), 
-                        xPsi.ctypes.data_as(c_void_p))
-                fx0 = xPsi[-1]
-                
-                cFunctions.psiFn(c_double(x1), int(1), int(xPsi.size), 
-                        c_double(self.xres), 
-                        self.xVc.ctypes.data_as(c_void_p), 
-                        self.xEg.ctypes.data_as(c_void_p), 
-                        self.xF.ctypes.data_as(c_void_p), 
-                        self.xEp.ctypes.data_as(c_void_p), 
-                        self.xESO.ctypes.data_as(c_void_p), 
-                        self.xMc.ctypes.data_as(c_void_p), 
-                        xMcE.ctypes.data_as(c_void_p), 
-                        xPsi.ctypes.data_as(c_void_p))
-                fx1 = xPsi[-1]
-                
-                cFunctions.psiFn(c_double(x2), int(1), int(xPsi.size), 
-                        c_double(self.xres), 
-                        self.xVc.ctypes.data_as(c_void_p), 
-                        self.xEg.ctypes.data_as(c_void_p), 
-                        self.xF.ctypes.data_as(c_void_p), 
-                        self.xEp.ctypes.data_as(c_void_p), 
-                        self.xESO.ctypes.data_as(c_void_p), 
-                        self.xMc.ctypes.data_as(c_void_p), 
-                        xMcE.ctypes.data_as(c_void_p), 
-                        xPsi.ctypes.data_as(c_void_p))
-                fx2 = xPsi[-1]
-                
-                #  psiFn(double Eq, int startpoint, int xPsiSize, double xres, 
-                        #  double *xVc, double *xEg, double *xF, double *xEp, 
-                        #  double *xESO, double *xMc, double *xMcE, double *xPsi)
-                
-               
-                d1=(fx1-fx0)/(x1-x0)
-                d2=(fx2-fx1)/(x2-x1)
-                #inverse quadratic interpolation
-                x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
-                        + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
-                        + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
-                self.EigenE[q] = x3
-            #  print self.EigenE
-            #  EEold = copy.copy(self.EigenE)
-
-            #  print xnear[0::3]-self.EigenE
-            #  print xnear[1::3]-self.EigenE
-            #  print xnear[2::3]-self.EigenE
             for n, x in enumerate(xnear):
                 cFunctions.psiFn(c_double(x), int(1), int(xPsi.size), 
                         c_double(self.xres), 
@@ -1235,7 +1176,6 @@ class QCLayers(object):
                             + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
                             + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
                     self.EigenE[q] = x3
-            #  print self.EigenE-EEold
 
         #make array for Psi and fill it in
         if USE_CLIB:
