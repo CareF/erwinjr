@@ -56,13 +56,13 @@ PAD_WIDTH=100 # width padded in the beginning of the given region for basis solv
 #===============================================================================
 # Global Variables
 #===============================================================================
-e0 = 1.60217653e-19  #electron charge, unit coulomb
-eps0 = 8.854187e-12
-m0 = 9.10938188e-31   #free electron mass (kg)
-h = 6.6260693e-34
-hbar = 6.6260693e-34/(2*pi) #Planck's constant (J s)
-kb = 1.386505e-23 / e0 #eV/K
-c0 = 299792458
+import scipy.constants as scconst
+from scipy.constants import h, hbar
+e0 = scconst.e  #electron charge, unit coulomb
+eps0 = scconst.epsilon_0
+m0 = scconst.electron_mass   #free electron mass (kg)
+kb = scconst.k / e0 #eV/K
+c0 = scconst.c
 ANG = 1e-10 # angstrom to meter
 KVpCM = 1e5 # KV/cm to V/m
 meV = 1e-3 # meV to eV
@@ -1200,8 +1200,8 @@ class QCLayers(object):
                         + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
                         + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
                 self.EigenE[q] = x3
-            print self.EigenE
-            EEold = copy.copy(self.EigenE)
+            #  print self.EigenE
+            #  EEold = copy.copy(self.EigenE)
 
             #  print xnear[0::3]-self.EigenE
             #  print xnear[1::3]-self.EigenE
@@ -1235,7 +1235,7 @@ class QCLayers(object):
                             + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
                             + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
                     self.EigenE[q] = x3
-            print self.EigenE-EEold
+            #  print self.EigenE-EEold
 
         #make array for Psi and fill it in
         if USE_CLIB:
