@@ -82,38 +82,6 @@ def zero_find(xVals, yVals):
     tck = interpolate.splrep(xVals.real,yVals.real)
     #  print "------debug------ Here zero_find is called"
     return interpolate.sproot(tck, mest=len(xVals))
-    #  xnew = np.linspace(min(xVals.real),max(xVals.real),5e5)
-    #  ynew = interpolate.splev(xnew,tck,der=0)
-
-    #  #This routine looks for all of the zero crossings, and then picks each one out
-    #  gtz = ynew > 0
-    #  ltz = ynew < 0
-    #  overlap1 = np.bitwise_and(gtz[0:-1],ltz[1:])
-    #  overlap2 = np.bitwise_and(gtz[1:],ltz[0:-1])
-    #  overlap  = np.bitwise_or(overlap1, overlap2)
-    #  idxs = np.nonzero(overlap == True)[0]
-    #  zeroCrossings = np.zeros(idxs.size)
-
-    #  if False:
-        #  cFunctions.inv_quadratic_interp(xnew.ctypes.data_as(c_void_p), 
-                #  ynew.ctypes.data_as(c_void_p),
-                #  idxs.ctypes.data_as(c_void_p), int(zeroCrossings.size),
-                #  zeroCrossings.ctypes.data_as(c_void_p))
-    #  else:
-        #  for q, idx in enumerate(idxs): # do quadratic interpolation
-            #  x0=xnew[idx-1]; fx0=ynew[idx-1]
-            #  x1=xnew[idx];   fx1=ynew[idx]
-            #  x2=xnew[idx+1]; fx2=ynew[idx+1]
-            #  d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1)
-            #  #inverse quadratic interpolation
-            #  x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
-                    #  + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
-                    #  + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
-            #  zeroCrossings[q] = x3
-
-    #  print zeroCrossings
-    #  return zeroCrossings
-    
 
 class Strata(object):
     """Strata property for optical mode solver
@@ -368,7 +336,7 @@ class Strata(object):
 
             betas = np.arange(betaMin.real+0.01,betaMax.real,0.01)
 
-            if True: #do chi_find in c
+            if USE_CLIB: #do chi_find in c
                 chiImag = np.zeros(len(betas),dtype=float)
                 betasReal = betas.real
                 betasImag = betas.imag
@@ -1076,12 +1044,7 @@ class QCLayers(object):
             # my_sum.sum(a.ctypes.data_as(c_void_p), int(10))
         else:
             for p, Eq in enumerate(Epoints):
-                if True:
-                    xMcE = m0 / (1+2*self.xF + self.xEp/3 * 
-                            (2 / ((Eq-self.xVc)+self.xEg) + 
-                                1 / ((Eq-self.xVc)+self.xEg+self.xESO) ))
-                else:
-                    xMcE = self.xMc * (1 - (self.xVc - Eq) / self.xEg)
+                xMcE = m0 * eff_mass(Eq)
                 xMcE[0:-1] = 0.5 * (xMcE[0:-1]+xMcE[1:])
                 xPsi[0] = 0
                 xPsi[1] = 1
@@ -1199,12 +1162,7 @@ class QCLayers(object):
         else:
             self.xyPsi = np.zeros((self.xPoints.size,self.EigenE.size))
             for p, Eq in enumerate(self.EigenE):
-                if True:
-                    xMcE = m0 / (1+2*self.xF + self.xEp/3 * (
-                        2 / ((Eq-self.xVc)+self.xEg) + 1 / (
-                             (Eq-self.xVc)+self.xEg+self.xESO) ))
-                else:
-                    xMcE = self.xMc * (1 - (self.xVc - Eq) / self.xEg)
+                xMcE = m0 * eff_mass(self.EigenE)
                 xMcE[0:-1] = 0.5 * (xMcE[0:-1]+xMcE[1:])
                 xPsi[1] = 1
                 for q in xrange(2,xPsi.size-1):
@@ -1430,7 +1388,10 @@ class QCLayers(object):
     #    self.xyPsiPsi = self.xyPsiPsiDec
     #    self.xPointsPost = self.xPoints[idxs]
     def eff_mass(self, E):
-        xMcE = self.xMc * (1 - (self.xVc - E) / self.xEg)        
+        """Calculate effective mass according to energy E, 
+        according to Eq.(2.20) in Kale's thesis
+        """
+        #  xMcE = self.xMc * (1 - (self.xVc - E) / self.xEg)        
         xMcE = 1 / (1+2*self.xF + self.xEp/3 * (
             2 / ((E-self.xVc)+self.xEg) + 1 / (
                  (E-self.xVc)+self.xEg+self.xESO) ))

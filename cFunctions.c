@@ -12,27 +12,6 @@ const double m0 = 9.109e-31;
 const double e0 = 1.602e-19;
 const double pi = 3.1415926535897932385;
 
-void EffectMass(double Eq, int xSize, const double *xVc, const double *xEg, 
-		const double *xF, const double *xEp, const double *xESO, 
-		const double *xMc, double *xMcE)
-{ /*To generate effective mass, according to Eq.(2.20) in the thesis
-	but subtract xVc for non-material effect
-INPUT & OUTPUT:
-	see the comments in psiFn */
-	for(int q=0; q<xSize; q++)
-	{ 
-		if(1) //?
-			xMcE[q] = m0 / ( 1 + 2*xF[q] + xEp[q]/3 * (2 / (Eq - xVc[q] + xEg[q]) 
-						+ 1 / (Eq - xVc[q] + xEg[q] + xESO[q]) ));
-		else
-			xMcE[q] = m0 * xMc[q] * (1 - (xVc[q] - Eq) / xEg[q]);
-		if(q>1)
-			/*Linear interpolation to move half step, for the recursion of xPsi*/
-			xMcE[q-1] = 0.5 * (xMcE[q] + xMcE[q-1]);
-	}
-	return;
-}
-
 void psiFn(double Eq, int startpoint, int xPsiSize, double xres, 
 		const double *xVc, const double *xEg, const double *xF, 
 		const double *xEp, const double *xESO, const double *xMc, 
