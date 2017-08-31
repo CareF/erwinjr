@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 #===============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
