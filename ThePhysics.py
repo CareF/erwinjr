@@ -94,7 +94,7 @@ class Strata(object):
         self.stratumCompositions = np.array([0.])
         self.stratumThicknesses = np.array([0.])
         self.stratumDopings = np.array([0.])
-        
+
         self.wavelength = 4.7 # unit? micron?
         self.operatingField = 0
         self.Lp = 1
@@ -105,7 +105,7 @@ class Strata(object):
         self.aCore = 0 # = 4\pi k /\lambda
         self.nCore = 4 # index of the active core?
         self.nD = 0    # ?not used
-        
+
         self.tauUpper = 0.0
         self.tauLower = 0.0
         self.tauUpperLower = 1.0e-3
@@ -117,20 +117,20 @@ class Strata(object):
         # "custom coating"
         self.customFacet = 0.0  
         self.waveguideLength = 3.0 #unit?
-        
+
         self.frontFacet = 0
         self.backFacet = 0
-        
+
         self.beta = 3+0j
-        
+
         self.xres = 0.01 #um -> angstrom?
         self.stratumSelected = 0
-        
+
         self.notDopableList = ['Air', 'Au', 'SiO2', 'SiNx']
         self.needsCompositionList = ['InGaAs','InAlAs']
 
         self.populate_rIndexes()
-        
+
     def populate_rIndexes(self):
         """ Matrial reflection index for GaAs, InAs, AlAs and InP """
         wl = self.wavelength # unit um, see [1] Table22
@@ -226,7 +226,7 @@ class Strata(object):
                 self.stratumRIndexes[q] = n_SiO2 + k_SiO2*1j
             elif material == 'Air':
                 self.stratumRIndexes[q] = 1
-                
+
     def populate_x(self):
         """Extend layer information to position functions?
         Layer data: stratumThicknesses
@@ -242,10 +242,10 @@ class Strata(object):
         self.stratumThickNum = np.round(self.stratumThicknesses
                 /self.xres).astype(np.int64)
         self.stratumThicknesses = self.stratumThickNum * self.xres
-        
+
         #convert to int to prevent machine rounding errors
         self.xPoints = self.xres * np.arange(0, self.stratumThickNum.sum(), 1)
-        
+
         stratumThickNumCumSum = np.concatenate( ([0], 
             self.stratumThickNum.cumsum()) )
         self.xn = np.zeros(self.xPoints.size, dtype=complex)
@@ -258,7 +258,7 @@ class Strata(object):
             if self.stratumMaterials[q] == 'Active Core':
                 self.xAC[stratumThickNumCumSum[q] : 
                         stratumThickNumCumSum[q+1]] = 1
-                
+
         # make array to show selected stratum in mainCanvas
         # ? what is this used for? 
         self.xStratumSelected = np.zeros(self.xPoints.shape) * np.NaN
@@ -274,7 +274,7 @@ class Strata(object):
         print "----debug---- chi_find("+beta
         z0 = 0.003768
         k = 2*pi/self.wavelength
-        
+
         alpha = sqrt(self.stratumRIndexes**2-beta**2)
         if alpha[0].imag < 0:
             alpha[0] = conj(alpha[0])
@@ -285,22 +285,22 @@ class Strata(object):
         gamma = z0*alpha/self.stratumRIndexes**2
         phi   = k*self.stratumThicknesses*alpha
         #zeta  = k*self.stratumThicknesses/z0
-        
+
         Mj = []
         M = np.array([[1+0j,0],[0,1+0j]])
         for q in xrange(alpha.size):
             Mj.append(np.array([[cos(phi[q]), -1j/gamma[q]*sin(phi[q])],[-1j*gamma[q]*sin(phi[q]), cos(phi[q])]]))
-        
+
         Mj.reverse()
         for mj in Mj:
             M = np.dot(mj,M)
-            
+
         gammas = gamma[0]
         gammac = gamma[-1]
-        
+
         chi = gammac*M[0,0] + gammac*gammas*M[0,1] + M[1,0] + gammas*M[1,1]
         return chi
-        
+
     def beta_find(self, betaInit = None):
         #? Seems to relate to EMF mode
         if True: #betaInit == None:
@@ -332,7 +332,7 @@ class Strata(object):
             beta = max(beta0s)+1j*min(self.stratumRIndexes.imag)
         else:
             beta = betaInit
-        
+
         beta_find_precision = 1e-5
         if True: #setting to True makes the function stall in Mac OS X
             betaIn = beta
@@ -378,19 +378,19 @@ class Strata(object):
                 if abs(abschiOld -abschiNew)/abschiOld < beta_find_precision:
                     break
         return beta
-        
+
     def mode_plot(self):
         #  print "-----debug----- mode_plot is called"
         n=copy.copy(self.stratumRIndexes)[::-1]
         thicknesses = copy.copy(self.stratumThicknesses)[::-1]
         ThickNum = copy.copy(self.stratumThickNum)[::-1]
         #  xres = self.xres        
-        
+
         z0 = 0.003768
         #z0 = 376.8
         k = 2*pi/self.wavelength
         M = np.array([[1+0j,0],[0,1+0j]])
-        
+
         alpha = sqrt(n**2-self.beta**2)
         if alpha[0].imag < 0:
             alpha[0] = conj(alpha[0])
@@ -399,7 +399,7 @@ class Strata(object):
         gamma = z0*alpha/n**2
         phi   = k*thicknesses*alpha
         #zeta  = k*thicknesses/z0
-        
+
         ncs = stratumThickNumCumSum = np.concatenate( ([0], ThickNum.cumsum()) )
         xI = np.zeros(self.xPoints.size, dtype=complex)
 
@@ -420,65 +420,65 @@ class Strata(object):
                 Mj = np.array([[cos(phi[q]), -1j/gamma[q]*sin(phi[q])],
                     [-1j*gamma[q]*sin(phi[q]), cos(phi[q])]])
                 M = np.dot(Mj,M)
-        
+
         xI = abs(xI)**2 
         xI = xI / max(xI)
         self.xI = xI[::-1]
-        
+
         #calculate confinement factor
         self.confinementFactor = sum(self.xI * self.xAC) / sum(self.xI)
-        
+
     def calculate_performance_parameters(self):
         #waveguide loss
         self.waveguideLoss = 4 * pi * self.beta.imag \
                 / (self.wavelength * 1e-6) * 1e-2
-        
+
         #mirror loss
         self.mirrorLoss = -1 / (2 * self.waveguideLength * 0.1) \
                 * log(self.frontFacet * self.backFacet)
-        
+
         #transition cross-section
         Eph = h * c0 / (self.wavelength * 1e-6)
         neff = self.beta.real
         z = self.opticalDipole * 1e-10
         deltaE = 0.1*Eph
         sigma0 = 4*pi*e0**2 / (h*c0*eps0*neff) * Eph/deltaE * z**2
-        
+
         #gain
         tauEff = self.tauUpper * (1 - self.tauLower 
                 / self.tauUpperLower) * 1e-12
         Lp = self.Lp * 1e-10
         self.gain = sigma0 * tauEff / (e0 * Lp) #m/A
         self.gain *= 100 #cm/A
-        
+
         #threshold current density
         self.Jth0 = (self.waveguideLoss + self.mirrorLoss) \
                 / (self.gain * self.confinementFactor) #A/cm^2
         self.Jth0 *= 1e-3 #kA/cm^2
-        
+
         #threshold current
         self.Ith0 = self.Jth0*1e3 * (self.Np * self.Lp*1e-8) \
                 * self.waveguideLength*1e-1
-        
+
         #operating voltage
         self.operatingVoltage = self.operatingField*1e3 * self.Lp*1e-8 * self.Np
-        
+
         #voltage efficiency
         self.voltageEfficiency = 1.24/self.wavelength * self.Np \
                 / self.operatingVoltage
-        
+
         #extraction efficiency
         self.extractionEfficiency = self.mirrorLoss \
                 / (self.mirrorLoss + self.waveguideLoss)
-        
+
         #population inverstion efficiency
         tauEff = self.tauUpper * (1 - self.tauLower / self.tauUpperLower)
         self.inversionEfficiency = tauEff / (tauEff + self.tauLower)
-        
+
         #modal efficiency
         xI = self.xI/max(self.xI)
         U = xI[np.nonzero(self.xAC)[0]]
-        
+
         #interoplate over U_AC for each Np at the point xbar for Ubar
         #this is Faist's version
         numACs = self.stratumMaterials.count('Active Core')
@@ -499,7 +499,7 @@ class Strata(object):
         xbar = np.linspace(minx, maxx, numACs*self.Np)
         Ubar = interpolate.splev(xbar,tck,der=0)
         self.modalEfficiency = sum(Ubar)**2 / (numACs * self.Np * sum(Ubar**2))
-        
+
         #Kale's version
         modalEfficiency = sum(Ubar) / self.Np #since Ubar taken from normalized xI
         #I guess we'll go with Faist's version since he probably knows better than I do.
@@ -526,7 +526,7 @@ class Strata(object):
         elif self.waveguideFacets == 'custom coating + perfect AR':
             self.frontFacet = 1e-9
             self.backFacet = self.customFacet
-       
+
 def reflectivity(beta):
     # should be member method for strata
     beta = beta.real
@@ -536,7 +536,7 @@ def reflectivity(beta):
 # for In0.53Ga0.47As, EcG = 0.22004154
 #    use this as a zero point baseline
 bandBaseln = 0.22004154
-    
+
 class QCLayers(object):
     """Class for QCLayers
     Member variables: 
@@ -578,13 +578,13 @@ class QCLayers(object):
         self.layerMaterials = np.array([1,1]) #label
         self.layerDopings = np.array([0.,0.]) #1e17 cm-3
         self.layerDividers = np.array([0,0]) #?
-        
+
         self.xres = 0.5 # angstrom
         self.EField = 0 # kV/cm = 1e5 V/m
         self.layerSelected = -1 # int
         self.vertRes = 0.5 # meV
         self.repeats = 2 # repeats n times for the given structure
-        
+
         self.description = ""
         self.solver = "SolverH" #?
         self.Temperature = 300
@@ -595,9 +595,9 @@ class QCLayers(object):
         #  self.designByAngs = True
         #  self.designByML = False
         self.substrate = 'InP'
-        
+
         self.moleFrac = [0.53, 0.52, 0.53, 0.52, 0.53, 0.52, 0.53, 0.52]
-        
+
         self.update_alloys()
         self.update_strain()
         self.populate_x()
@@ -664,11 +664,11 @@ class QCLayers(object):
                 self.xDopings[layerNumCumSum[1]:], self.repeats-1)   ])
             self.xLayerNums = np.hstack(  [self.xLayerNums, np.tile(
                 self.xLayerNums[layerNumCumSum[1]:], self.repeats-1) ])
-        
-        
+
+
         #this hack is needed because sometimes self.xPoints is one element too big
         self.xPoints = self.xPoints[0 : self.xBarriers.size]
-        
+
         self.update_strain()
         # Following are equiv. elec potential for different bands
         # external field is included
@@ -692,9 +692,9 @@ class QCLayers(object):
                         - self.xPoints[indx] * ANG * self.EField * KVpCM
                 self.xVSO[indx] = self.EvSO[material] \
                         - self.xPoints[indx] * ANG * self.EField * KVpCM
-            
+
         #  self.xVc = self.xBarriers * 0.520 - self.xPoints * self.EField * 1e-5
-        
+
         # make array to show selected layer in mainCanvas
         try:
             self.xLayerSelected = np.zeros(self.xPoints.shape)*np.NaN
@@ -904,14 +904,14 @@ class QCLayers(object):
         #  print "------debug-----", sum(self.MaterialWidth)
         self.netStrain = 100 * sum(self.MaterialWidth*self.eps_perp) \
                 / sum(self.MaterialWidth) # in percentage
-        
+
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
             (0,1)*4)): 
             # MLThickness is monolayer thickness of the material
             self.MLThickness[(self.layerMaterials == MLabel) 
                 & (self.layerBarriers == BLabel)] = self.a_perp[n] / 2.0
-    
+
         # Pikus-Bir interaction correction to bands offset, 
         # According to Kale's, Eq.(2.14), 
         # Pec for \delta E_{c} and Pe for \delta E_{v}
@@ -933,13 +933,13 @@ class QCLayers(object):
                 + (2*self.eps_parallel+self.eps_perp)*(self.acX+self.av) \
                 + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) \
                 - bandBaseln
-        
+
         self.ESO  = sqrt(9*self.Qe**2+2*self.Qe*self.DSO+self.DSO**2)
         self.EgLH = self.EgG + self.Pec + self.Pe \
                 - 1/2*(self.Qe - self.DSO + self.ESO)
         self.EgSO = self.EgG + self.Pec + self.Pe \
                 - 1/2*(self.Qe - self.DSO - self.ESO)
- 
+
         # Varsh correction comes here
         # temperature correction to conduction band edge, Eq.(2.10) in Kale's 
         self.Varsh = - self.alG*cst.Temperature**2/(cst.Temperature+self.beG)
@@ -988,7 +988,7 @@ class QCLayers(object):
         xMcE = np.zeros(self.xPoints.shape)
         xPsi = np.zeros(self.xPoints.shape)
         psiEnd = np.zeros(Epoints.size)
-        
+
         #TODO: add adaptive spacing for Eq
         if USE_CLIB:
             # Call C function to get boundary dependence of energy EPoints[n], 
@@ -1021,7 +1021,7 @@ class QCLayers(object):
                         * (self.xVc[q] - Eq)*e0 + 1 / xMcE[q] + 1 / xMcE[q-1]) 
                         * xPsi[q] - xPsi[q-1] / xMcE[q-1]) 
                 psiEnd[p] = xPsi[-1]
-                
+
         self.EigenE = zero_find(Epoints, psiEnd)
 
         if MORE_INTERPOLATION:
@@ -1161,7 +1161,7 @@ class QCLayers(object):
         """
         #self.basisInjectorAR is 0-to-1
         #self.basisARInjector is 1-to-0
-            
+
         #find all 0-to-1 & 1-to-0 transition points 
         # (1 for active region, 0 for injection retion, and active regions are
         # required to start and end by a well layer)
@@ -1187,7 +1187,7 @@ class QCLayers(object):
         # and then back into a list.
         dividers = list(set(dividers)) 
         dividers.sort()
- 
+
         #this is dataClassesList. 
         # it holds all of the Data classes for each individual solve section
         dCL = [] 
@@ -1275,7 +1275,7 @@ class QCLayers(object):
         self.xPointsPost = self.xPointsPost[head:tail]
         self.xyPsi = self.xyPsi[head:tail]
         self.xyPsiPsi = self.xyPsiPsi[head:tail]
-        
+
         #implement pretty plot
         # remove long zero head and tail of the wave functions
         for q in xrange(self.EigenE.size):
@@ -1284,7 +1284,7 @@ class QCLayers(object):
             #0.0005 is arbitrary
             self.xyPsiPsi[0:prettyIdxs[0],q] = np.NaN
             self.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
-            
+
         #sort by ascending energy
         sortID = np.argsort(self.EigenE)
         self.EigenE = self.EigenE[sortID]
@@ -1321,7 +1321,7 @@ class QCLayers(object):
             # energy difference is smaller than a LO phonon
             # LO phonon scatering doesn't happen
             return INV_INF
-            
+
         # zero head and tail cut off
         idxs_i = np.nonzero(psi_i >
                 settings.wf_scale * settings.phonon_integral_factor)[0]
@@ -1380,7 +1380,7 @@ class QCLayers(object):
         psi_j = self.xyPsi[:,lower]
         E_i = self.EigenE[upper]
         E_j = self.EigenE[lower]
-        
+
         #  self.populate_x_band()
         # This energy dependence can be as large as -70%/+250%... 
         xMcE_i = self.eff_mass(E_i)
@@ -1421,7 +1421,7 @@ class QCLayers(object):
             psi_i = self.xyPsi[:,upper]
             psi_j = self.xyPsi[:,lower]
             Ej = self.EigenE[lower]
-        
+
         # old version of coupling calculation
         #  DeltaV = np.ones(self.xPointsPost.size)
         #  first = int(dCL[module_i].widthOffset/self.xres)
@@ -1455,7 +1455,7 @@ class QCLayers(object):
             upper, lower = lower, upper
         psi_i = self.xyPsi[:,upper]
         psi_j = self.xyPsi[:,lower]
-        
+
         transitions = np.bitwise_xor(self.xBarriers[0:-1].astype(bool),
                 self.xBarriers[1:].astype(bool))
         transitions = np.append(transitions, False) # last element is not
@@ -1482,11 +1482,11 @@ class QCLayers(object):
             gamma = self.broadening_energy(q, stateR)/2
             gammas.append(gamma)
             energies.append(self.EigenE[q]-self.EigenE[stateR])
-            
+
         dipoles = np.array(dipoles)*1e-10 #in m
         gammas = np.array(gammas)/1000 #from meV to eV
         energies = abs(np.array(energies)) #in eV
-        
+
         neff = 3
         Lp = sum(self.layerWidths[1:]) * 1e-10 #in m
         Nq = sum(self.layerDopings[1:]*self.layerWidths[1:]) / sum(self.layerWidths[1:])
@@ -1494,19 +1494,19 @@ class QCLayers(object):
         Ns = sum(self.layerDopings[1:]*1e17 * self.layerWidths[1:]*1e-8) #in cm^-2
         Ns *= 100**2 #from cm^-2 to m^-2
         hw = self.EigenE[stateR] - self.EigenE[lower]
-                
+
         #    hw = np.arange(0.15,0.5,0.01)
         #    for enerG in hw:
         #        alphaISB = sum(energies * dipoles**2 * gammas / ((energies - enerG)**2 + gammas**2))
 
         #print energies/h/c0 * dipoles**2
         #print gammas / ((energies - hw)**2 + gammas**2)
-        
+
         alphaISB = sum(energies*e0/h/c0 * dipoles**2 * gammas 
                 / ((energies - hw)**2 + gammas**2))
         alphaISB *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
         alphaISB /= e0*100
-        
+
         if False: #plot loss diagram
             hw = np.arange(0.15,0.5,0.001)
             alphaISBw = np.zeros(hw.size)
@@ -1518,7 +1518,7 @@ class QCLayers(object):
             plt.figure()
             plt.plot(hw,alphaISBw)
             plt.show()
-            
+
         return alphaISB
 
     def get_nCore(self, wavelength):
@@ -1531,15 +1531,13 @@ class QCLayers(object):
             n[q] = self.moleFrac[q]*cst[self.Mat1[n]].rIndx(wl) \
                     + (1-self.moleFrac[q])*cst[self.Mat2[n]].rIndx(wl)
         nCore = sum(self.MaterialWidth*n)/sum(self.MaterialWidth) # Average n?
-        
+
         kCore = 1/(4*pi) * self.aCore * wl*1e-4 
         # See Def of acore
         # 1e-4: aCore in cm-1, wl in um
-        
+
         return nCore+kCore*1j
-        
+
 
 if __name__  == "__main__":
-    print 'Answer to the Ultimate Question of Life, The Universe, and Everything is', cFunctions.returnme()
-
-    
+    print ('Answer to the Ultimate Question of Life, The Universe, and Everything is', cFunctions.returnme()
