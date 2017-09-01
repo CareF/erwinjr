@@ -1017,7 +1017,7 @@ class MainWindow(QMainWindow):
         try:
             value = float(txt)
             self.strata.aCore = value
-            self.strata.nCore = self.strata.get_nCore(self.qclayers)
+            self.strata.nCore = self.qclayers.get_nCore(self.strata.wavelength)
             
             self.dirty = True
             self.update_windowTitle()       
@@ -2294,7 +2294,7 @@ class MainWindow(QMainWindow):
         self.strata.aCore = self.alphaISB
         
         #set nCore
-        self.strata.nCore = self.strata.get_nCore(self.qclayers)
+        self.strata.nCore = self.qclayers.get_nCore(self.strata.wavelength)
         
         #set tauUpper
         self.strata.tauUpper = self.tauUpper

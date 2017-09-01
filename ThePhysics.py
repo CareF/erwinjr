@@ -133,17 +133,8 @@ class Strata(object):
         
     def populate_rIndexes(self):
         """ Matrial reflection index for GaAs, InAs, AlAs and InP """
-        # n = sqrt(c1 + c2 * wl**2/(wl**2-c3**2) + c4 * wl**2/(wl**2-c5**2) )
         wl = self.wavelength # unit um, see [1] Table22
-        # 1.4 < wl < 11
-        n_GaAs = cst['GaAs'].rIndx(wl)
-        # 3.7 < wl < 31.3
-        n_InAs = cst['InAs'].rIndx(wl)
-        # 0.56 < wl < 2.2
-        n_AlAs = cst['AlAs'].rIndx(wl)
-        # 0.95 < wl < 10
-        n_InP = cst['InP'].rIndx(wl)
-        
+
         self.stratumRIndexes = np.zeros(self.stratumDopings.size, dtype=complex)
         for q, material in enumerate(self.stratumMaterials):
             # Calculate reflection index (complex for decay) for each stratum?
@@ -151,6 +142,8 @@ class Strata(object):
             if material == 'Active Core':
                 self.stratumRIndexes[q] = self.nCore
             elif material == 'InP':
+                # 0.95 < wl < 10
+                n_InP = cst['InP'].rIndx(wl)
                 nue = 1
                 me0 = cst['InP'].me0
                 a = 8.97E-5*wl**2/me0*self.stratumDopings[q]
@@ -159,6 +152,8 @@ class Strata(object):
                 k_InPd = sqrt( 0.5 *(abs(eps) - eps.real))
                 self.stratumRIndexes[q] = n_InPd + 1j*k_InPd
             elif material == 'GaAs':
+                # 1.4 < wl < 11
+                n_GaAs = cst['GaAs'].rIndx(wl)
                 nue = 1
                 me0 = cst['GaAs'].me0
                 a = 8.97E-5*wl**2/me0*self.stratumDopings[q]
@@ -167,8 +162,12 @@ class Strata(object):
                 k_GaAsd = sqrt( 0.5 *(abs(eps) - eps.real))
                 self.stratumRIndexes[q] = n_GaAsd + 1j*k_GaAsd
             elif material == 'InGaAs':
+                # 3.7 < wl < 31.3
+                n_InAs = cst['InAs'].rIndx(wl)
+                # 1.4 < wl < 11
+                n_GaAs = cst['GaAs'].rIndx(wl)
                 xFrac = self.stratumCompositions[q]
-                # TODO: bowing parameters?
+                # bowing parameters not found: negeleted
                 n_InGaAs = xFrac*n_InAs + (1-xFrac)*n_GaAs
                 nue = 1
                 me0 = xFrac*cst['InAs'].me0 + (1-xFrac)*cst['GaAs'].me0
@@ -179,7 +178,11 @@ class Strata(object):
                 self.stratumRIndexes[q] = n_InGaAs + 1j*k_InGaAs
             elif material == 'InAlAs':
                 xFrac = self.stratumCompositions[q]
-                # TODO: bowing parameters?
+                # 3.7 < wl < 31.3
+                n_InAs = cst['InAs'].rIndx(wl)
+                # 0.56 < wl < 2.2
+                n_AlAs = cst['AlAs'].rIndx(wl)
+                # bowing parameters not found: negeleted
                 n_AlInAs = (1-xFrac)*n_AlAs + xFrac*n_InAs
                 nue = 1
                 me0 = (1-xFrac)*cst['AlAs'].me0 + xFrac*cst['InAs'].me0
@@ -209,7 +212,6 @@ class Strata(object):
                 #from Jean Nguyen's Thesis
                 C1 = 1.41870; C2 = 0.12886725; C3 = 2.7573641e-5
                 n_SiO2 = C1 + C2/wl**2 + C3/wl**4
-                
                 #this is a 4 peak Lorentzian fit to her data
                 y0=-797.4627
                 xc1=2.83043; w1=6.083822; A1=10881.9438
@@ -225,36 +227,6 @@ class Strata(object):
             elif material == 'Air':
                 self.stratumRIndexes[q] = 1
                 
-    def get_nCore(self, data):
-        """Get equiv. overall core relection index and decay? for InAs/GaAs layers"""
-
-        # Matrial reflection index for GaAs, InAs, AlAs
-        # Repeated codes (already in populate_rIndexes), check if necessary
-        # n = sqrt(c1 + c2 * wl**2/(wl**2-c3**2) + c4 * wl**2/(wl**2-c5**2) )
-        wl = self.wavelength # unit um, see [1] Table22
-        # 1.4 < wl < 11
-        n_GaAs = cst['GaAs'].rIndx(wl)
-        # 3.7 < wl < 31.3
-        n_InAs = cst['InAs'].rIndx(wl)
-        # 0.56 < wl < 2.2
-        n_AlAs = cst['AlAs'].rIndx(wl)
-        # 0.95 < wl < 10
-        n_InP = cst['InP'].rIndx(wl)
-        
-        n=np.zeros(8)
-        # TODO: bowing parameters? 
-        for i in range(0, 8, 2):
-            n[i] = data.moleFrac[i]*n_InAs + (1-data.moleFrac[i])*n_GaAs
-        for i in range(1, 8, 2):
-            n[i] = data.moleFrac[i]*n_InAs + (1-data.moleFrac[i])*n_AlAs
-        nCore = sum(data.MaterialWidth*n)/sum(data.MaterialWidth) # Average n?
-        
-        kCore = 1/(4*pi) * self.aCore * wl*1e-4 
-        # See Def of acore
-        # 1e-4: aCore in cm-1, wl in um
-        
-        return nCore+kCore*1j
-        
     def populate_x(self):
         """Extend layer information to position functions?
         Layer data: stratumThicknesses
@@ -793,7 +765,7 @@ class QCLayers(object):
                 'acG', 'acL', 'acX', # Pikus-Bir interaction parameter 
                 'Ep', 'F', # effective mass parameter, unit eV (Ep) and 1 (F)
                 'XiX', # strain correction to band at X point, unit eV
-                'b', 'av', 'alG',  # strain correction to bands at Gamma, unit eV 
+                'b', 'av', 'alG', # strain correction to bands at Gamma, unit eV 
                 'beG', 'alL', # Varsh correction
                 #  'beL', 'alX', 'beX',  # seems not used
                 'epss', 'epsInf',  # static and high-freq permitivity
@@ -806,18 +778,18 @@ class QCLayers(object):
         # Material are labeled by sequence [well, barrier]*4
         if self.substrate == 'InP':
             self.numMaterials = 8
-            Mat1 = ['InAs']*8
-            Mat2 = ['GaAs', 'AlAs']*4
+            self.Mat1 = ['InAs']*8
+            self.Mat2 = ['GaAs', 'AlAs']*4
             MatCross = ['InGaAs', 'AlInAs']*4
         elif self.substrate == 'GaAs': 
             self.numMaterials = 8
-            Mat1 = ['AlAs']*8
-            Mat2 = ['GaAs']*8
+            self.Mat1 = ['AlAs']*8
+            self.Mat2 = ['GaAs']*8
             MatCross = ['AlGaAs']*8 # Note EgG_AlGaAs's moleFrac deps
         elif self.substrate == 'GaSb': 
             self.numMaterials = 8
-            Mat1 = ['InAs', 'AlSb']*4
-            Mat2 = ['InSb', 'GaSb']*4
+            self.Mat1 = ['InAs', 'AlSb']*4
+            self.Mat2 = ['InSb', 'GaSb']*4
             MatCross = ['InAsSb', 'AlGaSb']*4 # Note EgG's bowing moleFrac deps
         else: 
             raise TypeError('substrate selection not allowed')
@@ -826,8 +798,8 @@ class QCLayers(object):
             setattr(self, item, np.empty(self.numMaterials))
             para = getattr(self, item)
             for n in range(self.numMaterials):
-                para[n] = self.moleFrac[n]*getattr(cst[Mat1[n]], item) \
-                    + (1-self.moleFrac[n])*getattr(cst[Mat2[n]], item)
+                para[n] = self.moleFrac[n]*getattr(cst[self.Mat1[n]], item) \
+                    + (1-self.moleFrac[n])*getattr(cst[self.Mat2[n]], item)
                 if MatCross[n] in cst and hasattr(cst[MatCross[n]], item): 
                     # bowing parameter
                     para[n] -= self.moleFrac[n]*(1-self.moleFrac[n]) \
@@ -1548,6 +1520,24 @@ class QCLayers(object):
             plt.show()
             
         return alphaISB
+
+    def get_nCore(self, wavelength):
+        """Get overall active core complex reflaction index (imag part being
+        decay), by average over width. Used for optical mode calculation"""
+        # Matrial reflection index for GaAs, InAs, AlAs
+        wl = wavelength # unit um, see [1] Table22
+        n = np.empty(self.numMaterials)
+        for q in range(self.numMaterials):
+            n[q] = self.moleFrac[q]*cst[self.Mat1[n]].rIndx(wl) \
+                    + (1-self.moleFrac[q])*cst[self.Mat2[n]].rIndx(wl)
+        nCore = sum(self.MaterialWidth*n)/sum(self.MaterialWidth) # Average n?
+        
+        kCore = 1/(4*pi) * self.aCore * wl*1e-4 
+        # See Def of acore
+        # 1e-4: aCore in cm-1, wl in um
+        
+        return nCore+kCore*1j
+        
 
 if __name__  == "__main__":
     print 'Answer to the Ultimate Question of Life, The Universe, and Everything is', cFunctions.returnme()
