@@ -1,4 +1,5 @@
-#!/usr/bin/python2
+#!/usr/bin/env python2
+# -*- coding:utf-8 -*-
 
 #===============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
@@ -25,14 +26,15 @@
 # replace np.hstack
 # find replacement for psyco, or try to use Cython
 # try to seperate this file to smaller ones
+# check unnecessary function call
 
 from __future__ import division
 import os, sys
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import PyQt4.Qwt5 as Qwt
-from numpy import *
 import numpy as np
+from numpy import pi, sqrt
 from functools import partial
 import time
 
@@ -49,18 +51,8 @@ import ThePhysics
 #===============================================================================
 # Version
 #===============================================================================
-ejVersion = 120217
-majorVersion = '2.1.0'
-
-#===============================================================================
-# Global Variables
-#===============================================================================
-pi = 3.14159265
-e0 = 1.60217653e-19;  #electron charge
-eps0 = 8.85e-12;
-m0 = 9.10938188e-31;   #free electron mass (kg)
-hbar = 6.6260693e-34/(2*pi); #Planck's constant (J s)
-kb = 1.386505e-23 / e0; #eV/K
+ejVersion = 170931
+majorVersion = '3.0.0'
 
 
 class MainWindow(QMainWindow):
@@ -1017,7 +1009,12 @@ class MainWindow(QMainWindow):
         try:
             value = float(txt)
             self.strata.aCore = value
-            self.strata.nCore = self.qclayers.get_nCore(self.strata.wavelength)
+            kCore = 1/(4*pi) * self.strata.aCore * self.strata.wavelength*1e-4 
+            # See Def of acore
+            # 1e-4: aCore in cm-1, wl in um
+            self.strata.nCore = self.qclayers.get_nCore(self.strata.wavelength) \
+                    + 1j*kCore
+        
             
             self.dirty = True
             self.update_windowTitle()       
@@ -1354,7 +1351,7 @@ class MainWindow(QMainWindow):
         self.opticalCanvas.setAxisTitle(Qwt.QwtPlot.yLeft, 'Refractive Index')
         
         if self.strata.stratumSelected >= 0 and self.strata.stratumSelected < self.strata.stratumThicknesses.size:
-            mask = ~isnan(self.strata.xStratumSelected)
+            mask = ~np.isnan(self.strata.xStratumSelected)
             self.stratumSelection = SupportClasses.MaskedCurve(self.strata.xPoints,self.strata.xStratumSelected,mask)
             self.stratumSelection.setPen(QPen(Qt.blue, 2))
             if settings.antialiased:
@@ -1390,9 +1387,9 @@ class MainWindow(QMainWindow):
         #get initial parameters
         try:
             optiType1D  = self.opti1DChoiceBox.currentText()
-            strata1D    = array(SupportClasses.matlab_range(self.opti1DLayerBox.text()), dtype=int)
+            strata1D    = np.array(SupportClasses.matlab_range(self.opti1DLayerBox.text()), dtype=int)
             strata1D   -= 1 #indexing starts at 0
-            optiRange1D = array(SupportClasses.matlab_range(self.opti1DRangeBox.text()))
+            optiRange1D = np.array(SupportClasses.matlab_range(self.opti1DRangeBox.text()))
         except ValueError:
             QMessageBox.warning(self,"ErwinJr Error", "Invalid entry.")
             return
@@ -1401,7 +1398,7 @@ class MainWindow(QMainWindow):
         self.optiFrame.setEnabled(False)
         self.plotModeButton.setEnabled(False)
         
-        Jth0Array = zeros(optiRange1D.size)*NaN
+        Jth0Array = np.zeros(optiRange1D.size)*np.NaN
         ylabel = '<i>J<sub>th0</sub></i>'
         
         stratumThicknessesInitial = self.strata.stratumThicknesses.copy()
@@ -1451,7 +1448,7 @@ class MainWindow(QMainWindow):
         
         self.optimization1DCanvas.clear()
         
-        mask = ~isnan(yVals)
+        mask = ~np.isnan(yVals)
         optiCurve = SupportClasses.MaskedCurve(xVals, yVals, mask)
         optiCurve.setPen(QPen(Qt.blue, 1.5))
         if settings.antialiased:
@@ -1466,18 +1463,18 @@ class MainWindow(QMainWindow):
         #get initial parameters
         try:
             optiType1D  = self.opti1DChoiceBox.currentText()
-            strata1D    = array(SupportClasses.matlab_range(self.opti1DLayerBox.text()), dtype=int)
+            strata1D    = np.array(SupportClasses.matlab_range(self.opti1DLayerBox.text()), dtype=int)
             strata1D   -= 1 #indexing starts at 0
-            optiRange1D = array(SupportClasses.matlab_range(self.opti1DRangeBox.text()))
+            optiRange1D = np.array(SupportClasses.matlab_range(self.opti1DRangeBox.text()))
             optiType2D  = self.opti2DChoiceBox.currentText()
-            strata2D    = array(SupportClasses.matlab_range(self.opti2DLayerBox.text()), dtype=int)
+            strata2D    = np.array(SupportClasses.matlab_range(self.opti2DLayerBox.text()), dtype=int)
             strata2D   -= 1 #indexing starts at 0
-            optiRange2D = array(SupportClasses.matlab_range(self.opti2DRangeBox.text()))
+            optiRange2D = np.array(SupportClasses.matlab_range(self.opti2DRangeBox.text()))
         except ValueError:
             QMessageBox.warning(self,"ErwinJr Error", "Invalid entry.")
             return
         
-        Jth0Array = NaN * zeros((optiRange1D.size, optiRange2D.size))
+        Jth0Array = np.NaN * np.zeros((optiRange1D.size, optiRange2D.size))
         zlabel = '$J_{th0}$'
         
         stratumThicknessesInitial = self.strata.stratumThicknesses.copy()
@@ -1527,11 +1524,11 @@ class MainWindow(QMainWindow):
         self.optimization2DAxes.patch.set_color(self.bgColor)
         self.optimization2DAxes.mouse_init()
         
-        normd = matplotlib.colors.Normalize(nanmin(nanmin(Z)), nanmax(nanmax(Z)))
+        normd = matplotlib.colors.Normalize(np.nanmin(np.nanmin(Z)), np.nanmax(np.nanmax(Z)))
         self.optimization2DAxes.plot_surface(X, Y, Z, cstride=1, rstride=1, norm=normd, 
                                              cmap=matplotlib.cm.Blues_r, linewidth=0, 
                                              antialiased=False, shade=False)
-        self.optimization2DAxes.set_zlim(0.95*nanmin(nanmin(Z)), 1.05*nanmax(nanmax(Z)))
+        self.optimization2DAxes.set_zlim(0.95*np.nanmin(np.nanmin(Z)), 1.05*np.nanmax(np.nanmax(Z)))
         self.optimization2DAxes.set_xlabel(xlabel)
         self.optimization2DAxes.set_ylabel(ylabel)
         self.optimization2DAxes.set_zlabel(zlabel)
@@ -1892,7 +1889,7 @@ class MainWindow(QMainWindow):
         column = item.column()
         row = item.row()
         if column == 0: #column == 0 for item change in Widths column
-            if mod(float(item.text()), self.qclayers.xres) != 0 \
+            if np.mod(float(item.text()), self.qclayers.xres) != 0 \
                     and self.qclayers.xres != 0.1:
                 QMessageBox.warning(self,"ErwinJr - Warning", 
                         ("You entered a width that is not compatible with"
@@ -2204,18 +2201,18 @@ class MainWindow(QMainWindow):
         x = aQPointF.x()
         y = aQPointF.y()
         
-        xData = tile(self.qclayers.xPointsPost,(self.qclayers.xyPsiPsi.shape[1],1)).T
+        xData = np.tile(self.qclayers.xPointsPost,(self.qclayers.xyPsiPsi.shape[1],1)).T
         yData = self.qclayers.xyPsiPsi + self.qclayers.EigenE
         
         xScale = self.quantumCanvas.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound() - self.quantumCanvas.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound()
         yScale = self.quantumCanvas.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound() - self.quantumCanvas.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound()
 
-        r = nanmin(sqrt( ((xData-x)/xScale)**2 + ((yData-y)/yScale)**2 ), axis=0)
-        selectedState = nanargmin(r)
+        r = np.nanmin(sqrt( ((xData-x)/xScale)**2 + ((yData-y)/yScale)**2 ), axis=0)
+        selectedState = np.nanargmin(r)
         self.stateHolder.append(selectedState)
         
         q = selectedState
-        mask = ~isnan(self.qclayers.xyPsiPsi[:,q])
+        mask = ~np.isnan(self.qclayers.xyPsiPsi[:,q])
         curve = SupportClasses.MaskedCurve(self.qclayers.xPointsPost,self.qclayers.xyPsiPsi[:,q] + self.qclayers.EigenE[q],mask)
         curve.setPen(QPen(Qt.black, 3))
         curve.setRenderHint(Qwt.QwtPlotItem.RenderAntialiased)
@@ -2223,7 +2220,7 @@ class MainWindow(QMainWindow):
         self.selectedWF.append(curve)
         self.quantumCanvas.replot()
         
-        if mod(len(self.stateHolder),2) == 0:
+        if np.mod(len(self.stateHolder),2) == 0:
             self.FoMButton.setEnabled(True)
             E_i = self.qclayers.EigenE[self.stateHolder[-2]]
             E_j = self.qclayers.EigenE[self.stateHolder[-1]]
@@ -2277,7 +2274,7 @@ class MainWindow(QMainWindow):
 
     def transfer_optical_parameters(self):
         #set wavelength
-        self.strata.wavelength = 1.24/abs(self.eDiff)*1000
+        self.strata.wavelength = 1.24/np.abs(self.eDiff)*1000
         
         #set operating field
         self.strata.operatingField = self.qclayers.EField
@@ -2294,7 +2291,11 @@ class MainWindow(QMainWindow):
         self.strata.aCore = self.alphaISB
         
         #set nCore
-        self.strata.nCore = self.qclayers.get_nCore(self.strata.wavelength)
+        kCore = 1/(4*pi) * self.strata.aCore * self.strata.wavelength*1e-4 
+        # See Def of acore
+        # 1e-4: aCore in cm-1, wl in um
+        self.strata.nCore = self.qclayers.get_nCore(self.strata.wavelength) \
+                + 1j*kCore
         
         #set tauUpper
         self.strata.tauUpper = self.tauUpper
@@ -2421,14 +2422,14 @@ class MainWindow(QMainWindow):
             #self.curveSelection deleted with self.quantumCanvas.clear()        
             pass
         if self.qclayers.layerSelected >= 0 and self.qclayers.layerSelected < self.qclayers.layerWidths.size:
-            mask = ~isnan(self.qclayers.xARs)
+            mask = ~np.isnan(self.qclayers.xARs)
             self.curveAR =  SupportClasses.MaskedCurve(self.qclayers.xPoints,self.qclayers.xARs,mask)
             self.curveAR.setPen(QPen(Qt.black, 2))
             if settings.antialiased:
                 self.curveAR.setRenderHint(Qwt.QwtPlotItem.RenderAntialiased)
             self.curveAR.attach(self.quantumCanvas)
             
-            mask = ~isnan(self.qclayers.xLayerSelected)
+            mask = ~np.isnan(self.qclayers.xLayerSelected)
             self.curveSelection = SupportClasses.MaskedCurve(self.qclayers.xPoints,self.qclayers.xLayerSelected,mask)
             self.curveSelection.setPen(QPen(Qt.blue, 1.5))
             if settings.antialiased:
@@ -2440,9 +2441,9 @@ class MainWindow(QMainWindow):
             self.plotDirty=False
             self.curveWF = []
             for q in xrange(self.qclayers.EigenE.size):
-                mask = ~isnan(self.qclayers.xyPsiPsi[:,q])
+                mask = ~np.isnan(self.qclayers.xyPsiPsi[:,q])
                 curve = SupportClasses.MaskedCurve(self.qclayers.xPointsPost,self.qclayers.xyPsiPsi[:,q] + self.qclayers.EigenE[q],mask)
-                r,g,b = self.colors[mod(q,13)]
+                r,g,b = self.colors[np.mod(q,13)]
                 curve.setPen(QPen(QColor(r,g,b), 2))
                 curve.setRenderHint(Qwt.QwtPlotItem.RenderAntialiased)
                 self.curveWF.append(curve)
@@ -2841,7 +2842,7 @@ class MainWindow(QMainWindow):
             variables = ['layerWidths', 'layerBarriers', 'layerARs', 'layerDopings', 
                          'layerMaterials', 'layerDividers']
             for item in variables:
-                setattr(self.qclayers, item, zeros(rows))
+                setattr(self.qclayers, item, np.zeros(rows))
             for q, line in enumerate(lines):
                 line = line.split('\t')
                 self.qclayers.layerWidths[q]    = float(line[1])
@@ -2850,8 +2851,8 @@ class MainWindow(QMainWindow):
                 self.qclayers.layerMaterials[q] = float(line[4])
                 self.qclayers.layerDopings[q]   = float(line[5])
                 self.qclayers.layerDividers[q]  = float(line[6])
-            self.qclayers.layerMaterials[nonzero(self.qclayers.layerMaterials == 4)[0]] = 1
-            self.qclayers.layerMaterials[nonzero(self.qclayers.layerMaterials == 5)[0]] = 2
+            self.qclayers.layerMaterials[np.nonzero(self.qclayers.layerMaterials == 4)[0]] = 1
+            self.qclayers.layerMaterials[np.nonzero(self.qclayers.layerMaterials == 5)[0]] = 2
             
             filehandle.close()
             
@@ -2918,7 +2919,7 @@ class MainWindow(QMainWindow):
             variables = ['layerWidths', 'layerBarriers', 'layerARs', 'layerDopings', 
                          'layerMaterials', 'layerDividers']
             for item in variables:
-                setattr(self.qclayers, item, zeros(rows))
+                setattr(self.qclayers, item, np.zeros(rows))
             for q, line in enumerate(lines):
                 line = line.split('\t')
                 self.qclayers.layerWidths[q]    = float(line[1])
@@ -2932,7 +2933,7 @@ class MainWindow(QMainWindow):
             rows = len(lines)
             variables = ['stratumCompositions', 'stratumThicknesses', 'stratumDopings']
             for item in variables:
-                setattr(self.strata, item, zeros(rows))
+                setattr(self.strata, item, np.zeros(rows))
             self.strata.stratumMaterials = []
             for q, line in enumerate(lines):
                 line = line.split('\t')
@@ -3123,15 +3124,15 @@ class MainWindow(QMainWindow):
         fname = unicode(QFileDialog.getSaveFileName(self,"ErwinJr - Export Band Structure Data",self.filename.split('.')[0],
                 "Comma-Separated Value file (*.csv)"))
         if fname != '': #if user doesn't click cancel
-            savetxt(fname.split('.')[0] + '_CB' + '.csv', column_stack([self.qclayers.xPoints,self.qclayers.xVc]), delimiter=',')
+            savetxt(fname.split('.')[0] + '_CB' + '.csv', np.column_stack([self.qclayers.xPoints,self.qclayers.xVc]), delimiter=',')
         
             try: self.qclayers.xyPsiPsi
             except AttributeError: pass #band structure hasn't been solved yet
             else:
-                xyPsiPsiEig = zeros(self.qclayers.xyPsiPsi.shape)
+                xyPsiPsiEig = np.zeros(self.qclayers.xyPsiPsi.shape)
                 for q in xrange(self.qclayers.EigenE.size):
                     xyPsiPsiEig[:,q] = self.qclayers.xyPsiPsi[:,q] + self.qclayers.EigenE[q]
-                savetxt(fname.split('.')[0] + '_States' + '.csv', column_stack([self.qclayers.xPointsPost, xyPsiPsiEig]), delimiter=',')
+                savetxt(fname.split('.')[0] + '_States' + '.csv', np.column_stack([self.qclayers.xPointsPost, xyPsiPsiEig]), delimiter=',')
 
 
 

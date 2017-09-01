@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# -*- coding:utf-8 -*-
+
 #===============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
@@ -24,17 +27,6 @@ from numpy import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import PyQt4.Qwt5 as Qwt
-
-
-#===============================================================================
-# Global Variables
-#===============================================================================
-e0 = 1.60217653e-19;  #electron charge
-eps0 = 8.85e-12;
-m0 = 9.10938188e-31;   #free electron mass (kg)
-hbar = 6.6260693e-34/(2*pi); #Planck's constant (J s)
-kb = 1.386505e-23 / e0; #eV/K
-
 
 class Spy(QObject):
     
