@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding:utf-8 -*-
 
 #===============================================================================
@@ -32,6 +32,9 @@
 # [3]Joachim Pipre, Semiconductor Optoelectronic Devices: Introduction to 
 #    Physics and Simulation, SIBN: 0080469787
 #===============================================================================
+from types import MethodType
+from warnings import warn
+from math import sqrt
 class Material(object):
     def __init__(self, Name, Temperature=300):
         self.Name = Name
@@ -90,18 +93,31 @@ class MaterialConstantsDict(dict):
         self['GaAs'].epss = 12.9
         self['GaAs'].epsInf = 10.86
         self['GaAs'].hwLO = 35.3*1e-3
-        # Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # [1]Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
         # Table 22 Room-temperature Dispersion Formulas for Crystals
         # Sellmeier dispersion formula: 
         # n^2 = permitivity = 2 Lorenzians
         #     = c1 + c2 * wl**2/(wl**2-c3**2) + c4 * wl**2/(wl**2-c5**2) 
         # Temperature deps ~5E-5 [2] which can be ignored
-        # TODO: material dependent formula should be here
+        def rIndx(M, wl):
+            """Material reflection index model of 2 resonance
+            M for material; wl for wavelength
+            """
+            if wl < M.minwl or wl > M.maxwl: 
+                warn(("Wavelength %.2f nm exceed the range (%.2f ~ %.2f nm) "
+                        "for known reflection index of %s")%
+                        (wl, M.minwl, M.maxwl, M.Name), UserWarning)
+                wl = M.minwl if wl < M.minwl else M.maxwl
+            return sqrt( M.C1 + M.C2*wl**2/(wl**2-M.C3**2) + 
+                    M.C4*wl**2/(wl**2-M.C5**2) )
+        self['GaAs'].maxwl = 11 # um
+        self['GaAs'].minwl = 1.4
         self['GaAs'].C1 = 3.5 
         self['GaAs'].C2 = 7.4969
         self['GaAs'].C3 = 0.4082
         self['GaAs'].C4 = 1.9347
         self['GaAs'].C5 = 37.17
+        self['GaAs'].rIndx = MethodType(rIndx, self['GaAs'])
         
         # InAs constants
         # from Vurgaftman
@@ -133,11 +149,20 @@ class MaterialConstantsDict(dict):
         self['InAs'].epss = 14.3
         self['InAs'].epsInf = 11.6
         self['InAs'].hwLO = 29.93*1e-3
-        self['InAs'].C1 = 11.1 #Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # [1]Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # Table 22 Room-temperature Dispersion Formulas for Crystals
+        # Sellmeier dispersion formula: 
+        # n^2 = permitivity = 2 Lorenzians
+        #     = c1 + c2 * wl**2/(wl**2-c3**2) + c4 * wl**2/(wl**2-c5**2) 
+        # Temperature deps ~5E-5 [2] which can be ignored
+        self['InAs'].maxwl = 31.3
+        self['InAs'].minwl = 3.7
+        self['InAs'].C1 = 11.1 
         self['InAs'].C2 = 0.71
         self['InAs'].C3 = 2.551
         self['InAs'].C4 = 2.75
         self['InAs'].C5 = 45.66
+        self['InAs'].rIndx = MethodType(rIndx, self['InAs'])
         
         # AlAs constants
         # from Vurgaftman
@@ -169,11 +194,20 @@ class MaterialConstantsDict(dict):
         self['AlAs'].epss = 10.06
         self['AlAs'].epsInf = 8.16
         self['AlAs'].hwLO = 49.8*1e-3
-        self['AlAs'].C1 = 2.0792 #Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # [1]Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # Table 22 Room-temperature Dispersion Formulas for Crystals
+        # Sellmeier dispersion formula: 
+        # n^2 = permitivity = 2 Lorenzians
+        #     = c1 + c2 * wl**2/(wl**2-c3**2) + c4 * wl**2/(wl**2-c5**2) 
+        # Temperature deps ~5E-5 [2] which can be ignored
+        self['AlAs'].maxwl = 2.2
+        self['AlAs'].minwl = 0.56
+        self['AlAs'].C1 = 2.0792 
         self['AlAs'].C2 = 6.0840
         self['AlAs'].C3 = 0.2822
         self['AlAs'].C4 = 1.900
         self['AlAs'].C5 = 27.62
+        self['AlAs'].rIndx = MethodType(rIndx, self['AlAs'])
         
         # AlSb constants
         # from Vurgaftman
@@ -271,11 +305,20 @@ class MaterialConstantsDict(dict):
         # InP constants
         self['InP'] = Material('InP')
         self['InP'].me0 = 0.0795
-        self['InP'].C1 = 7.255 #Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # [1]Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
+        # Table 22 Room-temperature Dispersion Formulas for Crystals
+        # Sellmeier dispersion formula: 
+        # n^2 = permitivity = 2 Lorenzians
+        #     = c1 + c2 * wl**2/(wl**2-c3**2) + c4 * wl**2/(wl**2-c5**2) 
+        # Temperature deps ~5E-5 [2] which can be ignored
+        self['InP'].maxwl = 10
+        self['InP'].minwl = 0.95
+        self['InP'].C1 = 7.255 
         self['InP'].C2 = 2.316
         self['InP'].C3 = 0.6263
         self['InP'].C4 = 2.765
         self['InP'].C5 = 32.935
+        self['InP'].rIndx = MethodType(rIndx, self['InP'])
         
         # TODO: consider transform bowing parameter to function
         # InGaAs constants
