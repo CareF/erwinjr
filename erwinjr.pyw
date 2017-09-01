@@ -164,12 +164,15 @@ class MainWindow(QMainWindow):
         if sys.platform == 'win32': 
             self.layerTableSize = 340
             self.DescriptionBoxWidth = 190
+            self.LpStringBoxWidth=135
         elif sys.platform == 'darwin':
             self.layerTableSize = 405
             self.DescriptionBoxWidth = 285
+            self.LpStringBoxWidth=130
         elif sys.platform == 'linux2':
             self.layerTableSize = 365
             self.DescriptionBoxWidth = 240
+            self.LpStringBoxWidth=150
         else:
             QMessageBox.warning(self, 'ErwinJr - Warning', 
                     'Platform %s not tested.'%sys.platform)
@@ -265,10 +268,8 @@ class MainWindow(QMainWindow):
         self.LpStringBox.setReadOnly(True)
         self.LpStringBox.setSizePolicy(
                 QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed))
-        self.LpStringBox.setMaximumHeight(75)
-        self.LpStringBox.setMaximumWidth(135)
-        if sys.platform == "darwin":
-            self.LpStringBox.setMaximumWidth(130)
+        self.LpStringBox.setMaximumHeight(95)
+        self.LpStringBox.setMaximumWidth(self.LpStringBoxWidth)
         LpLayout = QGridLayout()
         LpLayout.addWidget(QLabel('<b>first</b>'), 0,0)
         LpLayout.addWidget(QLabel('<b>last</b>'), 0,1)
