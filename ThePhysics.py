@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# -*- coding:utf-8 -*-
+
 #===============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
@@ -135,7 +138,7 @@ class Strata(object):
         """ Matrial reflection index for GaAs, InAs, AlAs and InP """
         wl = self.wavelength # unit um, see [1] Table22
 
-        self.stratumRIndexes = np.zeros(self.stratumDopings.size, dtype=complex)
+        self.stratumRIndexes = np.zeros(self.stratumDopings.size, dtype=np.complex128)
         for q, material in enumerate(self.stratumMaterials):
             # Calculate reflection index (complex for decay) for each stratum?
             #TODO: combine codes for different materials
@@ -248,7 +251,7 @@ class Strata(object):
 
         stratumThickNumCumSum = np.concatenate( ([0], 
             self.stratumThickNum.cumsum()) )
-        self.xn = np.zeros(self.xPoints.size, dtype=complex)
+        self.xn = np.zeros(self.xPoints.size, dtype=np.complex128)
         self.xAC = np.zeros(self.xPoints.size) #binary designation for Active Core
 
         #extend layer data for all xpoints
@@ -325,7 +328,7 @@ class Strata(object):
                         int(betasReal.size), chiImag.ctypes.data_as(c_void_p))
                 beta0s = zero_find(betas.real, chiImag)
             else:
-                chi=np.zeros(betas.size, dtype=complex)
+                chi=np.zeros(betas.size, dtype=np.complex128)
                 for p, beta in enumerate(betas):
                     chi[p] = self.chi_find(beta)
                 beta0s = zero_find(betas.real, chi.imag)
@@ -355,7 +358,7 @@ class Strata(object):
                          beta+rInc+iInc, beta-rInc-iInc, beta+rInc-iInc,
                          beta-rInc+iInc]
                 if True:
-                    chi = np.zeros(len(betas),dtype=complex)
+                    chi = np.zeros(len(betas),dtype=np.complex128)
                     for p, betaIn in enumerate(betas):
                         chi[p] = self.chi_find(betaIn)
                 else: #do chi_find in c
@@ -401,7 +404,7 @@ class Strata(object):
         #zeta  = k*thicknesses/z0
 
         ncs = stratumThickNumCumSum = np.concatenate( ([0], ThickNum.cumsum()) )
-        xI = np.zeros(self.xPoints.size, dtype=complex)
+        xI = np.zeros(self.xPoints.size, dtype=np.complex128)
 
         for q in xrange(ThickNum.size-1, -1, -1):
             xvec  = copy.copy(self.xPoints[ncs[q]:ncs[q+1]])[::-1]
@@ -1528,16 +1531,13 @@ class QCLayers(object):
         wl = wavelength # unit um, see [1] Table22
         n = np.empty(self.numMaterials)
         for q in range(self.numMaterials):
-            n[q] = self.moleFrac[q]*cst[self.Mat1[n]].rIndx(wl) \
-                    + (1-self.moleFrac[q])*cst[self.Mat2[n]].rIndx(wl)
+            n[q] = self.moleFrac[q]*cst[self.Mat1[q]].rIndx(wl) \
+                    + (1-self.moleFrac[q])*cst[self.Mat2[q]].rIndx(wl)
         nCore = sum(self.MaterialWidth*n)/sum(self.MaterialWidth) # Average n?
-
-        kCore = 1/(4*pi) * self.aCore * wl*1e-4 
-        # See Def of acore
-        # 1e-4: aCore in cm-1, wl in um
-
-        return nCore+kCore*1j
+        return nCore
 
 
 if __name__  == "__main__":
-    print ('Answer to the Ultimate Question of Life, The Universe, and Everything is', cFunctions.returnme()
+    print ('Answer to the Ultimate Question of Life,'
+        'The Universe, and Everything is'), cFunctions.returnme()
+
