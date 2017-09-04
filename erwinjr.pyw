@@ -2061,10 +2061,10 @@ class MainWindow(QMainWindow):
                 self.qclayers.layerWidths, row, 0)
         self.qclayers.layerBarriers = np.insert(
                 self.qclayers.layerBarriers, row,
-                0 if self.qclayers.layerBarriers == 1 else 1)
+                0 if self.qclayers.layerBarriers[row] == 1 else 1)
         self.qclayers.layerARs = np.insert(
                 self.qclayers.layerARs, row, 
-                self.qclLoad.layerARs[row])
+                self.qclayers.layerARs[row])
         self.qclayers.layerMaterials = np.insert(
                 self.qclayers.layerMaterials, row,
                 self.qclayers.layerMaterials[row])
