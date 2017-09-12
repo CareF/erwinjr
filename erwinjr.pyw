@@ -46,6 +46,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import settings
 import SupportClasses
 import ThePhysics
+from ThePhysics import h, c0, e0
 
 
 #===============================================================================
@@ -2232,6 +2233,7 @@ class MainWindow(QMainWindow):
                 lower = self.stateHolder[-2]
 
             self.eDiff = 1000*(E_i-E_j)
+            self.wavelength = h*c0/(e0*np.abs(E_i-E_j))*1e6
             
             if self.solveType is 'basis':
                 couplingEnergy = self.qclayers.coupling_energy(self.dCL, upper, lower)
@@ -2240,13 +2242,13 @@ class MainWindow(QMainWindow):
                 self.opticalDipole = self.qclayers.dipole(upper, lower)            
                 self.tauUpperLower = 1/self.qclayers.lo_transition_rate(upper, lower)
                 energyString  = (u"selected: %d, %d<br>"
-                                 u"energy diff: <b>%6.1f meV</b><br>"
+                                 u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
                                  u"coupling: %6.1f meV<br>broadening: %6.1f meV<br>"
                                  u"dipole: <b>%6.1f \u212B</b>"
                                  u"<br>LO scattering: <b>%6.2g ps</b>") % (
                                          self.stateHolder[-2], 
                                          self.stateHolder[-1], 
-                                         self.eDiff, 
+                                         self.eDiff, self.wavelength,
                                          couplingEnergy, 
                                          self.transitionBroadening, 
                                          self.opticalDipole, 
@@ -2258,12 +2260,12 @@ class MainWindow(QMainWindow):
                 self.tauUpperLower = 1/self.qclayers.lo_transition_rate(upper, lower)
                 self.transitionBroadening = 0.1 * self.eDiff
                 energyString = (u"selected: %d, %d<br>"
-                                u"energy diff: <b>%6.1f meV</b><br>" 
+                                 u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
                                 u"dipole: %6.1f \u212B<br>" 
                                 u"LO scattering: %6.2g ps") % (
                                         self.stateHolder[-2], 
                                         self.stateHolder[-1], 
-                                        self.eDiff,
+                                        self.eDiff, self.wavelength, 
                                         self.opticalDipole,
                                         self.tauUpperLower)
             else:
