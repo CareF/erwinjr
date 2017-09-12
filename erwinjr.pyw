@@ -2039,7 +2039,7 @@ class MainWindow(QMainWindow):
             self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
             self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
             self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
-            self.qclayers.layerDividers[0] = self.qclayers.layerDiviers[-1]
+            self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]
 
         self.update_Lp_limits()
         self.update_Lp_box()
