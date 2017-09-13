@@ -69,6 +69,7 @@ meV = 1e-3 # meV to eV
 
 INV_INF = 1e-20 # for infinit small decay rate (ns-1)
 
+# TODO: replace CLIB by Cython
 USE_CLIB = True
 MORE_INTERPOLATION = True # One more time interpolation for eigen solver
 PAD_WIDTH=100 # width padded in the beginning of the given region for basis solver
@@ -723,8 +724,9 @@ class QCLayers(object):
         except IndexError:
             #index error happens in SolveBasis when the selected layer is greater than the number of layers in the solve swath
             # however, xLayerSelected is not used for the SolveBasis function
-            print "Index Error for layer selection at function \
-            qclayer.populate_x"
+            #  print ("Index Error for layer selection at function"
+                #  "qclayer.populate_x")
+            pass
 
         self.xARs[np.nonzero(self.xARs==0)[0]] = np.NaN
         self.xARs *= self.xVc
@@ -1104,16 +1106,17 @@ class QCLayers(object):
                 self.xyPsi[:,p] = A * xPsi
 
         #remove states that come from oscillating end points
-        # looks like we should change -1 to -2 (following)???
-        #  psiEnd = self.xyPsi[-1,:]
-        #  idxs = abs(psiEnd)<10
-        #  idxs = np.nonzero(abs(psiEnd)<10)[0]
-        psiEnd = self.xyPsi[-2,:]
-        idxs = np.abs(psiEnd)<200/self.xres 
-        # 200 depends on how precise we want about eigenenergy solver 
-        # (TODO: more analysis and test about this value
-        self.EigenE = self.EigenE[idxs]
-        self.xyPsi = self.xyPsi[:,idxs]
+        if True:
+            # looks like we should change -1 to -2 (following)???
+            #  psiEnd = self.xyPsi[-1,:]
+            #  idxs = abs(psiEnd)<10
+            #  idxs = np.nonzero(abs(psiEnd)<10)[0]
+            psiEnd = self.xyPsi[-2,:]
+            idxs = np.abs(psiEnd)<200/self.xres 
+            # 200 depends on how precise we want about eigenenergy solver 
+            # (TODO: more analysis and test about this value
+            self.EigenE = self.EigenE[idxs]
+            self.xyPsi = self.xyPsi[:,idxs]
 
         #4.5e-10 scales size of wavefunctions, arbitrary for nice plots
         self.xyPsiPsi = self.xyPsi*self.xyPsi*settings.wf_scale 
