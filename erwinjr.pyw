@@ -2022,7 +2022,7 @@ class MainWindow(QMainWindow):
             return
         
         row = self.layerTable.currentRow()
-        if row == -1:
+        if row == -1 or row >= self.qclayers.layerWidths.size:
             return
         
         self.qclayers.layerWidths = np.delete(self.qclayers.layerWidths, row)
@@ -2095,8 +2095,13 @@ class MainWindow(QMainWindow):
 #===============================================================================
 
     def solve_whole(self):  #solves whole structure
+        """SLOT connected to SIGNAL self.goButton.clicked()
+        Whole solver
+        """
         self.goButton.setEnabled(False)
         self.goButton.repaint()
+        self.solveBasisButton.setEnabled(False)
+        self.solveBasisButton.repaint()
         
         self.qclayers.populate_x_band()
         try:
@@ -2108,10 +2113,14 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'ErwinJr - Error', str(err))
 
         self.goButton.setEnabled(True)
+        self.solveBasisButton.setEnabled(True)
         
     def solve_basis(self):  #solves structure with basis
         """SLOT connected to SIGNAL self.solveBasisButton.clicked()
+        Basis solver
         """
+        self.goButton.setEnabled(False)
+        self.goButton.repaint()
         self.solveBasisButton.setEnabled(False)
         self.solveBasisButton.repaint()
         
@@ -2124,6 +2133,7 @@ class MainWindow(QMainWindow):
         except (ValueError,IndexError) as err:
             QMessageBox.warning(self,"ErwinJr - Error", str(err))
         
+        self.goButton.setEnabled(True)
         self.solveBasisButton.setEnabled(True)
 
     def pair_select(self, on):
