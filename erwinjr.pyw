@@ -2094,14 +2094,19 @@ class MainWindow(QMainWindow):
 # Quantum Tab Buttons
 #===============================================================================
 
+    def Calculating(self, is_doing):
+        """UI repaint for doing calculating
+        """
+        for button in (self.goButton, self.solveBasisButton,
+                self.pairSelectButton):
+            button.setEnabled(not is_doing)
+            button.repaint()
+
     def solve_whole(self):  #solves whole structure
         """SLOT connected to SIGNAL self.goButton.clicked()
         Whole solver
         """
-        self.goButton.setEnabled(False)
-        self.goButton.repaint()
-        self.solveBasisButton.setEnabled(False)
-        self.solveBasisButton.repaint()
+        self.Calculating(True)
         
         self.qclayers.populate_x_band()
         try:
@@ -2112,17 +2117,14 @@ class MainWindow(QMainWindow):
         except (IndexError,TypeError) as err:
             QMessageBox.warning(self, 'ErwinJr - Error', str(err))
 
-        self.goButton.setEnabled(True)
-        self.solveBasisButton.setEnabled(True)
+        self.Calculating(False)
+
         
     def solve_basis(self):  #solves structure with basis
         """SLOT connected to SIGNAL self.solveBasisButton.clicked()
         Basis solver
         """
-        self.goButton.setEnabled(False)
-        self.goButton.repaint()
-        self.solveBasisButton.setEnabled(False)
-        self.solveBasisButton.repaint()
+        self.Calculating(True)
         
         try:
             self.dCL = self.qclayers.basisSolve()
@@ -2133,8 +2135,7 @@ class MainWindow(QMainWindow):
         except (ValueError,IndexError) as err:
             QMessageBox.warning(self,"ErwinJr - Error", str(err))
         
-        self.goButton.setEnabled(True)
-        self.solveBasisButton.setEnabled(True)
+        self.Calculating(False)
 
     def pair_select(self, on):
         if on:
@@ -2176,6 +2177,7 @@ class MainWindow(QMainWindow):
         if len(self.stateHolder) < 2:
             return
         
+        self.Calculating(True)
         self.FoMButton.setEnabled(False)
         self.FoMButton.repaint()
         
@@ -2202,6 +2204,7 @@ class MainWindow(QMainWindow):
 
         self.pairSelectString.append(energyString)
 
+        self.Calculating(False)
         self.FoMButton.setEnabled(True)
         self.transferOpticalParametersButton.setEnabled(True)
 
