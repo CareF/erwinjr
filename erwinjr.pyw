@@ -335,6 +335,7 @@ class MainWindow(QMainWindow):
         self.offset3Label = QLabel('')
         self.offset4Label = QLabel('')
         self.strainDescription = QLabel('')
+        self.LOPhononDescription = QLabel('')
         #self.strainDescription.setTextAlignment(Qt.AlignHCenter)
         mtrl_grid = QGridLayout()
         mtrl_grid.addWidget(self.mtrl_title, 0,0, 1,4)
@@ -358,6 +359,7 @@ class MainWindow(QMainWindow):
         mtrl_grid.addWidget(self.inputMoleFrac8Box, 5,2)
         mtrl_grid.addWidget(self.offset4Label, 5,3)
         mtrl_grid.addWidget(self.strainDescription, 6,0, 1,4)
+        mtrl_grid.addWidget(self.LOPhononDescription, 7,0, 1,4)
         self.mtrl_groupBox = QGroupBox()
         self.mtrl_groupBox.setLayout(mtrl_grid)
         
@@ -1562,8 +1564,12 @@ class MainWindow(QMainWindow):
         self.offset3Label.setText("%6.0f meV" % ((self.qclayers.EcG[5]-self.qclayers.EcG[4])*1000))
         self.offset4Label.setText("%6.0f meV" % ((self.qclayers.EcG[7]-self.qclayers.EcG[6])*1000))
         
-        strainString = "<center>Net Strain: <b>%6.3f%%</b></center>" % self.qclayers.netStrain
+        strainString = ("<center>Net Strain: <b>%6.3f%%</b></center>" %
+                self.qclayers.netStrain)
         self.strainDescription.setText(strainString)
+        hwLOString = ("<center>LO phonon: <b>%4.1f ~ %4.1f meV</b></center>" %
+                (min(self.qclayers.hwLO)*1000, max(self.qclayers.hwLO)*1000))
+        self.LOPhononDescription.setText(hwLOString)
         
         self.inputVertResBox.setValue(self.qclayers.vertRes)
         self.inputEFieldBox.setValue(self.qclayers.EField)
