@@ -35,7 +35,11 @@ from scipy import interpolate
 import copy
 #  from multiprocessing import Process, Queue
 
-#import pylab as plt
+LOG = False
+#  import matplotlib.pyplot as plt
+if LOG:
+    import pickle
+    logcount = 0
 
 import settings
 
@@ -86,6 +90,9 @@ PAD_WIDTH=100 # width padded in the beginning of the given region for basis solv
 def zero_find(xVals, yVals):
     """To find zero points for function y(x) using iterpolation
     """
+    # TODO: may be improved for near degenerate states
+    # For eigen energy solver, psiEnd's dependence on energy is significant
+    # near eigenenergy
     tck = interpolate.splrep(xVals.real,yVals.real)
     #  print "------debug------ Here zero_find is called"
     return interpolate.sproot(tck, mest=len(xVals))
@@ -1026,7 +1033,12 @@ class QCLayers(object):
                         * (self.xVc[q] - Eq)*e0 + 1 / xMcE[q] + 1 / xMcE[q-1]) 
                         * xPsi[q] - xPsi[q-1] / xMcE[q-1]) 
                 psiEnd[p] = xPsi[-1]
-
+        if LOG:
+            global logcount
+            with file("EpointsLog%d.pkl"%logcount,'w') as logfile:
+                pickle.dump((Epoints, psiEnd), logfile)
+            logcount += 1 
+            print 'log saved for Epoints and psiEnd (%d)'%logcount
         self.EigenE = zero_find(Epoints, psiEnd)
 
         if MORE_INTERPOLATION:
@@ -1106,6 +1118,7 @@ class QCLayers(object):
                 self.xyPsi[:,p] = A * xPsi
 
         #remove states that come from oscillating end points
+        # TODO: condition to improve
         if True:
             # looks like we should change -1 to -2 (following)???
             #  psiEnd = self.xyPsi[-1,:]
@@ -1322,6 +1335,8 @@ class QCLayers(object):
         psi_j = self.xyPsi[:,lower]
         E_i = self.EigenE[upper]
         E_j = self.EigenE[lower]
+        #  print "---debug---"
+        #  print "E_i = %f; E_j=%f"%(E_i, E_j)
 
         if E_i-E_j-self.hwLO[0] < 0:
             # energy difference is smaller than a LO phonon
@@ -1366,13 +1381,18 @@ class QCLayers(object):
         # looks similiar with eq.(2.69) but not exact in detail
         inverse_tau = sqrt(McE_j*McE_i) * e0**2 * self.hwLO[0]*e0/hbar * Iij \
                 / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
+        #  print "rate = %f"%(inverse_tau/1e12)
         return inverse_tau/1e12 # to ps
 
     def lo_life_time(self, state):
         """ return the life time due to LO phonon scattering of the 
-        given state(label)"""
-        rate = sum([self.lo_transition_rate(state, q) 
-            for q in range(state)])
+        given state(label)
+        TODO: ?what if state is a lower state and there's no coupled lower
+        states?"""
+        rate = [self.lo_transition_rate(state, q) 
+            for q in range(state)]
+        #  print "---debug---", rate
+        rate = sum(rate)
         return 1/rate
 
     def dipole(self, upper, lower):

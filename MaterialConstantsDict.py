@@ -92,7 +92,7 @@ class MaterialConstantsDict(dict):
         self['GaAs'].beL = 204
         self['GaAs'].epss = 12.9
         self['GaAs'].epsInf = 10.86
-        self['GaAs'].hwLO = 35.3*1e-3
+        self['GaAs'].hwLO = 35.3*1e-3 # eV
         # [1]Handbook of Optics, 2nd edition, Vol. 2. McGraw-Hill 1994
         # Table 22 Room-temperature Dispersion Formulas for Crystals
         # Sellmeier dispersion formula: 
