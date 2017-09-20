@@ -1545,6 +1545,12 @@ class MainWindow(QMainWindow):
 #===============================================================================
 
     def update_inputBoxes(self):
+        try:
+            self.substrateBox.setCurrentIndex(self.substratesList.index(
+                self.qclayers.substrate))
+        except Exception as err:
+            QMessageBox.warning(self,"ErwinJr - Warning",
+                             "Substrate data wrong.\n"+str(err))
         self.inputMoleFrac1Box.setValue(self.qclayers.moleFrac[0])
         self.inputMoleFrac2Box.setValue(self.qclayers.moleFrac[1])
         self.inputMoleFrac3Box.setValue(self.qclayers.moleFrac[2])
@@ -2817,7 +2823,8 @@ class MainWindow(QMainWindow):
             elif firstLine == 'ErwinJr Data File' + self.newLineChar:
                 self.qclLoad(fname)
             else:
-                QMessageBox.warning(self,'ErwinJr Error','Could not recognize input file.')
+                QMessageBox.warning(self,'ErwinJr Error',
+                        'Could not recognize input file.')
                 return
             self.zoomer.zoom(0)
             self.quantumCanvas.clear()
@@ -2883,6 +2890,7 @@ class MainWindow(QMainWindow):
                              "Could not load *.qcl file.\n"+str(err))
 
     def qclLoad(self, fname):
+        #  print "Loading "+fname
         try:
             valDict = {}
             filehandle = open(fname, 'r')
