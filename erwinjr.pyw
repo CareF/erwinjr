@@ -192,8 +192,8 @@ class MainWindow(QMainWindow):
         self.connect(deleteLayerButton, SIGNAL("clicked()"), self.delete_layer)
         insertLayerAboveButton = QPushButton("Insert Layer Above")
         self.connect(insertLayerAboveButton, SIGNAL("clicked()"), self.insert_layerAbove)
-        self.goButton = QPushButton("Solve Whole")
-        self.connect(self.goButton, SIGNAL("clicked()"), self.solve_whole)
+        self.solveWholeButton = QPushButton("Solve Whole")
+        self.connect(self.solveWholeButton, SIGNAL("clicked()"), self.solve_whole)
         self.solveBasisButton = QPushButton("Solve Basis")
         self.connect(self.solveBasisButton, SIGNAL("clicked()"),
                 self.solve_basis)
@@ -447,7 +447,7 @@ class MainWindow(QMainWindow):
         #vBox3
         vBox3 = QVBoxLayout()
         vBox3.addWidget(self.solveBasisButton)
-        vBox3.addWidget(self.goButton)
+        vBox3.addWidget(self.solveWholeButton)
         vBox3.addWidget(DescLayout_groupBox)
         vBox3.addWidget(self.mtrl_groupBox)
         vBox3.addWidget(plotControl_groupBox)
@@ -2097,13 +2097,13 @@ class MainWindow(QMainWindow):
     def Calculating(self, is_doing):
         """UI repaint for doing calculating
         """
-        for button in (self.goButton, self.solveBasisButton,
+        for button in (self.solveWholeButton, self.solveBasisButton,
                 self.pairSelectButton):
             button.setEnabled(not is_doing)
             button.repaint()
 
     def solve_whole(self):  #solves whole structure
-        """SLOT connected to SIGNAL self.goButton.clicked()
+        """SLOT connected to SIGNAL self.solveWholeButton.clicked()
         Whole solver
         """
         self.Calculating(True)
