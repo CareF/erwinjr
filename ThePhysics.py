@@ -437,7 +437,7 @@ class Strata(object):
         self.xI = xI[::-1]
 
         #calculate confinement factor
-        self.confinementFactor = sum(self.xI * self.xAC) / sum(self.xI)
+        self.confinementFactor = np.sum(self.xI * self.xAC) / np.sum(self.xI)
 
     def calculate_performance_parameters(self):
         #waveguide loss
@@ -509,10 +509,10 @@ class Strata(object):
         maxx = numACs*self.Np*self.Lp*1e-4-0.5*self.Lp*1e-4
         xbar = np.linspace(minx, maxx, numACs*self.Np)
         Ubar = interpolate.splev(xbar,tck,der=0)
-        self.modalEfficiency = sum(Ubar)**2 / (numACs * self.Np * sum(Ubar**2))
+        self.modalEfficiency = np.sum(Ubar)**2 / (numACs * self.Np * np.sum(Ubar**2))
 
         #Kale's version
-        modalEfficiency = sum(Ubar) / self.Np #since Ubar taken from normalized xI
+        modalEfficiency = np.sum(Ubar) / self.Np #since Ubar taken from normalized xI
         #I guess we'll go with Faist's version since he probably knows better than I do.
 
     def updateFacets(self):
@@ -723,7 +723,7 @@ class QCLayers(object):
                     pass
                 else: 
                     for repeat in xrange(1,self.repeats+1):
-                        base = sum(self.layerNum[1:])*(repeat-1)
+                        base = np.sum(self.layerNum[1:])*(repeat-1)
                         self.xLayerSelected[base+layerNumCumSum[layerSelected]-1
                                 :base+layerNumCumSum[layerSelected+1]+1]\
                             = self.xVc[base+layerNumCumSum[layerSelected]-1
@@ -862,6 +862,7 @@ class QCLayers(object):
             self.eps_perp: strain tensor perpendicular to the layer plane
             self.MaterialWidth: total width of a each material
             self.netStrain: spacial average of eps_perp in unit of percentage
+            self.avghwLO: spacial average of hwLO in unit of eV
             self.MLThickness: monolayer thickness? shown in GUI as
                     layerWidth/MLThickness. This is an average number of
                     layers and actually the edge is rough
@@ -905,17 +906,19 @@ class QCLayers(object):
             # self.layerWidths includes an extra layer to promise first=last
             indx = (self.layerMaterials == i+1)
             indx[0] = False # s.t. 1st layer doesn't count
-            self.MaterialWidth[2*i+1] = sum(self.layerWidths[indx]
+            self.MaterialWidth[2*i+1] = np.sum(self.layerWidths[indx]
                     * self.layerBarriers[indx])
             #  print self.MaterialWidth
-            #  self.MaterialWidth[2*i+1] = sum(self.layerWidths[
+            #  self.MaterialWidth[2*i+1] = np.sum(self.layerWidths[
                 #  np.logical_and(indx, self.layerBarriers)])
             #  print self.MaterialWidth
-            self.MaterialWidth[2*i] = sum(self.layerWidths[indx]) \
+            self.MaterialWidth[2*i] = np.sum(self.layerWidths[indx]) \
                     - self.MaterialWidth[2*i+1]
-        #  print "------debug-----", sum(self.MaterialWidth)
-        self.netStrain = 100 * sum(self.MaterialWidth*self.eps_perp) \
-                / sum(self.MaterialWidth) # in percentage
+        #  print "------debug-----", np.sum(self.MaterialWidth)
+        self.netStrain = 100 * np.sum(self.MaterialWidth*self.eps_perp) \
+                / np.sum(self.MaterialWidth) # in percentage
+        self.avghwLO = np.sum(self.MaterialWidth*self.hwLO) \
+                / np.sum(self.MaterialWidth)
 
         self.MLThickness = np.zeros(self.layerMaterials.size)
         for n, (MLabel, BLabel) in enumerate( zip((1,1,2,2,3,3,4,4),
@@ -1113,7 +1116,7 @@ class QCLayers(object):
                         * (self.xVc[q] - Eq)*e0 + 1 / xMcE[q] + 
                             1 / xMcE[q-1]) 
                         * xPsi[q] - xPsi[q-1] / xMcE[q-1]) * xMcE[q]
-                psiInt = sum(xPsi**2 * (1+(Eq-self.xVc)/(Eq-self.xVc+self.xEg)))
+                psiInt = np.sum(xPsi**2 * (1+(Eq-self.xVc)/(Eq-self.xVc+self.xEg)))
                 A = 1 / sqrt( self.xres * 1e-10 * psiInt)
                 self.xyPsi[:,p] = A * xPsi
 
@@ -1235,7 +1238,7 @@ class QCLayers(object):
             dCL[n].solve_psi()
 
             #caculate offsets
-            dCL[n].widthOffset = sum(self.layerWidths[range(0,dividers[n])]) #- 100/self.xres
+            dCL[n].widthOffset = np.sum(self.layerWidths[range(0,dividers[n])]) #- 100/self.xres
             dCL[n].fieldOffset = -(dCL[n].widthOffset-PAD_WIDTH) * ANG \
                     * dCL[n].EField * KVpCM            
 
@@ -1246,7 +1249,7 @@ class QCLayers(object):
             for q in xrange(1,self.repeats):
                 for p in xrange(0,period):
                     dCL.append(copy.deepcopy(dCL[p]))
-                    dCL[counter].widthOffset = sum(self.layerWidths[1:])*q \
+                    dCL[counter].widthOffset = np.sum(self.layerWidths[1:])*q \
                             + dCL[p].widthOffset #- 100/self.xres
                     dCL[counter].fieldOffset = -(dCL[counter].widthOffset-100)*ANG \
                             * dCL[counter].EField * KVpCM
@@ -1362,10 +1365,10 @@ class QCLayers(object):
 
         xMcE_j = self.eff_mass(E_j)
         #weight non-parabolic effective mass by probability density
-        McE_j = m0*sum(xMcE_j[idx_first:idx_last] * psi_j**2) / sum(psi_j**2) 
+        McE_j = m0*np.sum(xMcE_j[idx_first:idx_last] * psi_j**2) / np.sum(psi_j**2) 
         xMcE_i = self.eff_mass(E_i)
         #weight non-parabolic effective mass by probability density
-        McE_i = m0*sum(xMcE_i[idx_first:idx_last] * psi_i**2) / sum(psi_i**2) 
+        McE_i = m0*np.sum(xMcE_i[idx_first:idx_last] * psi_i**2) / np.sum(psi_i**2) 
         #  print McE_i, McE_j
 
         # Kale's thesis Eq.(2.68)
@@ -1375,9 +1378,9 @@ class QCLayers(object):
             x1 = xPoints[n]*ANG
             x2 = xPoints*ANG
             # first integral for eq.(2.69)
-            dIij[n] = sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
+            dIij[n] = np.sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
                     * psi_i[n]*psi_j[n] * (self.xres*ANG)**2)
-        Iij = sum(dIij)
+        Iij = np.sum(dIij)
         # looks similiar with eq.(2.69) but not exact in detail
         inverse_tau = sqrt(McE_j*McE_i) * e0**2 * self.hwLO[0]*e0/hbar * Iij \
                 / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
@@ -1417,7 +1420,7 @@ class QCLayers(object):
         psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
         # Kale's (2.43) and (2.47), however for varying eff mass model, this
         # should start with (2.36)
-        z = sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
+        z = np.sum(psi_i_avg * np.diff(psi_j/xMcE_i) 
                 + 1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
         z *= hbar**2/(2*(E_i-E_j)*e0*m0) /ANG # e0 transform eV to J
         return z
@@ -1456,7 +1459,7 @@ class QCLayers(object):
         #  print first,last
         #  DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
         #  DeltaV = 1 - DeltaV #=is well
-        #  couplingEnergy = sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
+        #  couplingEnergy = np.sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
                 #  * abs(self.EcG[1] - self.EcG[0]) /meV #* (1-self.xBarriers)
         # DeltaV * (self.EcG[1] (barrier) - dta.Ecg[0] (well)) = Vi(wells)
 
@@ -1472,7 +1475,7 @@ class QCLayers(object):
         DeltaV = 1 - DeltaV #=is well
         jMat = int(self.xMaterials[last+1])
         DeltaV *= (self.EcG[2*jMat-1] - self.EcG[2*(jMat-1)])/meV # unit meV
-        couplingEnergy = (sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG 
+        couplingEnergy = (np.sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG 
         return couplingEnergy #unit meV
 
     def broadening_energy(self, upper, lower):
@@ -1485,7 +1488,7 @@ class QCLayers(object):
         transitions = np.bitwise_xor(self.xBarriers[0:-1].astype(bool),
                 self.xBarriers[1:].astype(bool))
         transitions = np.append(transitions, False) # last element is not
-        psi2int2 = sum((psi_i[transitions]**2-psi_j[transitions]**2)**2)
+        psi2int2 = np.sum((psi_i[transitions]**2-psi_j[transitions]**2)**2)
         DeltaLambda = 0.76 * 1e-9 * 1e-9 # 0.79nm^2
         # effective mass (self.me) update?
         twogamma = pi*self.me[0]*m0*e0**2/hbar**2 * DeltaLambda**2 \
@@ -1514,21 +1517,21 @@ class QCLayers(object):
         energies = abs(np.array(energies)) #in eV
 
         neff = 3
-        Lp = sum(self.layerWidths[1:]) * 1e-10 #in m
-        Nq = sum(self.layerDopings[1:]*self.layerWidths[1:]) / sum(self.layerWidths[1:])
+        Lp = np.sum(self.layerWidths[1:]) * 1e-10 #in m
+        Nq = np.sum(self.layerDopings[1:]*self.layerWidths[1:]) / np.sum(self.layerWidths[1:])
         Nq *= 100**3 #convert from cm^-3 to m^-3
-        Ns = sum(self.layerDopings[1:]*1e17 * self.layerWidths[1:]*1e-8) #in cm^-2
+        Ns = np.sum(self.layerDopings[1:]*1e17 * self.layerWidths[1:]*1e-8) #in cm^-2
         Ns *= 100**2 #from cm^-2 to m^-2
         hw = self.EigenE[stateR] - self.EigenE[lower]
 
         #    hw = np.arange(0.15,0.5,0.01)
         #    for enerG in hw:
-        #        alphaISB = sum(energies * dipoles**2 * gammas / ((energies - enerG)**2 + gammas**2))
+        #        alphaISB = np.sum(energies * dipoles**2 * gammas / ((energies - enerG)**2 + gammas**2))
 
         #print energies/h/c0 * dipoles**2
         #print gammas / ((energies - hw)**2 + gammas**2)
 
-        alphaISB = sum(energies*e0/h/c0 * dipoles**2 * gammas 
+        alphaISB = np.sum(energies*e0/h/c0 * dipoles**2 * gammas 
                 / ((energies - hw)**2 + gammas**2))
         alphaISB *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
         alphaISB /= e0*100
@@ -1537,7 +1540,7 @@ class QCLayers(object):
             hw = np.arange(0.15,0.5,0.001)
             alphaISBw = np.zeros(hw.size)
             for q, enerG in enumerate(hw):
-                alphaISBw[q] = sum(energies*e0/h/c0 * dipoles**2 * gammas 
+                alphaISBw[q] = np.sum(energies*e0/h/c0 * dipoles**2 * gammas 
                         / ((energies - enerG)**2 + gammas**2))
             alphaISBw *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
             alphaISBw /= e0*100
@@ -1556,7 +1559,7 @@ class QCLayers(object):
         for q in range(self.numMaterials):
             n[q] = self.moleFrac[q]*cst[self.Mat1[q]].rIndx(wl) \
                     + (1-self.moleFrac[q])*cst[self.Mat2[q]].rIndx(wl)
-        nCore = sum(self.MaterialWidth*n)/sum(self.MaterialWidth) # Average n?
+        nCore = np.sum(self.MaterialWidth*n)/np.sum(self.MaterialWidth) # Average n?
         return nCore
 
 
