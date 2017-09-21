@@ -282,6 +282,7 @@ class MainWindow(QMainWindow):
         self.mtrl_row2 = QLabel('<center><b>#2</b></center')
         self.mtrl_row3 = QLabel('<center><b>#3</b></center')
         self.mtrl_row4 = QLabel('<center><b>#4</b></center')
+        #TODO: chage self.inputMoleFracnBox to a list and the following to loop
         self.inputMoleFrac1Box = QDoubleSpinBox()
         self.inputMoleFrac1Box.setDecimals(3)
         self.inputMoleFrac1Box.setValue(0.53)
@@ -2193,8 +2194,8 @@ class MainWindow(QMainWindow):
         self.FoMButton.setEnabled(False)
         self.FoMButton.repaint()
         
-        upper = self.stateHolder[-1]
-        lower = self.stateHolder[-2]        
+        upper = self.stateHolder[1]
+        lower = self.stateHolder[0]        
         if upper < lower:
             upper, lower = lower, upper
             #  temp = upper
@@ -2221,6 +2222,9 @@ class MainWindow(QMainWindow):
         self.transferOpticalParametersButton.setEnabled(True)
 
     def ginput(self, aQPointF):
+        """Pair select in GUI, according to mouse click
+        SLOT connect to SIGNAL self.picker.selected(const QwtDoublePoint&)
+        """
         #x data is self.qclayers.xPointsPost
         #y data is self.qclayers.xyPsiPsi[:,q] + self.qclayers.EigenE[q]
         
@@ -2235,6 +2239,17 @@ class MainWindow(QMainWindow):
 
         r = np.nanmin(sqrt( ((xData-x)/xScale)**2 + ((yData-y)/yScale)**2 ), axis=0)
         selectedState = np.nanargmin(r)
+        if len(self.stateHolder) >= 2:
+            # start new pair selection
+            self.stateHolder = []
+            for curve in self.selectedWF:
+                try:
+                    curve.detach()
+                except RuntimeError:
+                    #underlying C/C++ object has been deleted
+                    pass
+            self.selectedWF = []
+            self.quantumCanvas.replot()
         self.stateHolder.append(selectedState)
         
         q = selectedState
@@ -2246,16 +2261,17 @@ class MainWindow(QMainWindow):
         self.selectedWF.append(curve)
         self.quantumCanvas.replot()
         
-        if np.mod(len(self.stateHolder),2) == 0:
+        #  if np.mod(len(self.stateHolder),2) == 0:
+        if len(self.stateHolder) == 2:
             self.FoMButton.setEnabled(True)
-            E_i = self.qclayers.EigenE[self.stateHolder[-2]]
-            E_j = self.qclayers.EigenE[self.stateHolder[-1]]
+            E_i = self.qclayers.EigenE[self.stateHolder[0]]
+            E_j = self.qclayers.EigenE[self.stateHolder[1]]
             if E_i > E_j:
-                upper = self.stateHolder[-2]
-                lower = self.stateHolder[-1]
+                upper = self.stateHolder[0]
+                lower = self.stateHolder[1]
             else:
-                upper = self.stateHolder[-1]
-                lower = self.stateHolder[-2]
+                upper = self.stateHolder[1]
+                lower = self.stateHolder[0]
 
             self.eDiff = 1000*(E_i-E_j)
             self.wavelength = h*c0/(e0*np.abs(E_i-E_j))*1e6
@@ -2271,8 +2287,8 @@ class MainWindow(QMainWindow):
                                  u"coupling: %6.1f meV<br>broadening: %6.1f meV<br>"
                                  u"dipole: <b>%6.1f \u212B</b>"
                                  u"<br>LO scattering: <b>%6.2g ps</b>") % (
-                                         self.stateHolder[-2], 
-                                         self.stateHolder[-1], 
+                                         self.stateHolder[0], 
+                                         self.stateHolder[1], 
                                          self.eDiff, self.wavelength,
                                          couplingEnergy, 
                                          self.transitionBroadening, 
@@ -2288,8 +2304,8 @@ class MainWindow(QMainWindow):
                                  u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
                                 u"dipole: %6.1f \u212B<br>" 
                                 u"LO scattering: %6.2g ps") % (
-                                        self.stateHolder[-2], 
-                                        self.stateHolder[-1], 
+                                        self.stateHolder[0], 
+                                        self.stateHolder[1], 
                                         self.eDiff, self.wavelength, 
                                         self.opticalDipole,
                                         self.tauUpperLower)
@@ -2464,6 +2480,7 @@ class MainWindow(QMainWindow):
             self.curveSelection.attach(self.quantumCanvas)
         
         #plot wavefunctions
+        #TODO color it between zero and the function
         if self.plotDirty and hasattr(self.qclayers, 'EigenE'):
             self.plotDirty=False
             self.curveWF = []
