@@ -52,11 +52,18 @@ import ThePhysics
 from ThePhysics import h, c0, e0
 
 
-#===============================================================================
+#============================================================================
 # Version
-#===============================================================================
+#============================================================================
 ejVersion = 171018
 majorVersion = '3.0.2'
+
+#============================================================================
+# Debug options
+#============================================================================
+DEBUG = 4
+if DEBUG >=3: 
+    import pickle
 
 
 class MainWindow(QMainWindow):
@@ -1807,7 +1814,6 @@ class MainWindow(QMainWindow):
         
     def layerTable_refresh(self):
         """Refresh layer table, called every time after data update"""
-        #  print "-----debug---- layerTable_refresh called"
         # Block itemChanged SIGNAL while refreshing
         #  self.clear_WFs()
         self.layerTable.blockSignals(True) 
@@ -1834,7 +1840,6 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 width.setBackgroundColor(gray)
             self.layerTable.setItem(q, 0, width)
-            #  print "--debug, setItem--(%d,%d)%s"%(q,0,width.text())
             if q == 0:
                 width.setFlags(Qt.NoItemFlags)
                 width.setBackgroundColor(gray2)
@@ -1846,7 +1851,6 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 1, item)
-            #  print "--debug, setItem--(%d,%d)%s"%(q,1,item.text())
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
                 item.setBackgroundColor(gray2)
@@ -1859,7 +1863,6 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 2, item)
-            #  print "--debug, setItem--(%d,%d)%s"%(q,2,item.text())
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
                 item.setBackgroundColor(gray2)
@@ -1872,7 +1875,6 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 item.setBackgroundColor(gray)
             self.layerTable.setItem(q, 3, item)
-            #  print "--debug, setItem--(%d,%d)%s"%(q,3,item.text())
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
                 item.setBackgroundColor(gray2)
@@ -1883,7 +1885,6 @@ class MainWindow(QMainWindow):
             if bool(self.qclayers.layerBarriers[q]):
                 doping.setBackgroundColor(gray)
             self.layerTable.setItem(q, 4, doping)
-            #  print "--debug, setItem--(%d,%d)%s"%(q,4,item.text())
             if q == 0:
                 doping.setFlags(Qt.NoItemFlags)
                 doping.setBackgroundColor(gray2)
@@ -1896,7 +1897,6 @@ class MainWindow(QMainWindow):
                 item.setBackgroundColor(gray2)
                 item.setFlags(Qt.NoItemFlags)
                 self.layerTable.setItem(q, 5, item)
-                #  print "--debug, setItem--(%d,%d)%s"%(q,5,item.text())
             else:
                 materialWidget = QComboBox()
                 materialWidget.addItems(self.materialList)
@@ -2009,7 +2009,6 @@ class MainWindow(QMainWindow):
                 return
             #  self.qclayers.layerBarriers[row] = int(item.checkState())//2
             self.qclayers.layerBarriers[row] = (item.checkState() == Qt.Checked)
-            #  print "---debug---,checkstate", item.checkState()
         elif column == 3: #column == 3 for item change in AR column
             if row == self.qclayers.layerWidths.size: 
                 #don't do anything if row is last row
@@ -2165,6 +2164,10 @@ class MainWindow(QMainWindow):
             self.plotDirty = True
             self.solveType = 'whole'
             self.update_quantumCanvas()
+            if DEBUG >= 4: 
+                with open('qclayer.pkl','wb') as f:
+                    pickle.dump(self.qclayers, f, pickle.HIGHEST_PROTOCOL)
+                print self.qclayers.EigenE
         except (IndexError,TypeError) as err:
             QMessageBox.warning(self, 'ErwinJr - Error', str(err))
 
@@ -2264,7 +2267,6 @@ class MainWindow(QMainWindow):
         function using Newton's method.. 
         Support only for whole solve
         """
-        DEBUG = True
         row = self.layerTable.currentRow()
         if row == -1 or row >= self.qclayers.layerWidths.size:
             QMessageBox.warning(self, "ErwinJr Error", 
@@ -2280,7 +2282,7 @@ class MainWindow(QMainWindow):
             lower = self.stateHolder[0]        
             old_width = -xres
             origin_width = new_width = self.qclayers.layerWidths[row]
-            if DEBUG:
+            if DEBUG >= 1:
                 print "--debug-- width optimization"
             #  print "init: \n Lyaer # %d width = %.2f"%(row, new_width)
 
@@ -2315,7 +2317,7 @@ class MainWindow(QMainWindow):
                     new_width += -int(step * diff/diff2)*xres
                 if new_width <= 0:
                     new_width = xres
-                if DEBUG:
+                if DEBUG >= 1:
                     print "Layer # %d width = %.1f; goal = %f"%(row, old_width, goals[1])
                     print "\tdiff = %f; diff2 = %f, new_width= %.1f"%(diff, diff2, new_width)
                 self.qclayers.layerWidths[row] = new_width
@@ -2326,13 +2328,13 @@ class MainWindow(QMainWindow):
                 E_i = self.qclayers.EigenE[upper]
                 E_j = self.qclayers.EigenE[lower]
                 wavelength = h*c0/(e0*np.abs(E_i-E_j))*1e6
-                if DEBUG:
+                if DEBUG >= 1:
                     print "\tgoal_new = %f, wl = %.1f um"%(goal_new, wavelength)
                 while goal_new < goal_old*0.95: 
                     #  So a step will not go too far
                     #  new_width = (old_width + new_width)/2
                     new_width = xres * int( (old_width + new_width)/(2*xres))
-                    if DEBUG:
+                    if DEBUG >= 1:
                         print "\tGoing too far, back a little bit: new_width=%.1f"%new_width
                     self.qclayers.layerWidths[row] = new_width
                     self.qclayers.populate_x()
@@ -2342,7 +2344,7 @@ class MainWindow(QMainWindow):
                     E_i = self.qclayers.EigenE[upper]
                     E_j = self.qclayers.EigenE[lower]
                     wavelength = h*c0/(e0*np.abs(E_i-E_j))*1e6
-                    if DEBUG:
+                    if DEBUG >= 1:
                         print "\tgoal_new = %f, wl = %.1f um"%(goal_new, wavelength)
                 goal_old = goals[1]
                 goals[1] = goal_new
