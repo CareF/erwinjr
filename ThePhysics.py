@@ -1570,6 +1570,17 @@ class QCLayers(object):
         nCore = np.sum(self.MaterialWidth*n)/np.sum(self.MaterialWidth) # Average n?
         return nCore
 
+    def figure_of_merit(self, upper, lower):
+        """This function is designed for auto optimization, and will update
+        all eigen energy and wave functions"""
+        if upper < lower:
+            upper, lower = lower, upper
+        tauLower = self.lo_life_time(lower)
+        tauUpper = self.lo_life_time(upper)
+        tauUpperLower = 1/self.lo_transition_rate(upper, lower)
+        opticalDipole = self.dipole(upper, lower)
+        return opticalDipole**2 * tauUpper * ( 1 - tauLower/tauUpperLower)
+
 
 if __name__  == "__main__":
     print ('Answer to the Ultimate Question of Life,'
