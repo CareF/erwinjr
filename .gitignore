@@ -3,3 +3,5 @@
 PyQwt*
 *.pyc
 *.sh
+*.pkl
+performance

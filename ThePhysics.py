@@ -28,6 +28,7 @@
 # try use dict type for substrate restriction on material
 # all width shoud become integral, with unit xres
 # Add solve well (helping tight binding model design
+# Performance improve: lo_transition_rate and solve_psi (1st overall Epoints)
 
 from __future__ import division
 #  from numpy import *
@@ -79,6 +80,9 @@ INV_INF = 1e-20 # for infinit small decay rate (ns-1)
 USE_CLIB = True
 MORE_INTERPOLATION = True # One more time interpolation for eigen solver
 PAD_WIDTH=100 # width padded in the beginning of the given region for basis solver
+MULTI_PROCESSING = True
+if MORE_INTERPOLATION:
+    cFunctions=CDLL('./cFunctionsMP.so')
 
 #===============================================================================
 # Reference
@@ -747,6 +751,7 @@ class QCLayers(object):
         OUTPUT/update member variables):
             xEg, xMc, xESO, xEp, xF, 
             whose value is determeined by the layer material
+        TODO: tell why we need populate_x and populate_x_band
         """
         #  print "------debug------- QCLayers populate_x_band called"
         # Following parameters can be looked up in cFunctions.c
@@ -1002,6 +1007,11 @@ class QCLayers(object):
                     position self.xPoints[x]
         TODO: try matrix eigen solver?
         """
+        TIMER = False
+        if TIMER: 
+            print "solve_psi start"
+            from time import time
+            start = time()
         Epoints = np.arange(min(self.xVc),
                 max(self.xVc-115*self.EField*1e-5), #?115e-5?
                 self.vertRes/1000)
@@ -1047,6 +1057,10 @@ class QCLayers(object):
                 pickle.dump((Epoints, psiEnd), logfile)
             logcount += 1 
             print 'log saved for Epoints and psiEnd (%d)'%logcount
+        if TIMER:
+            end = time()
+            print "1st end point", end-start
+            start = end
         self.EigenE = zero_find(Epoints, psiEnd)
 
         if MORE_INTERPOLATION:
@@ -1091,6 +1105,10 @@ class QCLayers(object):
                             + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
                     self.EigenE[q] = x3
 
+        if TIMER:
+            end = time()
+            print "More interpolate", time()-start
+            start = end
         #make array for Psi and fill it in
         if USE_CLIB:
             # with eigenenregy EigenE, here call C function to get wave
@@ -1125,6 +1143,10 @@ class QCLayers(object):
                 A = 1 / sqrt( self.xres * 1e-10 * psiInt)
                 self.xyPsi[:,p] = A * xPsi
 
+        if TIMER:
+            end = time()
+            print "wavefunc", time()-start
+            start = end
         #remove states that come from oscillating end points
         # TODO: change to remove non-bounded states, with user options
         #       wf with non-negeligiable amplitudes higher than barrier
@@ -1178,6 +1200,9 @@ class QCLayers(object):
             self.xyPsiPsiDec[:,q] = self.xyPsiPsi[idxs,q]
         self.xyPsiPsi = self.xyPsiPsiDec
         self.xPointsPost = self.xPoints[idxs]
+        if TIMER:
+            end = time()
+            print "Post pocessing", time()-start
 
     def basisSolve(self):
         """ solve basis for the QC device, with each basis being eigen mode of 
@@ -1338,6 +1363,11 @@ class QCLayers(object):
             T1 decay life time between upper and lower states induced by LO 
             phonon scattering
         """
+        TIMER = False
+        if TIMER: 
+            print "lo_transition_rate start"
+            from time import time
+            start = time()
         if upper < lower:
             upper, lower = lower, upper
 
@@ -1353,6 +1383,10 @@ class QCLayers(object):
             # LO phonon scatering doesn't happen
             return INV_INF
 
+        if TIMER:
+            end = time()
+            print "prepared done", end-start
+            start = end
         # zero head and tail cut off
         idxs_i = np.nonzero(psi_i >
                 settings.wf_scale * settings.phonon_integral_factor)[0]
@@ -1369,6 +1403,10 @@ class QCLayers(object):
         psi_i = psi_i[idx_first:idx_last]
         psi_j = psi_j[idx_first:idx_last]
         xPoints = self.xPoints[idx_first:idx_last]
+        if TIMER:
+            end = time()
+            print "cutting done", end-start
+            start = end
 
         xMcE_j = self.eff_mass(E_j)
         #weight non-parabolic effective mass by probability density
@@ -1377,6 +1415,10 @@ class QCLayers(object):
         #weight non-parabolic effective mass by probability density
         McE_i = m0*np.sum(xMcE_i[idx_first:idx_last] * psi_i**2) / np.sum(psi_i**2) 
         #  print McE_i, McE_j
+        if TIMER:
+            end = time()
+            print "calculating mass", end-start
+            start = end
 
         # Kale's thesis Eq.(2.68)
         kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
@@ -1388,6 +1430,10 @@ class QCLayers(object):
             dIij[n] = np.sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) 
                     * psi_i[n]*psi_j[n] * (self.xres*ANG)**2)
         Iij = np.sum(dIij)
+        if TIMER:
+            end = time()
+            print "integral", end-start
+            start = end
         # looks similiar with eq.(2.69) but not exact in detail
         inverse_tau = sqrt(McE_j*McE_i) * e0**2 * self.hwLO[0]*e0/hbar * Iij \
                 / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
