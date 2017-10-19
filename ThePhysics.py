@@ -26,6 +26,8 @@
 # material related codes should be moved to MaterialConstants
 # try separate this file to QCLayers.py and Strata.py
 # try use dict type for substrate restriction on material
+# all width shoud become integral, with unit xres
+# Add solve well (helping tight binding model design
 
 from __future__ import division
 #  from numpy import *
@@ -683,6 +685,8 @@ class QCLayers(object):
         self.update_strain()
         # Following are equiv. elec potential for different bands
         # external field is included
+        # xVX, xVL, xVLH and xVSO are used for checking if there's indrect
+        # bandgap, s.t. we can prevent its effect
         self.xVc  = np.zeros(self.xPoints.size)
         self.xVX  = np.zeros(self.xPoints.size)
         self.xVL  = np.zeros(self.xPoints.size)
@@ -996,6 +1000,7 @@ class QCLayers(object):
              -- for better plot --
             self.xyPsiPsi2[x, n] is a more precise version corresponding to
                     position self.xPoints[x]
+        TODO: try matrix eigen solver?
         """
         Epoints = np.arange(min(self.xVc),
                 max(self.xVc-115*self.EField*1e-5), #?115e-5?
@@ -1121,7 +1126,9 @@ class QCLayers(object):
                 self.xyPsi[:,p] = A * xPsi
 
         #remove states that come from oscillating end points
-        # TODO: condition to improve
+        # TODO: change to remove non-bounded states, with user options
+        #       wf with non-negeligiable amplitudes higher than barrier
+        #       should be removed
         if True:
             # looks like we should change -1 to -2 (following)???
             #  psiEnd = self.xyPsi[-1,:]
@@ -1403,6 +1410,7 @@ class QCLayers(object):
         and lower level state, in unit angstrom
         z = i\hbar/(2\Delta E) \<\psi_i|(m*^{-1} P_z + P_z m*^{-1})|\psi_j\>
         """
+        # TODO: improve performance
         if upper < lower:
             upper, lower = lower, upper
         psi_i = self.xyPsi[:,upper]
