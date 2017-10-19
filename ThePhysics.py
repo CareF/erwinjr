@@ -81,8 +81,11 @@ USE_CLIB = True
 MORE_INTERPOLATION = True # One more time interpolation for eigen solver
 PAD_WIDTH=100 # width padded in the beginning of the given region for basis solver
 MULTI_PROCESSING = True
-if MORE_INTERPOLATION:
-    cFunctions=CDLL('./cFunctionsMP.so')
+if MULTI_PROCESSING:
+    try:
+        cFunctions=CDLL('./cFunctionsMP.so')
+    except: 
+        print "unable to load cFunctionsMP"
 
 #===============================================================================
 # Reference

@@ -14,8 +14,7 @@ ErwinJr is a multi-platform application that runs on most desktop operating syst
 3) type the following at the command prompt
 
 		cd \erwinjr
-		gcc -c -fPIC cFunctions.c
-		gcc -shared -fPIC -o cFunctions.so cFunctions.o
+		make
 
 4) open (double click) on the file erwinjr.pyw
 
@@ -27,6 +26,16 @@ PyQt4, PyQwt5, numpy, scipy, matplotlib
 ~~psyco is also useful~~
 
 Built and tested on Python 2.7.
+
+### Multiprocessing Support ###
+
+The cFunctionsMP is with openmp support, tested under Linux with openmp (ver>=5.0) only. 
+
+To compile for cFunctionsMP, using following command: 
+
+	make cFunctionsMP.so
+
+See Makefile for building detail. 
 
 ### For Arch Linux User ###
 
