@@ -27,6 +27,9 @@
 # find replacement for psyco, or try to use Cython
 # try to seperate this file to smaller ones
 # check unnecessary function call
+# Ctrl+z support
+# add status bar
+# add target wavelength for optimization
 
 from __future__ import division
 import os, sys
@@ -100,6 +103,7 @@ class MainWindow(QMainWindow):
         self.plotSO = False
         
         self.stateHolder = []
+        self.pairSelected = False
 
         self.create_Quantum_menu()
         self.create_main_frame()
@@ -184,16 +188,30 @@ class MainWindow(QMainWindow):
         self.layerTable.setSelectionMode(QTableWidget.SingleSelection)
         self.layerTable.setMaximumWidth(self.layerTableSize)
         self.layerTable.setMinimumWidth(self.layerTableSize)
-        self.connect(self.layerTable,SIGNAL("itemChanged(QTableWidgetItem*)"),self.layerTable_itemChanged)
-        self.connect(self.layerTable,SIGNAL("itemSelectionChanged()"),self.layerTable_itemSelectionChanged)
+        self.connect(self.layerTable,
+                SIGNAL("itemChanged(QTableWidgetItem*)"),
+                self.layerTable_itemChanged)
+        self.connect(self.layerTable, SIGNAL("itemSelectionChanged()"),
+                self.layerTable_itemSelectionChanged)
         
         #set up buttons
-        deleteLayerButton = QPushButton("Delete Layer")
-        self.connect(deleteLayerButton, SIGNAL("clicked()"), self.delete_layer)
-        insertLayerAboveButton = QPushButton("Insert Layer Above")
-        self.connect(insertLayerAboveButton, SIGNAL("clicked()"), self.insert_layerAbove)
+        self.deleteLayerButton = QPushButton("Delete Layer")
+        self.connect(self.deleteLayerButton, SIGNAL("clicked()"),
+                self.delete_layer)
+        self.insertLayerAboveButton = QPushButton("Insert Layer Above")
+        self.connect(self.insertLayerAboveButton, SIGNAL("clicked()"),
+                self.insert_layerAbove)
+        self.OptimizeFoMButton = QPushButton("Optimize FoM")
+        self.OptimizeFoMButton.setEnabled(False)
+        self.connect(self.OptimizeFoMButton, SIGNAL("clicked()"), partial(
+            self.OptimizeLayer, goal = self.qclayers.figure_of_merit))
+        self.OptimizeDipoleButton = QPushButton("Optimize Dipole")
+        self.connect(self.OptimizeDipoleButton, SIGNAL("clicked()"), partial(
+            self.OptimizeLayer, goal = self.qclayers.dipole))
+        self.OptimizeDipoleButton.setEnabled(False)
         self.solveWholeButton = QPushButton("Solve Whole")
-        self.connect(self.solveWholeButton, SIGNAL("clicked()"), self.solve_whole)
+        self.connect(self.solveWholeButton, SIGNAL("clicked()"),
+                self.solve_whole)
         self.solveBasisButton = QPushButton("Solve Basis")
         self.connect(self.solveBasisButton, SIGNAL("clicked()"),
                 self.solve_basis)
@@ -412,7 +430,7 @@ class MainWindow(QMainWindow):
         self.pairSelectString = QTextEdit('')
         self.pairSelectString.setReadOnly(True)
         self.pairSelectString.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed))
-        self.pairSelectString.setMaximumHeight(130)
+        #  self.pairSelectString.setMaximumHeight(130)
         self.pairSelectString.setMaximumWidth(self.pairSelectStringWidth)
         calculateControl_grid = QGridLayout()
         calculateControl_grid.addWidget(self.pairSelectButton, 0,0, 1,2)
@@ -442,9 +460,11 @@ class MainWindow(QMainWindow):
         
         #vBox2
         vBox2 = QGridLayout()
-        vBox2.addWidget(insertLayerAboveButton, 0,0)
-        vBox2.addWidget(deleteLayerButton, 0,1)        
-        vBox2.addWidget(self.layerTable, 1,0, 1,2)
+        vBox2.addWidget(self.insertLayerAboveButton, 0,0)
+        vBox2.addWidget(self.deleteLayerButton, 0,1)        
+        vBox2.addWidget(self.OptimizeFoMButton, 1,0)
+        vBox2.addWidget(self.OptimizeDipoleButton, 1,1)
+        vBox2.addWidget(self.layerTable, 2,0, 1,2)
         #vBox2.addWidget(updateButton)      
         
         #vBox3
@@ -1789,6 +1809,7 @@ class MainWindow(QMainWindow):
         """Refresh layer table, called every time after data update"""
         #  print "-----debug---- layerTable_refresh called"
         # Block itemChanged SIGNAL while refreshing
+        #  self.clear_WFs()
         self.layerTable.blockSignals(True) 
         self.layerTable.clear()
         self.layerTable.setColumnCount(6)
@@ -1903,15 +1924,21 @@ class MainWindow(QMainWindow):
         column = item.column()
         row = item.row()
         if column == 0: #column == 0 for item change in Widths column
-            if np.mod(float(item.text()), self.qclayers.xres) != 0 \
+            new_width = float(item.text())
+            if np.mod(new_width, self.qclayers.xres) != 0 \
                     and self.qclayers.xres != 0.1:
+                # TODO: bug to fix, np.mod is not good for xres < 0.5
+                # potential solution is to change internal length to int
+                # times xres
                 QMessageBox.warning(self,"ErwinJr - Warning", 
-                        ("You entered a width that is not compatible with"
-                        "the minimum horizontal resolution."))
+                        ("You entered a width that is not compatible with "
+                        "the minimum horizontal resolution. "
+                        "%f %% %f = %f"%(new_width, self.qclayers.xres,
+                            np.mod(new_width, self.qclayers.xres))))
                 return
             if row == self.qclayers.layerWidths.size: #add row at end of list
                 self.qclayers.layerWidths = np.append(
-                        self.qclayers.layerWidths, float(item.text()))
+                        self.qclayers.layerWidths, new_width)
                 self.qclayers.layerBarriers = np.append(
                         self.qclayers.layerBarriers, 
                         0 if self.qclayers.layerBarriers[-1] == 1 else 1)
@@ -1940,7 +1967,7 @@ class MainWindow(QMainWindow):
                 self.update_Lp_limits()
                 
             elif row == self.qclayers.layerWidths.size-1:
-                self.qclayers.layerWidths[row] = float(item.text())
+                self.qclayers.layerWidths[row] = new_width
                 
                 #make first item the same as last item
                 self.qclayers.layerWidths[0] = self.qclayers.layerWidths[-1]
@@ -1950,7 +1977,7 @@ class MainWindow(QMainWindow):
                 #  self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
                 #  self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]  
             else: #change Width of selected row in-place
-                self.qclayers.layerWidths[row] = float(item.text())
+                self.qclayers.layerWidths[row] = new_width
         elif column == 1: #column == 1 for ML
             if self.qclayers.xres != 0.1:
                 QMessageBox.warning(self,"ErwinJr - Warning", 
@@ -2114,11 +2141,22 @@ class MainWindow(QMainWindow):
                 self.pairSelectButton):
             button.setEnabled(not is_doing)
             button.repaint()
+        if self.pairSelected: 
+            self.FoMButton.setEnabled(not is_doing)
+            self.FoMButton.repaint()
+            if self.solveType == 'whole':
+                for button in (self.OptimizeFoMButton, self.OptimizeDipoleButton):
+                    button.setEnabled(not is_doing)
+                    button.repaint()
+
 
     def solve_whole(self):  #solves whole structure
         """SLOT connected to SIGNAL self.solveWholeButton.clicked()
         Whole solver
         """
+        if hasattr(self.qclayers, "EigenE"):
+            self.clear_WFs()
+        self.pairSelected = False
         self.Calculating(True)
         
         self.qclayers.populate_x_band()
@@ -2221,6 +2259,112 @@ class MainWindow(QMainWindow):
         self.FoMButton.setEnabled(True)
         self.transferOpticalParametersButton.setEnabled(True)
 
+    def OptimizeLayer(self, goal):
+        """Optimize the thickness of selected layer to maximaze the goal
+        function using Newton's method.. 
+        Support only for whole solve
+        """
+        DEBUG = True
+        row = self.layerTable.currentRow()
+        if row == -1 or row >= self.qclayers.layerWidths.size:
+            QMessageBox.warning(self, "ErwinJr Error", 
+                "Invalid layer selection.")
+            return
+
+        self.Calculating(True)
+
+        try:
+            xres = self.qclayers.xres
+            step = 1 # * xres
+            upper = self.stateHolder[1]
+            lower = self.stateHolder[0]        
+            old_width = -xres
+            origin_width = new_width = self.qclayers.layerWidths[row]
+            if DEBUG:
+                print "--debug-- width optimization"
+            #  print "init: \n Lyaer # %d width = %.2f"%(row, new_width)
+
+            goals = np.empty(3)
+            goal_old = goals[1] = np.abs(goal(upper,lower))
+            width_tried = [origin_width]
+            goal_tried = [goal_old]
+            while abs(old_width - new_width) >= 0.7*xres:
+                # Solve for values of goal near old_width
+                # improve: only solve for eigen states near selection
+                goal_old = goals[1]
+                self.qclayers.layerWidths[row] = new_width - step*xres
+                self.qclayers.populate_x()
+                self.qclayers.populate_x_band()
+                self.qclayers.solve_psi()
+                goals[0] = np.abs(goal(upper,lower))
+                self.qclayers.layerWidths[row] = new_width + step*xres
+                self.qclayers.populate_x()
+                self.qclayers.populate_x_band()
+                self.qclayers.solve_psi()
+                goals[2] = np.abs(goal(upper,lower))
+                diff = (goals[2] - goals[0])/2
+                diff2 = goals[0] + goals[2] - 2*goals[1]
+
+                step_cutoff = 0.5E3 
+                old_width = new_width
+                # set a cutoff s.t. Newton's method won't go too far
+                if -diff2 < 1/step_cutoff:
+                    # When Newton's method is not a good one
+                    new_width += int(step * step_cutoff*diff/goals[1])*xres
+                else:
+                    new_width += -int(step * diff/diff2)*xres
+                if new_width <= 0:
+                    new_width = xres
+                if DEBUG:
+                    print "Layer # %d width = %.1f; goal = %f"%(row, old_width, goals[1])
+                    print "\tdiff = %f; diff2 = %f, new_width= %.1f"%(diff, diff2, new_width)
+                self.qclayers.layerWidths[row] = new_width
+                self.qclayers.populate_x()
+                self.qclayers.populate_x_band()
+                self.qclayers.solve_psi()
+                goal_new = np.abs(goal(upper,lower))
+                E_i = self.qclayers.EigenE[upper]
+                E_j = self.qclayers.EigenE[lower]
+                wavelength = h*c0/(e0*np.abs(E_i-E_j))*1e6
+                if DEBUG:
+                    print "\tgoal_new = %f, wl = %.1f um"%(goal_new, wavelength)
+                while goal_new < goal_old*0.95: 
+                    #  So a step will not go too far
+                    #  new_width = (old_width + new_width)/2
+                    new_width = xres * int( (old_width + new_width)/(2*xres))
+                    if DEBUG:
+                        print "\tGoing too far, back a little bit: new_width=%.1f"%new_width
+                    self.qclayers.layerWidths[row] = new_width
+                    self.qclayers.populate_x()
+                    self.qclayers.populate_x_band()
+                    self.qclayers.solve_psi()
+                    goal_new = np.abs(goal(upper,lower))
+                    E_i = self.qclayers.EigenE[upper]
+                    E_j = self.qclayers.EigenE[lower]
+                    wavelength = h*c0/(e0*np.abs(E_i-E_j))*1e6
+                    if DEBUG:
+                        print "\tgoal_new = %f, wl = %.1f um"%(goal_new, wavelength)
+                goal_old = goals[1]
+                goals[1] = goal_new
+                if new_width in width_tried:
+                    break
+                width_tried.append(new_width)
+                goal_tried.append(goal_new)
+
+            self.qclayers.layerWidths[row] = new_width
+        finally:
+            self.Calculating(False)
+            if self.qclayers.layerWidths[row] != origin_width: 
+                self.clear_WFs()
+                self.layerTable_refresh()
+                self.qclayers.populate_x()
+                self.qclayers.populate_x_band()
+                self.dirty = True
+                self.update_windowTitle()  
+                self.plotDirty = True
+                self.update_quantumCanvas()
+        print "done"
+
     def ginput(self, aQPointF):
         """Pair select in GUI, according to mouse click
         SLOT connect to SIGNAL self.picker.selected(const QwtDoublePoint&)
@@ -2250,6 +2394,11 @@ class MainWindow(QMainWindow):
                     pass
             self.selectedWF = []
             self.quantumCanvas.replot()
+            self.pairSelected = False
+            for button in (self.FoMButton, self.OptimizeFoMButton,
+                    self.OptimizeDipoleButton):
+                button.setEnabled(False)
+                button.repaint()
         self.stateHolder.append(selectedState)
         
         q = selectedState
@@ -2261,9 +2410,16 @@ class MainWindow(QMainWindow):
         self.selectedWF.append(curve)
         self.quantumCanvas.replot()
         
+        energyString  = (u"selected: %d, ..<br>"%selectedState)
+
         #  if np.mod(len(self.stateHolder),2) == 0:
         if len(self.stateHolder) == 2:
+            self.pairSelected = True
+            #TODO: put these enablement to a functions
             self.FoMButton.setEnabled(True)
+            if self.solveType == 'whole':
+                self.OptimizeFoMButton.setEnabled(True)
+                self.OptimizeDipoleButton.setEnabled(True)
             E_i = self.qclayers.EigenE[self.stateHolder[0]]
             E_j = self.qclayers.EigenE[self.stateHolder[1]]
             if E_i > E_j:
@@ -2312,8 +2468,8 @@ class MainWindow(QMainWindow):
             else:
                 self.FoMButton.setEnabled(False)
             
-            self.pairSelectString.clear()
-            self.pairSelectString.setText(energyString)        
+        self.pairSelectString.clear()
+        self.pairSelectString.setText(energyString)        
 
     def transfer_optical_parameters(self):
         #set wavelength
@@ -3170,6 +3326,7 @@ class MainWindow(QMainWindow):
         fname = unicode(QFileDialog.getSaveFileName(self,"ErwinJr - Export Band Structure Data",self.filename.split('.')[0],
                 "Comma-Separated Value file (*.csv)"))
         if fname != '': #if user doesn't click cancel
+            # TODO: savetxt is not defined
             savetxt(fname.split('.')[0] + '_CB' + '.csv', np.column_stack([self.qclayers.xPoints,self.qclayers.xVc]), delimiter=',')
         
             try: self.qclayers.xyPsiPsi
