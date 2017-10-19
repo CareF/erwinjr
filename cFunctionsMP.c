@@ -13,6 +13,9 @@ const double hbar = 6.626e-34 / 2 / 3.141592653589793;
 const double m0 = 9.109e-31;
 const double e0 = 1.602e-19;
 const double pi = 3.1415926535897932385;
+/*
+ * TODO: using only selected MP functions
+ * */
 
 void psiFn(double Eq, int startpoint, int xPsiSize, double xres, 
 		const double *xVc, const double *xEg, const double *xF, 
