@@ -55,8 +55,8 @@ from ThePhysics import h, c0, e0
 #===============================================================================
 # Version
 #===============================================================================
-ejVersion = 170931
-majorVersion = '3.0.0'
+ejVersion = 171018
+majorVersion = '3.0.2'
 
 
 class MainWindow(QMainWindow):
