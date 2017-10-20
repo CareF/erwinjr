@@ -156,9 +156,10 @@ OUTPUT:
 int returnme()
 {return 42;}
 
-int psiFill(int xPsiSize, double xres, int EigenESize, double *EigenE, 
-		double *xVc, double *xEg, double *xF, double *xEp, double *xESO, 
-		double *xMc, double *xMcE, double *xyPsi)
+int psiFill(int xPsiSize, double xres, int EigenESize, const double *EigenE, 
+		const double *xVc, const double *xEg, const double *xF, 
+		const double *xEp, const double *xESO, const double *xMc, 
+		double *xMcE, double *xyPsi)
 { /* To calculate a series of wave function according to given eigen energy
 INPUT:
 	EigenE[n] is the n-th eigen-energy, with length EigenESize
@@ -191,6 +192,22 @@ OUTPUT:
 			xyPsi[col*xPsiSize+q] *= NormFactor;
 	}
 	return 1;
+}
+
+double inv_tau_int(int xPsiSize, double xres, double kl, 
+		const double * xPoints, const double *psi_i, const double *psi_j) {
+	/* To calculate the LO phonon life time between two given wave functions,
+	 * The integral part
+	 * see Eq.(2.65) in Kale's*/
+	double Iij = 0;
+#pragma omp parallel for reduction(+:Iij)
+	for(int i=0; i < xPsiSize; i++){
+		for(int j=0; j < xPsiSize; j++){
+			Iij += psi_i[i]*psi_j[i] * exp(-kl*ANG*fabs(xPoints[i] - xPoints[j]))
+					* psi_i[j] * psi_j[j]; 
+		}
+	}
+	return Iij * sq(xres*ANG);
 }
 
 
