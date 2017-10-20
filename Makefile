@@ -7,8 +7,8 @@ cFunctions.o : cFunctions.c complex.h
 cFunctionsMP.so : cFunctionsMP.o
 	cc -shared -fPIC -fopenmp -o cFunctionsMP.so cFunctionsMP.o
 
-cFunctionsMP.o : cFunctionsMP.c complex.h
-	cc -c -fPIC -fopenmp cFunctionsMP.c
+cFunctionsMP.o : cFunctions.c complex.h
+	cc -c -fPIC -fopenmp -D __MP cFunctions.c
 
 .PHONY : clean
 clean :

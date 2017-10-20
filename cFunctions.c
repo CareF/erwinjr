@@ -2,6 +2,10 @@
 #include <math.h>
 #include <stdint.h>
 #include "complex.h"
+#ifdef __MP /*openmp support*/
+#include <stdlib.h>
+#include <omp.h>
+#endif 
 
 #define ANG 1E-10 /*angstrom in m */
 #define KVpCM 1E5 /*kV/cm in V/m (SI unit) */
@@ -96,8 +100,15 @@ OUTPUT:
 		supposed to be 0 for eigenenergy 
   */
 	const double extLength=200; /*nm, the extend length for start point*/ 
+#ifdef __MP
+#pragma omp parallel for private(xMcE, xPsi)
+#endif
 	for(int q=0; q<eEqSize; q++)
 	{
+#ifdef __MP
+		xMcE = (double *)malloc(xPsiSize * sizeof(double));
+		xPsi = (double *)malloc(xPsiSize * sizeof(double));
+#endif
 		double Eq = eEq[q];
 		/* set start point, according to energy offset and external field */
 		int startpoint = xPsiSize - ceil(
@@ -108,6 +119,10 @@ OUTPUT:
 		psiFn(Eq, startpoint, xPsiSize, xres, 
 				xVc, xEg, xF, xEp, xESO, xMc, xMcE, xPsi);
 		xPsiEnd[q] = xPsi[xPsiSize-1];
+#ifdef __MP
+		free(xMcE);
+		free(xPsi);
+#endif
 		//printf("%d: %g %d        ", q, eEq[q], startpoint);
 		//printf("%d  ", startpoint);
 	}
@@ -190,6 +205,9 @@ double inv_tau_int(int xPsiSize, double xres, double kl,
 	 * The integral part
 	 * see Eq.(2.65) in Kale's*/
 	double Iij = 0;
+#ifdef __MP
+#pragma omp parallel for reduction(+:Iij)
+#endif
 	for(int i=0; i < xPsiSize; i++){
 		for(int j=0; j < xPsiSize; j++){
 			Iij += psi_i[i]*psi_j[i] * exp(-kl*ANG*fabs(xPoints[i] - xPoints[j]))
