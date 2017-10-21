@@ -589,7 +589,8 @@ class QCLayers(object):
                       GaN  (TBD)
         basisARInjector & basisInjectorAR: where should the layer separate 
                     for basis solver
-        moleFrac: mole fraction for each possible layer material, in format [
+        moleFrac: mole fraction for each possible layer material, in format 
+                    [well, barrier]*4
     """
     def __init__(self):
         self.layerWidths = np.array([1.,1.]) # angstrom
@@ -977,6 +978,8 @@ class QCLayers(object):
         #2nd major assumption: 
         #   Temperature affects sattelite valleys in the same way it does 
         #   the Gamma valley
+        # ??But why is it working on offset between wells and barriers, not
+        # within the same material? This is not reasonable! (TODO)
         barrs = np.array([1,3,5,7])
         wells = np.array([0,2,4,6])
         CBOffset = self.EcG[barrs] - self.EcG[wells]
