@@ -23,7 +23,6 @@
 #===============================================================================
 
 # TODO: 
-# remove np.hstack
 # material related codes should be moved to MaterialConstants
 # try separate this file to QCLayers.py and Strata.py
 # try use dict type for substrate restriction on material
@@ -677,16 +676,16 @@ class QCLayers(object):
         if self.repeats >= 2:
             self.xPoints = np.arange(0, self.layerWidths.sum()
                 + self.layerWidths[1:].sum()*(self.repeats-1), self.xres)
-            self.xBarriers = np.hstack(   [self.xBarriers, np.tile(
-                self.xBarriers[layerNumCumSum[1]:], self.repeats-1)  ])
-            self.xARs = np.hstack(        [self.xARs, np.tile(
-                self.xARs[layerNumCumSum[1]:], self.repeats-1)       ])
-            self.xMaterials = np.hstack(  [self.xMaterials, np.tile(
-                self.xMaterials[layerNumCumSum[1]:], self.repeats-1) ])
-            self.xDopings = np.hstack(    [self.xDopings, np.tile(
-                self.xDopings[layerNumCumSum[1]:], self.repeats-1)   ])
-            self.xLayerNums = np.hstack(  [self.xLayerNums, np.tile(
-                self.xLayerNums[layerNumCumSum[1]:], self.repeats-1) ])
+            self.xBarriers = np.concatenate(( self.xBarriers, np.tile(
+                self.xBarriers[layerNumCumSum[1]:], self.repeats-1) ))
+            self.xARs = np.concatenate(( self.xARs, np.tile(
+                self.xARs[layerNumCumSum[1]:], self.repeats-1) ))
+            self.xMaterials = np.concatenate(( self.xMaterials, np.tile(
+                self.xMaterials[layerNumCumSum[1]:], self.repeats-1) ))
+            self.xDopings = np.concatenate(( self.xDopings, np.tile(
+                self.xDopings[layerNumCumSum[1]:], self.repeats-1) ))
+            self.xLayerNums = np.concatenate(( self.xLayerNums, np.tile(
+                self.xLayerNums[layerNumCumSum[1]:], self.repeats-1) ))
 
 
         #this hack is needed because sometimes self.xPoints is one element too big
@@ -1242,13 +1241,20 @@ class QCLayers(object):
             #substitute proper layer characteristics into dCL[n], hear/tail
             #  padding
             layer = range(dividers[n], dividers[n+1]+1)
-            dCL[n].layerWidths = np.hstack([PAD_WIDTH, self.layerWidths[layer], 30])
-            dCL[n].layerBarriers = np.hstack([1, self.layerBarriers[layer], 1])
-            dCL[n].layerARs = np.hstack([0, self.layerARs[layer], 0])
-            dCL[n].layerMaterials = np.hstack([self.layerMaterials[layer][0], 
-                self.layerMaterials[layer], self.layerMaterials[layer][-1]])
-            dCL[n].layerDopings = np.hstack([0, self.layerDopings[layer], 0])
-            dCL[n].layerDividers = np.hstack([0, self.layerDividers[layer], 0])
+            dCL[n].layerWidths = np.concatenate(
+                    (PAD_WIDTH, self.layerWidths[layer], 30))
+            dCL[n].layerBarriers = np.concatenate(
+                    (1, self.layerBarriers[layer], 1))
+            dCL[n].layerARs = np.concatenate(
+                    (0, self.layerARs[layer], 0))
+            dCL[n].layerMaterials = np.concatenate(
+                    (self.layerMaterials[layer][0], 
+                        self.layerMaterials[layer], 
+                        self.layerMaterials[layer][-1]))
+            dCL[n].layerDopings = np.concatenate(
+                    (0, self.layerDopings[layer], 0))
+            dCL[n].layerDividers = np.concatenate(
+                    (0, self.layerDividers[layer], 0))
 
             #update and solve
             dCL[n].update_alloys()
