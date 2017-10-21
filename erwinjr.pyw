@@ -30,6 +30,8 @@
 # Ctrl+z support
 # add status bar
 # add target wavelength for optimization
+# In plot controls, add "show one period" 
+# save and load pickle for qclayers
 
 from __future__ import division
 import os, sys
@@ -55,13 +57,13 @@ from ThePhysics import h, c0, e0
 #============================================================================
 # Version
 #============================================================================
-ejVersion = 171018
-majorVersion = '3.0.2'
+ejVersion = 171020
+majorVersion = '3.0.3'
 
 #============================================================================
 # Debug options
 #============================================================================
-DEBUG = 4
+DEBUG = 1
 if DEBUG >=3: 
     import pickle
 
@@ -81,6 +83,7 @@ class MainWindow(QMainWindow):
         
         self.qclayers = ThePhysics.QCLayers()
         self.strata = ThePhysics.Strata()
+        self.numMaterials = self.qclayers.numMaterials #=8, to improve (TODO)
         
         self.stratumMaterialsList = ['Active Core', 
                                      'InP',
@@ -298,94 +301,55 @@ class MainWindow(QMainWindow):
         LpLayout_groupBox.setLayout(LpLayout)
         
         #set up material composition inputs
-        self.mtrl_title   = QLabel('<center><b>Mole Fractions</b></center')
-        self.mtrl_header1    = QLabel('<center><b>In<sub>x</sub>Ga<sub>1-x</sub>As</b></center')
-        self.mtrl_header2    = QLabel('<center><b>Al<sub>1-x</sub>In<sub>x</sub>As</b></center')
-        self.mtrl_header3    = QLabel('<center><b>Offset</b></center')
-        # TODO: change to loop and init with qclayer default setting
-        self.mtrl_row1 = QLabel('<center><b>#1</b></center')
-        self.mtrl_row2 = QLabel('<center><b>#2</b></center')
-        self.mtrl_row3 = QLabel('<center><b>#3</b></center')
-        self.mtrl_row4 = QLabel('<center><b>#4</b></center')
-        #TODO: chage self.inputMoleFracnBox to a list and the following to loop
-        self.inputMoleFrac1Box = QDoubleSpinBox()
-        self.inputMoleFrac1Box.setDecimals(3)
-        self.inputMoleFrac1Box.setValue(0.53)
-        self.inputMoleFrac1Box.setRange(0.0,1.0)
-        self.inputMoleFrac1Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac1Box, SIGNAL("editingFinished()"), partial(self.input_moleFrac,1))
-        self.inputMoleFrac2Box = QDoubleSpinBox()
-        self.inputMoleFrac2Box.setDecimals(3)
-        self.inputMoleFrac2Box.setValue(0.52)
-        self.inputMoleFrac2Box.setRange(0.0,1.0)
-        self.inputMoleFrac2Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac2Box, SIGNAL("editingFinished()"), partial(self.input_moleFrac,2))
-        self.inputMoleFrac3Box = QDoubleSpinBox()
-        self.inputMoleFrac3Box.setDecimals(3)
-        self.inputMoleFrac3Box.setValue(0.53)
-        self.inputMoleFrac3Box.setRange(0.0,1.0)
-        self.inputMoleFrac3Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac3Box, SIGNAL("editingFinished()"), partial(self.input_moleFrac,3))
-        self.inputMoleFrac4Box = QDoubleSpinBox()
-        self.inputMoleFrac4Box.setDecimals(3)
-        self.inputMoleFrac4Box.setValue(0.52)
-        self.inputMoleFrac4Box.setRange(0.0,1.0)
-        self.inputMoleFrac4Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac4Box, SIGNAL("editingFinished()"), partial(self.input_moleFrac,4))
-        self.inputMoleFrac5Box = QDoubleSpinBox()
-        self.inputMoleFrac5Box.setDecimals(3)
-        self.inputMoleFrac5Box.setValue(0.53)
-        self.inputMoleFrac5Box.setRange(0.0,1.0)
-        self.inputMoleFrac5Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac5Box, SIGNAL("editingFinished()"), partial(self.input_moleFrac,5))
-        self.inputMoleFrac6Box = QDoubleSpinBox()
-        self.inputMoleFrac6Box.setDecimals(3)
-        self.inputMoleFrac6Box.setValue(0.52)
-        self.inputMoleFrac6Box.setRange(0.0,1.0)
-        self.inputMoleFrac6Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac6Box, SIGNAL("editingFinished()"), partial(self.input_moleFrac,6))
-        self.inputMoleFrac7Box = QDoubleSpinBox()
-        self.inputMoleFrac7Box.setDecimals(3)
-        self.inputMoleFrac7Box.setValue(0.53)
-        self.inputMoleFrac7Box.setRange(0.0,1.0)
-        self.inputMoleFrac7Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac7Box, SIGNAL("valueChanged(double)"), partial(self.input_moleFrac,7))
-        self.inputMoleFrac8Box = QDoubleSpinBox()
-        self.inputMoleFrac8Box.setDecimals(3)
-        self.inputMoleFrac8Box.setValue(0.52)
-        self.inputMoleFrac8Box.setRange(0.0,1.0)
-        self.inputMoleFrac8Box.setSingleStep(0.001)
-        self.connect(self.inputMoleFrac8Box, SIGNAL("valueChanged(double)"), partial(self.input_moleFrac,8))
-        self.offset1Label = QLabel('')
-        self.offset2Label = QLabel('')
-        self.offset3Label = QLabel('')
-        self.offset4Label = QLabel('')
+        self.mtrl_header1 = QLabel(
+                '<center><b>In<sub>x</sub>Ga<sub>1-x</sub>As</b></center>')
+        self.mtrl_header2 = QLabel(
+                '<center><b>Al<sub>1-x</sub>In<sub>x</sub>As</b></center>')
+        self.mtrl_header3 = QLabel('<center><b>Offset</b></center')
+
+        self.MoleFracWellBox = []
+        self.MoleFracBarrBox = []
+        self.offsetLabel = []
+        for n in range(self.numMaterials//2):
+            self.MoleFracWellBox.append(QDoubleSpinBox())
+            self.MoleFracWellBox[n].setDecimals(3)
+            self.MoleFracWellBox[n].setValue(0.53)
+            self.MoleFracWellBox[n].setRange(0.0, 1.0)
+            self.MoleFracWellBox[n].setSingleStep(0.001)
+            self.connect(self.MoleFracWellBox[n],
+                    SIGNAL("editingFinished()"), 
+                    partial(self.input_moleFrac, 2*n))
+            self.MoleFracBarrBox.append(QDoubleSpinBox())
+            self.MoleFracBarrBox[n].setDecimals(3)
+            self.MoleFracBarrBox[n].setValue(0.52)
+            self.MoleFracBarrBox[n].setRange(0.0, 1.0)
+            self.MoleFracBarrBox[n].setSingleStep(0.001)
+            self.connect(self.MoleFracBarrBox[n],
+                    SIGNAL("editingFinished()"), 
+                    partial(self.input_moleFrac, 2*n+1))
+            self.offsetLabel.append(QLabel(''))
+
         self.strainDescription = QLabel('')
         self.LOPhononDescription = QLabel('')
         #self.strainDescription.setTextAlignment(Qt.AlignHCenter)
         mtrl_grid = QGridLayout()
-        mtrl_grid.addWidget(self.mtrl_title, 0,0, 1,4)
+        mtrl_title   = QLabel('<center><b>Mole Fractions</b></center>')
+        mtrl_grid.addWidget(mtrl_title, 0,0, 1,4)
         mtrl_grid.addWidget(self.mtrl_header1, 1,1)
         mtrl_grid.addWidget(self.mtrl_header2, 1,2)
         mtrl_grid.addWidget(self.mtrl_header3, 1,3)
-        mtrl_grid.addWidget(self.mtrl_row1, 2,0)
-        mtrl_grid.addWidget(self.inputMoleFrac1Box, 2,1)
-        mtrl_grid.addWidget(self.inputMoleFrac2Box, 2,2)
-        mtrl_grid.addWidget(self.offset1Label, 2,3)
-        mtrl_grid.addWidget(self.mtrl_row2, 3,0)
-        mtrl_grid.addWidget(self.inputMoleFrac3Box, 3,1)
-        mtrl_grid.addWidget(self.inputMoleFrac4Box, 3,2)
-        mtrl_grid.addWidget(self.offset2Label, 3,3)
-        mtrl_grid.addWidget(self.mtrl_row3, 4,0)
-        mtrl_grid.addWidget(self.inputMoleFrac5Box, 4,1)
-        mtrl_grid.addWidget(self.inputMoleFrac6Box, 4,2)
-        mtrl_grid.addWidget(self.offset3Label, 4,3)
-        mtrl_grid.addWidget(self.mtrl_row4, 5,0)
-        mtrl_grid.addWidget(self.inputMoleFrac7Box, 5,1)
-        mtrl_grid.addWidget(self.inputMoleFrac8Box, 5,2)
-        mtrl_grid.addWidget(self.offset4Label, 5,3)
-        mtrl_grid.addWidget(self.strainDescription, 6,0, 1,4)
-        mtrl_grid.addWidget(self.LOPhononDescription, 7,0, 1,4)
+        for n in range(self.numMaterials//2):
+            mtrl_grid.addWidget(QLabel('<center><b>#%d</b></center>'%(n+1)), 2+n, 0)
+            mtrl_grid.addWidget(self.MoleFracWellBox[n], 2+n, 1)
+            mtrl_grid.addWidget(self.MoleFracBarrBox[n], 2+n, 2)
+            mtrl_grid.addWidget(self.offsetLabel[n], 2+n, 3)
+
+        mtrl_well    = QLabel('<center>(well)</center>')
+        mtrl_barr    = QLabel('<center>(barrier)</center>')
+        mtrl_grid.addWidget(mtrl_well, 6,1)
+        mtrl_grid.addWidget(mtrl_barr, 6,2)
+        mtrl_grid.addWidget(self.strainDescription, 7,0, 1,4)
+        mtrl_grid.addWidget(self.LOPhononDescription, 8,0, 1,4)
         self.mtrl_groupBox = QGroupBox()
         self.mtrl_groupBox.setLayout(mtrl_grid)
         
@@ -1579,24 +1543,17 @@ class MainWindow(QMainWindow):
         except Exception as err:
             QMessageBox.warning(self,"ErwinJr - Warning",
                              "Substrate data wrong.\n"+str(err))
-        self.inputMoleFrac1Box.setValue(self.qclayers.moleFrac[0])
-        self.inputMoleFrac2Box.setValue(self.qclayers.moleFrac[1])
-        self.inputMoleFrac3Box.setValue(self.qclayers.moleFrac[2])
-        self.inputMoleFrac4Box.setValue(self.qclayers.moleFrac[3])
-        self.inputMoleFrac5Box.setValue(self.qclayers.moleFrac[4])
-        self.inputMoleFrac6Box.setValue(self.qclayers.moleFrac[5])
-        self.inputMoleFrac7Box.setValue(self.qclayers.moleFrac[6])
-        self.inputMoleFrac8Box.setValue(self.qclayers.moleFrac[7])
         
         self.qclayers.update_alloys()
         self.qclayers.update_strain()
         self.qclayers.populate_x()
+        for n in range(self.numMaterials//2):
+            self.MoleFracWellBox[n].setValue(self.qclayers.moleFrac[2*n])
+            self.MoleFracBarrBox[n].setValue(self.qclayers.moleFrac[2*n+1])
+            self.offsetLabel[n].setText("%6.0f meV" %
+                    ((self.qclayers.EcG[2*n+1]-self.qclayers.EcG[2*n])*1000))
+
         self.update_quantumCanvas()
-        
-        self.offset1Label.setText("%6.0f meV" % ((self.qclayers.EcG[1]-self.qclayers.EcG[0])*1000))
-        self.offset2Label.setText("%6.0f meV" % ((self.qclayers.EcG[3]-self.qclayers.EcG[2])*1000))
-        self.offset3Label.setText("%6.0f meV" % ((self.qclayers.EcG[5]-self.qclayers.EcG[4])*1000))
-        self.offset4Label.setText("%6.0f meV" % ((self.qclayers.EcG[7]-self.qclayers.EcG[6])*1000))
         
         strainString = ("<center>Net Strain: <b>%6.3f%%</b></center>" %
                 self.qclayers.netStrain)
@@ -1779,22 +1736,9 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()
 
     def input_moleFrac(self, boxID):
-        if boxID == 1:
-            self.qclayers.moleFrac[0] = float(self.inputMoleFrac1Box.value())
-        elif boxID == 2:
-            self.qclayers.moleFrac[1] = float(self.inputMoleFrac2Box.value())
-        elif boxID == 3:
-            self.qclayers.moleFrac[2] = float(self.inputMoleFrac3Box.value())
-        elif boxID == 4:
-            self.qclayers.moleFrac[3] = float(self.inputMoleFrac4Box.value())
-        elif boxID == 5:
-            self.qclayers.moleFrac[4] = float(self.inputMoleFrac5Box.value())
-        elif boxID == 6:
-            self.qclayers.moleFrac[5] = float(self.inputMoleFrac6Box.value())
-        elif boxID == 7:
-            self.qclayers.moleFrac[6] = float(self.inputMoleFrac7Box.value())
-        elif boxID == 8:
-            self.qclayers.moleFrac[7] = float(self.inputMoleFrac8Box.value())
+        self.qclayers.moleFrac[boxID] = float(
+                self.MoleFracWellBox[boxID//2].value() if boxID % 2 == 0
+                else self.MoleFracBarrBox[(boxID-1)//2].value())
             
         self.dirty = True
         self.update_windowTitle()
@@ -3023,6 +2967,7 @@ class MainWindow(QMainWindow):
         return True
 
     def qclPtonLoad(self, fname):
+        """Legacy load"""
         try:
             filehandle = open(fname, 'r')
             self.qclayers.description = filehandle.readline().split(':')[1].strip()
@@ -3082,14 +3027,8 @@ class MainWindow(QMainWindow):
             self.qclayers.EField      = float(valDict['Efield'])
             self.qclayers.xres        = float(valDict['xres'])
             self.qclayers.vertRes     = float(valDict['Eres'])
-            self.qclayers.moleFrac[0]   = float(valDict['moleFrac1'])
-            self.qclayers.moleFrac[1]   = float(valDict['moleFrac2'])
-            self.qclayers.moleFrac[2]   = float(valDict['moleFrac3'])
-            self.qclayers.moleFrac[3]   = float(valDict['moleFrac4'])
-            self.qclayers.moleFrac[4]   = float(valDict['moleFrac5'])
-            self.qclayers.moleFrac[5]   = float(valDict['moleFrac6'])
-            self.qclayers.moleFrac[6]   = float(valDict['moleFrac7'])
-            self.qclayers.moleFrac[7]   = float(valDict['moleFrac8'])
+            for n in range(self.numMaterials):
+                self.qclayers.moleFrac[n] = float(valDict['moleFrac%d'%(n+1)])
             self.qclayers.solver      = valDict['Solver']
             self.qclayers.Temperature = float(valDict['Temp'])
             self.qclayers.TempFoM     = float(valDict['TempFoM'])
@@ -3188,14 +3127,9 @@ class MainWindow(QMainWindow):
         filehandle.write("Efield:" + str(self.qclayers.EField) + '\n')
         filehandle.write("xres:" + str(self.qclayers.xres) + '\n')
         filehandle.write("Eres:" + str(self.qclayers.vertRes) + '\n')
-        filehandle.write("moleFrac1:" + str(self.qclayers.moleFrac[0]) + '\n')
-        filehandle.write("moleFrac2:" + str(self.qclayers.moleFrac[1]) + '\n')
-        filehandle.write("moleFrac3:" + str(self.qclayers.moleFrac[2]) + '\n')
-        filehandle.write("moleFrac4:" + str(self.qclayers.moleFrac[3]) + '\n')
-        filehandle.write("moleFrac5:" + str(self.qclayers.moleFrac[4]) + '\n')
-        filehandle.write("moleFrac6:" + str(self.qclayers.moleFrac[5]) + '\n')
-        filehandle.write("moleFrac7:" + str(self.qclayers.moleFrac[6]) + '\n')
-        filehandle.write("moleFrac8:" + str(self.qclayers.moleFrac[7]) + '\n')
+        for n in range(self.numMaterials ):
+            filehandle.write("moleFrac%d:"%(n+1) +
+                    str(self.qclayers.moleFrac[n]) + '\n')
         filehandle.write("Solver:" + self.qclayers.solver + '\n')
         filehandle.write("Temp:" + str(self.qclayers.Temperature) + '\n')
         filehandle.write("TempFoM:" + str(self.qclayers.TempFoM) + '\n')
@@ -3240,35 +3174,35 @@ class MainWindow(QMainWindow):
         filehandle.close()
         return True
 
-    def qclPtonSave(self, fname):
-        filehandle = open(fname, 'w')
-        filehandle.write("Description:" + self.qclayers.description + '\n')
-        filehandle.write("Efield:" + str(self.qclayers.EField) + '\n')
-        filehandle.write("xres:" + str(self.qclayers.xres) + '\n')
-        filehandle.write("Eres:" + str(self.qclayers.vertRes) + '\n')
-        filehandle.write("InGaAsx:" + str(self.qclayers.moleFrac[0]) + '\n')
-        filehandle.write("AlInAsx:" + str(self.qclayers.moleFrac[1]) + '\n')
-        filehandle.write("InGaAsx2:" + str(self.qclayers.moleFrac[2]) + '\n')
-        filehandle.write("AlInAsx2:" + str(self.qclayers.moleFrac[3]) + '\n')
-        filehandle.write("Solver:" + self.qclayers.solver + '\n')
-        filehandle.write("Temp:" + str(self.qclayers.Temp) + '\n')
-        filehandle.write("TempFoM:" + str(self.qclayers.TempFoM) + '\n')
-        filehandle.write("PlotPeriods:" + str(self.qclayers.repeats) + '\n')
-        filehandle.write("DiffLeng:" + str(self.qclayers.diffLength) + '\n')
+    #  def qclPtonSave(self, fname):
+        #  filehandle = open(fname, 'w')
+        #  filehandle.write("Description:" + self.qclayers.description + '\n')
+        #  filehandle.write("Efield:" + str(self.qclayers.EField) + '\n')
+        #  filehandle.write("xres:" + str(self.qclayers.xres) + '\n')
+        #  filehandle.write("Eres:" + str(self.qclayers.vertRes) + '\n')
+        #  filehandle.write("InGaAsx:" + str(self.qclayers.moleFrac[0]) + '\n')
+        #  filehandle.write("AlInAsx:" + str(self.qclayers.moleFrac[1]) + '\n')
+        #  filehandle.write("InGaAsx2:" + str(self.qclayers.moleFrac[2]) + '\n')
+        #  filehandle.write("AlInAsx2:" + str(self.qclayers.moleFrac[3]) + '\n')
+        #  filehandle.write("Solver:" + self.qclayers.solver + '\n')
+        #  filehandle.write("Temp:" + str(self.qclayers.Temp) + '\n')
+        #  filehandle.write("TempFoM:" + str(self.qclayers.TempFoM) + '\n')
+        #  filehandle.write("PlotPeriods:" + str(self.qclayers.repeats) + '\n')
+        #  filehandle.write("DiffLeng:" + str(self.qclayers.diffLength) + '\n')
         
-        filehandle.write("regionNum\twellWdiths\tbarrierSwitch\tarSwitch\tmaterial\tdoping\tdivider\n")
-        for row in xrange(self.qclayers.layerWidths.size):
-            string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, 
-                    self.qclayers.layerWidths[row], 
-                    self.qclayers.layerBarriers[row], 
-                    self.qclayers.layerARs[row], 
-                    self.qclayers.layerMaterials[row], 
-                    self.qclayers.layerDopings[row], 
-                    self.qclayers.layerDividers[row])
-            filehandle.write(string)
+        #  filehandle.write("regionNum\twellWdiths\tbarrierSwitch\tarSwitch\tmaterial\tdoping\tdivider\n")
+        #  for row in xrange(self.qclayers.layerWidths.size):
+            #  string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, 
+                    #  self.qclayers.layerWidths[row], 
+                    #  self.qclayers.layerBarriers[row], 
+                    #  self.qclayers.layerARs[row], 
+                    #  self.qclayers.layerMaterials[row], 
+                    #  self.qclayers.layerDopings[row], 
+                    #  self.qclayers.layerDividers[row])
+            #  filehandle.write(string)
             
-        filehandle.close()
-        return True
+        #  filehandle.close()
+        #  return True
 
     def closeEvent(self, event):
         if self.okToContinue():
