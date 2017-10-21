@@ -23,7 +23,7 @@
 #===============================================================================
 
 # TODO: 
-# replace np.hstack
+# replace np.hstack (done, but self.strata part to test)
 # find replacement for psyco, or try to use Cython
 # try to seperate this file to smaller ones
 # check unnecessary function call
