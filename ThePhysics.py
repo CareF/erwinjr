@@ -23,6 +23,7 @@
 #===============================================================================
 
 # TODO: 
+# remove np.hstack
 # material related codes should be moved to MaterialConstants
 # try separate this file to QCLayers.py and Strata.py
 # try use dict type for substrate restriction on material
