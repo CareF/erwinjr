@@ -29,7 +29,8 @@
 # try use dict type for substrate restriction on material
 # all width shoud become integral, with unit xres
 # Add solve well (helping tight binding model design
-# Performance improve: lo_transition_rate and solve_psi (1st overall Epoints)
+# Performance improve: lo_transition_rate and solve_psi: Done
+# Try matrix eigen solver in solve_psi
 
 from __future__ import division
 #  from numpy import *

@@ -2461,7 +2461,8 @@ class MainWindow(QMainWindow):
                 self.update_windowTitle()  
                 self.plotDirty = True
                 self.update_quantumCanvas()
-        print "done"
+        print DEBUG >= 1:
+            print "done"
 
     def ginput(self, aQPointF):
         """Pair select in GUI, according to mouse click
