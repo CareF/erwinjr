@@ -30,14 +30,8 @@ def qclLoad(fname):
     qclayers.EField      = float(valDict['Efield'])
     qclayers.xres        = float(valDict['xres'])
     qclayers.vertRes     = float(valDict['Eres'])
-    qclayers.moleFrac[0]   = float(valDict['moleFrac1'])
-    qclayers.moleFrac[1]   = float(valDict['moleFrac2'])
-    qclayers.moleFrac[2]   = float(valDict['moleFrac3'])
-    qclayers.moleFrac[3]   = float(valDict['moleFrac4'])
-    qclayers.moleFrac[4]   = float(valDict['moleFrac5'])
-    qclayers.moleFrac[5]   = float(valDict['moleFrac6'])
-    qclayers.moleFrac[6]   = float(valDict['moleFrac7'])
-    qclayers.moleFrac[7]   = float(valDict['moleFrac8'])
+    for n in range(8):
+        self.qclayers.moleFrac[n] = float(valDict['moleFrac%d'%(n+1)])
     qclayers.solver      = valDict['Solver']
     qclayers.Temperature = float(valDict['Temp'])
     qclayers.TempFoM     = float(valDict['TempFoM'])
@@ -109,17 +103,27 @@ def check_class(a, b):
             equal = (item == getattr(b,key))
         print key, equal
 
-if __name__  == "__main__":
-    if len(sys.argv) != 3:
-        print "Usage: python2 %s input_filename output_name"%sys.argv[0]
-    f_input = sys.argv[1]
-    f_output = sys.argv[2]
-    qclayers = qclLoad(f_input)
+def main(qclayers):
     qclayers.solve_psi()
     upper = 19
     lower = 15
     FoM = qclayers.figure_of_merit(upper, lower)
-    print qclayers.EigenE
     print FoM
+
+if __name__  == "__main__":
+    if not len(sys.argv) in (2,3):
+        print "Usage: python2 %s input_filename [output_name]"%sys.argv[0]
+    import cProfile, pstats
+    f_input = sys.argv[1]
+    if len(sys.argv) == 3: 
+        f_output = sys.argv[2]
+    else: 
+        import time
+        f_output = 'PerformanceTest_'+time.strftime("%m-%d-%y-%H:%M:%S",
+                time.localtime())
+    qclayers = qclLoad(f_input)
+    cProfile.run('main(qclayers)', filename = f_output)
+    p = pstats.Stats(f_output)
+    p.strip_dirs().sort_stats('tottime').print_stats(5)
     
 # vim: ts=4 sw=4 sts=4 expandtab
