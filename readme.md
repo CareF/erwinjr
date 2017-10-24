@@ -7,35 +7,42 @@ ErwinJr is a multi-platform application that runs on most desktop operating syst
 
 ### WINDOWS INSTALLATION ###
 
+(Update: GUI under Win is not tested for Ver>=3.0 because qwt support for new WIndows installation is out of date.)
+
 1) Do a FULL install of pythonxy from http://www.pythonxy.com/
 
 2) Under Start|Run type cmd
 
-3) type the following at the command prompt
+3) type the following at the command prompt (See following section about compiling using Visual Studio)
 
 		cd \erwinjr
 		make
 
 4) open (double click) on the file erwinjr.pyw
 
-
-### Python Dependences ###
-
-PyQt4, PyQwt5, numpy, scipy, matplotlib
-
-~~psyco is also useful~~
-
-Built and tested on Python 2.7.
-
 ### Multiprocessing Support ###
 
-The cFunctionsMP is with openmp support, tested under Linux with openmp (ver>=5.0) only. 
+The cFunctionsMP is with openmp support, tested under Linux with openmp (ver>=5.0) and Windows with Visual Studio 2017. 
 
 To compile for cFunctionsMP, using following command: 
 
 	make cFunctionsMP.so
 
 See Makefile for building detail. 
+
+### Visual Studio support ###
+
+Visual Studio support is tested under Windows 10 and Visual Studio 2017 community version. 
+
+Choosing from `Solution Configurations` to compile for non-multiprocessing (`Release`) or multiprocessing (`ReleaseMP`), and press `Ctrl+Shift+B` to build. 
+
+### Python Dependences ###
+
+PyQt4, PyQwt5, numpy, scipy, matplotlib
+
+~~psyco is also useful~~ (psyco is out of date)
+
+Built and tested on Python 2.7.
 
 ### For Arch Linux User ###
 
