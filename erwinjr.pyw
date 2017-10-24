@@ -2461,7 +2461,7 @@ class MainWindow(QMainWindow):
                 self.update_windowTitle()  
                 self.plotDirty = True
                 self.update_quantumCanvas()
-        print DEBUG >= 1:
+        if DEBUG >= 1:
             print "done"
 
     def ginput(self, aQPointF):
