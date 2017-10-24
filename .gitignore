@@ -5,3 +5,8 @@ PyQwt*
 *.sh
 *.pkl
 performance
+perf
+.vs
+*.dll
+x64
+qcldesign

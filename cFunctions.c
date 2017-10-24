@@ -16,6 +16,20 @@ const double m0 = 9.109e-31;
 const double e0 = 1.602e-19;
 const double pi = 3.1415926535897932385;
 
+#ifdef _WINDLL
+typedef int32_t numpyint;
+#else
+typedef int64_t numpyint;
+#endif // _WINDLL
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+#ifdef _WINDLL
+	__declspec(dllexport)
+#endif // _WINDLL
 void psiFn(double Eq, int startpoint, int xPsiSize, double xres, 
 		const double *xVc, const double *xEg, const double *xF, 
 		const double *xEp, const double *xESO, const double *xMc, 
@@ -82,6 +96,9 @@ RESUTL:
 	return;
 }
 
+#ifdef _WINDLL
+	__declspec(dllexport)
+#endif // _WINDLL
 int psiFnEnd(const double *eEq, int eEqSize, int xPsiSize, double xres, 
 		double EField, const double *xVc, const double *xEg, const double *xF, 
 		const double *xEp, const double *xESO, const double *xMc, 
@@ -100,10 +117,11 @@ OUTPUT:
 		supposed to be 0 for eigenenergy 
   */
 	const double extLength=200; /*nm, the extend length for start point*/ 
+	int q;
 #ifdef __MP
 #pragma omp parallel for private(xMcE, xPsi)
 #endif
-	for(int q=0; q<eEqSize; q++)
+	for(q=0; q<eEqSize; q++)
 	{
 #ifdef __MP
 		xMcE = (double *)malloc(xPsiSize * sizeof(double));
@@ -130,8 +148,11 @@ OUTPUT:
 	return 1;
 }
 
+#ifdef _WINDLL
+	__declspec(dllexport)
+#endif // _WINDLL
 int inv_quadratic_interp(const double *x, const double *y, 
-		const int64_t *idxs, int idxLength, double *root)
+		const numpyint *idxs, int idxLength, double *root)
 { /* Using inverse quadratic interpolation to get x so that y(x)=0, 
 	and thus x is the eigen-energy satisfies zero boundary condition
 
@@ -157,10 +178,15 @@ OUTPUT:
 	return 1;
 }
 
-
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif // _WINDLL
 int returnme()
 {return 42;}
 
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif // _WINDLL
 int psiFill(int xPsiSize, double xres, int EigenESize, const double *EigenE, 
 		const double *xVc, const double *xEg, const double *xF, 
 		const double *xEp, const double *xESO, const double *xMc, 
@@ -199,16 +225,20 @@ OUTPUT:
 	return 1;
 }
 
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif // _WINDLL
 double inv_tau_int(int xPsiSize, double xres, double kl, 
 		const double * xPoints, const double *psi_i, const double *psi_j) {
 	/* To calculate the LO phonon life time between two given wave functions,
 	 * The integral part
 	 * see Eq.(2.65) in Kale's*/
 	double Iij = 0;
+	int i;
 #ifdef __MP
 #pragma omp parallel for reduction(+:Iij)
 #endif
-	for(int i=0; i < xPsiSize; i++){
+	for(i=0; i < xPsiSize; i++){
 		for(int j=0; j < xPsiSize; j++){
 			Iij += psi_i[i]*psi_j[i] * exp(-kl*ANG*fabs(xPoints[i] - xPoints[j]))
 					* psi_i[j] * psi_j[j]; 
@@ -240,6 +270,10 @@ matrix mmult(matrix m1, matrix m2)
 }
 
 #define MAXLENGTH 30
+
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif // _WINDLL
 void chiImag_array(double wavelength, const double *thicknesses, 
 		const double *indexesReal, const double *indexesImag, int numLayers, 
 		const double *betaInReal, const double *betaInImag, 
@@ -315,6 +349,9 @@ void chiImag_array(double wavelength, const double *thicknesses,
 	}
 }
 
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif // _WINDLL
 double abschi_find(double wavelength, const double *thicknesses, const double *indexesReal, 
                 const double *indexesImag, int numLayers, double betaInReal, double betaInImag)
 {
@@ -379,6 +416,9 @@ double abschi_find(double wavelength, const double *thicknesses, const double *i
     return cxabs(chi);  // return a double value
 }
 
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif // _WINDLL
 int argmin(const double *values, int numElements)
 {
     int idx=0;
@@ -389,6 +429,11 @@ int argmin(const double *values, int numElements)
     return idx;
 }
 
+#define numBetas 9
+
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif // _WINDLL
 void beta_find(double wavelength, const double *thicknesses, const double *indexesReal, 
                const double *indexesImag, int numLayers, double betaInReal, double betaInImag,
                double beta_find_precision, double *betaOut)
@@ -399,7 +444,7 @@ void beta_find(double wavelength, const double *thicknesses, const double *index
     complex rInc = cmplx(0.0001,0);
     complex iInc = cmplx(0,1.0e-6);
 
-    int numBetas = 9;
+    //const int numBetas = 9;
     complex betas[9] = {0};
 
     double abschiOld=0.0, abschiNew=0.0, absdeltachi=0.0;
@@ -438,3 +483,7 @@ void beta_find(double wavelength, const double *thicknesses, const double *index
     *(betaOut+1) = imag(beta0);
 }
 
+
+#ifdef __cplusplus
+}
+#endif
