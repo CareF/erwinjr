@@ -5,6 +5,7 @@ PyQwt*
 *.sh
 *.pkl
 performance
+Performance
 perf
 .vs
 *.dll
