@@ -1245,19 +1245,19 @@ class QCLayers(object):
             #  padding
             layer = range(dividers[n], dividers[n+1]+1)
             dCL[n].layerWidths = np.concatenate(
-                    (PAD_WIDTH, self.layerWidths[layer], 30))
+                    ([PAD_WIDTH], self.layerWidths[layer], [30]))
             dCL[n].layerBarriers = np.concatenate(
-                    (1, self.layerBarriers[layer], 1))
+                    ([1], self.layerBarriers[layer], [1]))
             dCL[n].layerARs = np.concatenate(
-                    (0, self.layerARs[layer], 0))
+                    ([0], self.layerARs[layer], [0]))
             dCL[n].layerMaterials = np.concatenate(
-                    (self.layerMaterials[layer][0], 
+                    ([self.layerMaterials[layer][0]], 
                         self.layerMaterials[layer], 
-                        self.layerMaterials[layer][-1]))
+                        [self.layerMaterials[layer][-1]]))
             dCL[n].layerDopings = np.concatenate(
-                    (0, self.layerDopings[layer], 0))
+                    ([0], self.layerDopings[layer], [0]))
             dCL[n].layerDividers = np.concatenate(
-                    (0, self.layerDividers[layer], 0))
+                    ([0], self.layerDividers[layer], [0]))
 
             #update and solve
             dCL[n].update_alloys()
