@@ -54,11 +54,20 @@ import settings
 import MaterialConstantsDict
 cst = MaterialConstantsDict.MaterialConstantsDict()
 
+MULTI_PROCESSING = True
 from ctypes import *
-try:
-    cFunctions=CDLL('./cFunctions.so')
-except WindowsError:
-    cFunctions=CDLL('cFunctions.dll')
+if MULTI_PROCESSING:
+    try:
+        cFunctions=CDLL('./cFunctionsMP.so')
+    except WindowsError:
+        cFunctions=CDLL('cFunctionsMP.dll')
+    except: 
+        print "unable to load cFunctionsMP"
+else:
+    try:
+        cFunctions=CDLL('./cFunctions.so')
+    except WindowsError:
+        cFunctions=CDLL('cFunctions.dll')
 
 #===============================================================================
 # Global Variables
@@ -81,12 +90,6 @@ INV_INF = 1e-20 # for infinit small decay rate (ns-1)
 USE_CLIB = True
 MORE_INTERPOLATION = True # One more time interpolation for eigen solver
 PAD_WIDTH=100 # width padded in the beginning of the given region for basis solver
-MULTI_PROCESSING = True
-if MULTI_PROCESSING:
-    try:
-        cFunctions=CDLL('./cFunctionsMP.so')
-    except: 
-        print "unable to load cFunctionsMP"
 
 #===============================================================================
 # Reference
