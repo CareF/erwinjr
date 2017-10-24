@@ -31,7 +31,7 @@ def qclLoad(fname):
     qclayers.xres        = float(valDict['xres'])
     qclayers.vertRes     = float(valDict['Eres'])
     for n in range(8):
-        self.qclayers.moleFrac[n] = float(valDict['moleFrac%d'%(n+1)])
+        qclayers.moleFrac[n] = float(valDict['moleFrac%d'%(n+1)])
     qclayers.solver      = valDict['Solver']
     qclayers.Temperature = float(valDict['Temp'])
     qclayers.TempFoM     = float(valDict['TempFoM'])
