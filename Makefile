@@ -1,14 +1,18 @@
+# CC = icc
+# CFLAGS = -march=native -O3 -gcc-name=gcc-6
+CC = gcc
+CFLAGS = -march=native -Ofast
 cFunctions.so : cFunctions.o
-	cc -shared -fPIC -o cFunctions.so cFunctions.o
+	$(CC) -shared -fPIC -o cFunctions.so cFunctions.o
 
 cFunctions.o : cFunctions.c complex.h
-	cc -c -fPIC -O2 cFunctions.c
+	$(CC) -c -fPIC $(CFLAGS) cFunctions.c
 
 cFunctionsMP.so : cFunctionsMP.o
-	cc -shared -fPIC -fopenmp -o cFunctionsMP.so cFunctionsMP.o
+	$(CC) -shared -fPIC -fopenmp -o cFunctionsMP.so cFunctionsMP.o
 
 cFunctionsMP.o : cFunctions.c complex.h
-	cc -c -fPIC -fopenmp -D __MP -O2 cFunctions.c -o cFunctionsMP.o
+	$(CC) -c -fPIC -fopenmp -D __MP $(CFLAGS) cFunctions.c -o cFunctionsMP.o
 
 .PHONY : clean
 clean :
