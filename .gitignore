@@ -9,6 +9,10 @@ Performance
 perf
 .vs
 *.dll
+*.lib
+*.exp
+*.ilk
+*.pdb
 x64
 qcldesign
 Debug
