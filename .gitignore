@@ -11,3 +11,4 @@ perf
 *.dll
 x64
 qcldesign
+Debug
