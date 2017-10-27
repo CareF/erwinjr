@@ -397,16 +397,6 @@ class QCLayers(object):
         #set this once the others are set ???
         self.epsrho = 1 / (1/self.epsInf - 1/self.epss)     
 
-    def eff_mass(self, E):
-        """Calculate effective mass according to energy E, 
-        according to Eq.(2.20) in Kale's thesis
-        """
-        #  xMcE = self.xMc * (1 - (self.xVc - E) / self.xEg)        
-        xMcE = 1 / (1+2*self.xF + self.xEp/3 * (
-            2 / ((E-self.xVc)+self.xEg) + 1 / (
-                 (E-self.xVc)+self.xEg+self.xESO) ))
-        return xMcE
-
     def update_strain(self):  # c is a Material_Constant class instance
         """Update strain and strain related parameters inside each layers
         (Always called after update_alloys)
@@ -537,6 +527,16 @@ class QCLayers(object):
         # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
         self.me = 1 / ( (1+2*self.F) + self.Ep/self.EgLH
                 *(self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO) )
+
+    def eff_mass(self, E):
+        """Calculate effective mass according to energy E, 
+        according to Eq.(2.20) in Kale's thesis
+        """
+        #  xMcE = self.xMc * (1 - (self.xVc - E) / self.xEg)        
+        xMcE = 1 / (1+2*self.xF + self.xEp/3 * (
+            2 / ((E-self.xVc)+self.xEg) + 1 / (
+                 (E-self.xVc)+self.xEg+self.xESO) ))
+        return xMcE
 
     def solve_psi(self):
         """ solve eigen modes
