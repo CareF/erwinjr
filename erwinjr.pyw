@@ -1364,7 +1364,7 @@ class MainWindow(QMainWindow):
     def stratumTable_itemSelectionChanged(self):
         self.strata.stratumSelected = self.stratumTable.currentRow()
         if self.strata.stratumSelected >= 0 and \
-                self.strata.stratumSelected < self.qclayers.layerWidths.size:
+                self.strata.stratumSelected < self.qclayers.layerWidth.size:
             self.strata.populate_x()
             self.update_opticalCanvas()
 
@@ -1844,7 +1844,7 @@ class MainWindow(QMainWindow):
         """
         horzRes = unicode(self.inputHorzResBox.currentText())
         horzRes = float(horzRes)
-        self.qclayers.xres = horzRes
+        self.qclayers.set_xres(horzRes)
         self.qclayers.populate_x()
         self.update_quantumCanvas()
         self.dirty = True
@@ -1877,10 +1877,10 @@ class MainWindow(QMainWindow):
         """
         Update Lp select range in the Period Info box (GUI)
         """
-        self.LpFirstSpinbox.setRange(1,self.qclayers.layerWidths.size-1)
+        self.LpFirstSpinbox.setRange(1,self.qclayers.layerWidth.size-1)
         self.LpFirstSpinbox.setValue(1)
-        self.LpLastSpinbox.setRange(1,self.qclayers.layerWidths.size-1)
-        self.LpLastSpinbox.setValue(self.qclayers.layerWidths.size-1)
+        self.LpLastSpinbox.setRange(1,self.qclayers.layerWidth.size-1)
+        self.LpLastSpinbox.setValue(self.qclayers.layerWidth.size-1)
 
     def update_Lp_box(self):
         """
@@ -1894,11 +1894,11 @@ class MainWindow(QMainWindow):
         LpLast = self.LpLastSpinbox.value()+1 
             #+1 because range is not inclusive of last value
         # total length of the layers (1 period)
-        Lp = sum(self.qclayers.layerWidths[LpFirst:LpLast]) 
+        Lp = sum(self.qclayers.layerWidth[LpFirst:LpLast]) *self.qclayers.xres
         Lp_string  = u"Lp: %g \u212B<br>" % Lp
         # total length of well (1 period)
         Lw = sum((1-self.qclayers.layerBarriers[LpFirst:LpLast])
-                *self.qclayers.layerWidths[LpFirst:LpLast]) 
+                *self.qclayers.layerWidth[LpFirst:LpLast]) *self.qclayers.xres
         if Lp == 0: 
             Lp_string += u"wells: NA%%<br>" 
             # average doping of the layers
@@ -1907,13 +1907,15 @@ class MainWindow(QMainWindow):
         else: 
             Lp_string += u"wells: %6.1f%%<br>" % (100.0*Lw/Lp)
             # average doping of the layers
-            nD = sum(self.qclayers.layerDopings[LpFirst:LpLast]
-                    *self.qclayers.layerWidths[LpFirst:LpLast])/Lp
+            nD = self.qclayers.xres * sum(
+                    self.qclayers.layerDopings[LpFirst:LpLast]
+                    *self.qclayers.layerWidth[LpFirst:LpLast])/Lp
             Lp_string += (u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup>"
                     u"cm<sup>-3</sup><br>") % nD
         # 2D carrier density in 1E11cm-2
-        ns = sum(self.qclayers.layerDopings[LpFirst:LpLast]
-                *self.qclayers.layerWidths[LpFirst:LpLast])*1e-2
+        ns = self.qclayers.xres * sum(
+                self.qclayers.layerDopings[LpFirst:LpLast]
+                *self.qclayers.layerWidth[LpFirst:LpLast])*1e-2
         Lp_string += (u"n<sub>s</sub>: %6.3f\u00D710<sup>11</sup>"
             u"cm<sup>-2</sup") % ns
         self.LpStringBox.setText(Lp_string)
@@ -1963,23 +1965,24 @@ class MainWindow(QMainWindow):
         self.layerTable.blockSignals(True) 
         self.layerTable.clear()
         self.layerTable.setColumnCount(6)
-        self.layerTable.setRowCount(self.qclayers.layerWidths.size+1)
+        self.layerTable.setRowCount(self.qclayers.layerWidth.size+1)
         self.layerTable.setHorizontalHeaderLabels(['Width', 'ML', 'Brr', 
             'AR', 'Doping', 'Material'])
         #  vertLabels = []
-        #  for n in xrange(self.qclayers.layerWidths.size+1):
+        #  for n in xrange(self.qclayers.layerWidth.size+1):
             #  vertLabels.append(str(n))
         vertLabels = [str(n) for n in
-                range(self.qclayers.layerWidths.size+1)]
+                range(self.qclayers.layerWidth.size+1)]
         self.layerTable.setVerticalHeaderLabels(vertLabels)        
 
         #color for barrier layers
         gray = QColor(230,230,240)  # for Barrier layers
         gray2 = QColor(230,230,230) # for unchangable background
 
-        for q, layerWidth in enumerate(self.qclayers.layerWidths):
+        for q, layerWidth in enumerate(self.qclayers.layerWidth):
             #Width Setup
-            width = QTableWidgetItem("%5.1f" % layerWidth)
+            width = QTableWidgetItem("%5.1f" %
+                    (layerWidth*self.qclayers.xres))
             width.setTextAlignment(Qt.AlignCenter)
             if bool(self.qclayers.layerBarriers[q]):
                 width.setBackgroundColor(gray)
@@ -1989,7 +1992,7 @@ class MainWindow(QMainWindow):
                 width.setBackgroundColor(gray2)
 
             #ML Setup
-            numML = layerWidth/self.qclayers.MLThickness[q]
+            numML = self.qclayers.xres*layerWidth/self.qclayers.MLThickness[q]
             item = QTableWidgetItem("%5.1f" % numML)
             item.setTextAlignment(Qt.AlignCenter)
             if bool(self.qclayers.layerBarriers[q]):
@@ -2069,8 +2072,10 @@ class MainWindow(QMainWindow):
         row = item.row()
         if column == 0: #column == 0 for item change in Widths column
             new_width = float(item.text())
-            if np.mod(new_width, self.qclayers.xres) != 0 \
-                    and self.qclayers.xres != 0.1:
+            new_width_int = int(np.round(new_width/self.qclayers.xres))
+            #  if np.mod(new_width, self.qclayers.xres) != 0 \
+                    #  and self.qclayers.xres != 0.1:
+            if np.abs(new_width_int * self.qclayers.xres-new_width) > 1E-9:
                 # TODO: bug to fix, np.mod is not good for xres < 0.5
                 # potential solution is to change internal length to int
                 # times xres
@@ -2080,9 +2085,9 @@ class MainWindow(QMainWindow):
                         "%f %% %f = %f"%(new_width, self.qclayers.xres,
                             np.mod(new_width, self.qclayers.xres))))
                 return
-            if row == self.qclayers.layerWidths.size: #add row at end of list
-                self.qclayers.layerWidths = np.append(
-                        self.qclayers.layerWidths, new_width)
+            if row == self.qclayers.layerWidth.size: #add row at end of list
+                self.qclayers.layerWidth = np.append(
+                        self.qclayers.layerWidth, new_width_int)
                 self.qclayers.layerBarriers = np.append(
                         self.qclayers.layerBarriers, 
                         0 if self.qclayers.layerBarriers[-1] == 1 else 1)
@@ -2101,7 +2106,7 @@ class MainWindow(QMainWindow):
                 row += 1 #used so that last (blank) row is again selected
 
                 #make first item the same as last item
-                self.qclayers.layerWidths[0] = self.qclayers.layerWidths[-1]
+                self.qclayers.layerWidth[0] = self.qclayers.layerWidth[-1]
                 self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
                 self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
                 self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
@@ -2109,10 +2114,10 @@ class MainWindow(QMainWindow):
                 self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]
                 self.update_Lp_limits()
 
-            elif row == self.qclayers.layerWidths.size-1:
-                self.qclayers.layerWidths[row] = new_width
+            elif row == self.qclayers.layerWidth.size-1:
+                self.qclayers.layerWidth[row] = new_width_int
                 #make first item the same as last item
-                self.qclayers.layerWidths[0] = self.qclayers.layerWidths[-1]
+                self.qclayers.layerWidth[0] = self.qclayers.layerWidth[-1]
                 #  self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
                 #  self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
                 #  self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
@@ -2120,7 +2125,7 @@ class MainWindow(QMainWindow):
                 #  self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]  
 
             else: #change Width of selected row in-place
-                self.qclayers.layerWidths[row] = new_width
+                self.qclayers.layerWidth[row] = new_width_int
 
         elif column == 1: #column == 1 for ML
             if self.qclayers.xres != 0.1:
@@ -2128,14 +2133,15 @@ class MainWindow(QMainWindow):
                         (u"Horizontal Resolution of 0.1 \u212B required" 
                         u"when setting monolayer thicknesses."))
                 return
-            if row == self.qclayers.layerWidths.size: #add row at end of list
+            if row == self.qclayers.layerWidth.size: #add row at end of list
                 pass
-            elif row == self.qclayers.layerWidths.size-1:
-                self.qclayers.layerWidths[row] = \
-                        self.qclayers.MLThickness[row] * float(item.text())
+            elif row == self.qclayers.layerWidth.size-1:
+                self.qclayers.layerWidth[row] = int(np.round( 
+                    self.qclayers.MLThickness[row] * float(item.text())
+                    / self.qclayers.xres))
 
                 #make first item the same as last item
-                self.qclayers.layerWidths[0] = self.qclayers.layerWidths[-1]
+                self.qclayers.layerWidth[0] = self.qclayers.layerWidth[-1]
                 #  self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
                 #  self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
                 #  self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
@@ -2145,27 +2151,28 @@ class MainWindow(QMainWindow):
                 self.update_Lp_limits()
 
             else: #change Width of selected row in-place
-                self.qclayers.layerWidths[row] = \
-                        self.qclayers.MLThickness[row] * float(item.text())
+                self.qclayers.layerWidth[row] = int(np.round(
+                        self.qclayers.MLThickness[row] * float(item.text()) 
+                        / self.qclayers.xres ))
         elif column == 2: #column == 2 for item change in Barrier column
-            if row == self.qclayers.layerWidths.size: 
+            if row == self.qclayers.layerWidth.size: 
                 #don't do anything if row is last row
                 return
             #  self.qclayers.layerBarriers[row] = int(item.checkState())//2
             self.qclayers.layerBarriers[row] = (item.checkState() == Qt.Checked)
         elif column == 3: #column == 3 for item change in AR column
-            if row == self.qclayers.layerWidths.size: 
+            if row == self.qclayers.layerWidth.size: 
                 #don't do anything if row is last row
                 return
             #  self.qclayers.layerARs[row] = int(item.checkState())//2
             self.qclayers.layerARs[row] = (item.checkState() == Qt.Checked)
         elif column == 4: #column == 4 for item change in Doping column
-            if row == self.qclayers.layerWidths.size: 
+            if row == self.qclayers.layerWidth.size: 
                 #don't do anything if row is last row
                 return
             self.qclayers.layerDopings[row] = float(item.text())
         elif column == 5: #column == 5 for item change in Materials column
-            #self.qclayers.layerWidths[row] = int(item.text[row])
+            #self.qclayers.layerWidth[row] = int(item.text[row])
            pass
         else:
             pass
@@ -2196,28 +2203,28 @@ class MainWindow(QMainWindow):
         #This is the primary call to update_quantumCanvas
         self.qclayers.layerSelected = self.layerTable.currentRow()
         if self.qclayers.layerSelected >= 0 and \
-                self.qclayers.layerSelected < self.qclayers.layerWidths.size:
+                self.qclayers.layerSelected < self.qclayers.layerWidth.size:
             self.qclayers.populate_x()
             self.update_quantumCanvas()
 
     def delete_layer(self):
         #don't delete last layer
-        if self.qclayers.layerWidths.size == 1:
+        if self.qclayers.layerWidth.size == 1:
             return
         row = self.layerTable.currentRow()
-        if row == -1 or row >= self.qclayers.layerWidths.size:
+        if row == -1 or row >= self.qclayers.layerWidth.size:
             return
 
-        self.qclayers.layerWidths = np.delete(self.qclayers.layerWidths, row)
+        self.qclayers.layerWidth = np.delete(self.qclayers.layerWidth, row)
         self.qclayers.layerBarriers = np.delete(self.qclayers.layerBarriers, row)
         self.qclayers.layerARs = np.delete(self.qclayers.layerARs, row)
         self.qclayers.layerMaterials = np.delete(self.qclayers.layerMaterials, row)
         self.qclayers.layerDopings = np.delete(self.qclayers.layerDopings, row)
         self.qclayers.layerDividers = np.delete(self.qclayers.layerDividers, row)
 
-        if row == self.qclayers.layerWidths.size: #if row == last_row
+        if row == self.qclayers.layerWidth.size: #if row == last_row
             #make first item the same as last item
-            self.qclayers.layerWidths[0] = self.qclayers.layerWidths[-1]
+            self.qclayers.layerWidth[0] = self.qclayers.layerWidth[-1]
             self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
             self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
             self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
@@ -2241,8 +2248,8 @@ class MainWindow(QMainWindow):
         if row == -1:
             return
 
-        self.qclayers.layerWidths = np.insert(
-                self.qclayers.layerWidths, row, 0)
+        self.qclayers.layerWidth = np.insert(
+                self.qclayers.layerWidth, row, 0)
         self.qclayers.layerBarriers = np.insert(
                 self.qclayers.layerBarriers, row,
                 0 if self.qclayers.layerBarriers[row] == 1 else 1)
@@ -2324,14 +2331,14 @@ class MainWindow(QMainWindow):
         """
         self.Calculating(True)
 
-        try:
-            self.dCL = self.qclayers.basisSolve()
-            self.qclayers.convert_dCL_to_data(self.dCL)
-            self.solveType = 'basis'        
-            self.plotDirty = True
-            self.update_quantumCanvas()
-        except (ValueError,IndexError) as err:
-            QMessageBox.warning(self,"ErwinJr - Error", str(err))
+        #  try:
+        self.dCL = self.qclayers.basisSolve()
+        self.qclayers.convert_dCL_to_data(self.dCL)
+        self.solveType = 'basis'        
+        self.plotDirty = True
+        self.update_quantumCanvas()
+        #  except (ValueError,IndexError) as err:
+            #  QMessageBox.warning(self,"ErwinJr - Error", str(err))
 
         self.Calculating(False)
 
@@ -2412,7 +2419,7 @@ class MainWindow(QMainWindow):
         Support only for whole solve
         """
         row = self.layerTable.currentRow()
-        if row == -1 or row >= self.qclayers.layerWidths.size:
+        if row == -1 or row >= self.qclayers.layerWidth.size:
             QMessageBox.warning(self, "ErwinJr Error", 
                 "Invalid layer selection.")
             return
@@ -2424,8 +2431,8 @@ class MainWindow(QMainWindow):
             step = 1 # * xres
             upper = self.stateHolder[1]
             lower = self.stateHolder[0]        
-            old_width = -xres
-            origin_width = new_width = self.qclayers.layerWidths[row]
+            old_width = -1
+            origin_width = new_width = self.qclayers.layerWidth[row]
             if DEBUG >= 1:
                 print "--debug-- width optimization"
             #  print "init: \n Lyaer # %d width = %.2f"%(row, new_width)
@@ -2434,17 +2441,18 @@ class MainWindow(QMainWindow):
             goal_old = goals[1] = np.abs(goal(upper,lower))
             width_tried = [origin_width]
             goal_tried = [goal_old]
-            while abs(old_width - new_width) >= 0.7*xres:
+            #  while abs(old_width - new_width) >= 0.7*xres:
+            while old_width != new_width :
                 # Solve for values of goal near old_width
                 # improve: only solve for eigen states near selection
                 goal_old = goals[1]
-                self.qclayers.layerWidths[row] = new_width - step*xres
+                self.qclayers.layerWidth[row] = new_width - step
                 self.qclayers.populate_x()
                 self.qclayers.populate_x_band()
                 self.qclayers.solve_psi()
                 goals[0] = np.abs(goal(upper,lower))
 
-                self.qclayers.layerWidths[row] = new_width + step*xres
+                self.qclayers.layerWidth[row] = new_width + step
                 self.qclayers.populate_x()
                 self.qclayers.populate_x_band()
                 self.qclayers.solve_psi()
@@ -2457,18 +2465,19 @@ class MainWindow(QMainWindow):
                 # set a cutoff s.t. Newton's method won't go too far
                 if -diff2 < 1/step_cutoff:
                     # When Newton's method is not a good one
-                    new_width += int(step * step_cutoff*diff/goals[1])*xres
+                    new_width += int(np.round(step *
+                        step_cutoff*diff/goals[1]))
                 else:
-                    new_width += -int(step * diff/diff2)*xres
+                    new_width += -int(np.round(step * diff/diff2))
                 if new_width <= 0:
-                    new_width = xres
+                    new_width = 1
                 if DEBUG >= 1:
                     print "Layer # %d width = %.1f; goal = %f"%(
-                            row, old_width, goals[1])
+                            row, old_width*xres, goals[1])
                     print "\tdiff = %f; diff2 = %f, new_width= %.1f"%(
-                            diff, diff2, new_width)
+                            diff, diff2, new_width*xres)
 
-                self.qclayers.layerWidths[row] = new_width
+                self.qclayers.layerWidth[row] = new_width
                 self.qclayers.populate_x()
                 self.qclayers.populate_x_band()
                 self.qclayers.solve_psi()
@@ -2482,11 +2491,11 @@ class MainWindow(QMainWindow):
                 while goal_new < goal_old*0.95: 
                     #  So a step will not go too far
                     #  new_width = (old_width + new_width)/2
-                    new_width = xres * int( (old_width + new_width)/(2*xres))
+                    new_width = int( (old_width + new_width)/(2))
                     if DEBUG >= 1:
                         print "\tGoing too far, back a little bit: "
-                        print "\tnew_width=%.1f"%new_width
-                    self.qclayers.layerWidths[row] = new_width
+                        print "\tnew_width=%.1f"%(new_width*xres)
+                    self.qclayers.layerWidth[row] = new_width
                     self.qclayers.populate_x()
                     self.qclayers.populate_x_band()
                     self.qclayers.solve_psi()
@@ -2500,14 +2509,15 @@ class MainWindow(QMainWindow):
                 goal_old = goals[1]
                 goals[1] = goal_new
                 if new_width in width_tried:
+                    print "new_width has been tried"
                     break
                 width_tried.append(new_width)
                 goal_tried.append(goal_new)
 
-            self.qclayers.layerWidths[row] = new_width
+            self.qclayers.layerWidth[row] = new_width
         finally:
             self.Calculating(False)
-            if self.qclayers.layerWidths[row] != origin_width: 
+            if self.qclayers.layerWidth[row] != origin_width: 
                 self.clear_WFs()
                 self.layerTable_refresh()
                 self.qclayers.populate_x()
@@ -2647,12 +2657,13 @@ class MainWindow(QMainWindow):
         LpFirst = self.LpFirstSpinbox.value()
         LpLast = self.LpLastSpinbox.value()+1 
             #+1 because range is not inclusive of last value
-        self.strata.Lp = np.sum(self.qclayers.layerWidths[LpFirst:LpLast])
+        self.strata.Lp = self.qclayers.xres * np.sum(
+                self.qclayers.layerWidth[LpFirst:LpLast])
 
         #set nD doping sheet density
         self.strata.nD = np.sum(self.qclayers.layerDopings[LpFirst:LpLast] *
-                self.qclayers.layerWidths[LpFirst:LpLast]) / \
-                np.sum(self.qclayers.layerWidths[LpFirst:LpLast])
+                self.qclayers.layerWidth[LpFirst:LpLast]) / \
+                np.sum(self.qclayers.layerWidth[LpFirst:LpLast])
         #set aCore
         self.strata.aCore = self.alphaISB
         #set nCore
@@ -2783,7 +2794,7 @@ class MainWindow(QMainWindow):
             #self.curveSelection deleted with self.quantumCanvas.clear()        
             pass
         if self.qclayers.layerSelected >= 0 and \
-                self.qclayers.layerSelected < self.qclayers.layerWidths.size:
+                self.qclayers.layerSelected < self.qclayers.layerWidth.size:
             mask = ~np.isnan(self.qclayers.xARs)
             self.curveAR = SupportClasses.MaskedCurve(
                     self.qclayers.xPoints,self.qclayers.xARs,mask)
@@ -3272,12 +3283,14 @@ class MainWindow(QMainWindow):
             filehandle.readline() #throw the column description line away
             lines = filehandle.readlines()
             rows = len(lines)
-            for item in ('layerWidths', 'layerBarriers', 'layerARs', 
+            self.qclayers.layerWidth = np.empty(rows, dtype=np.int_)
+            for item in ('layerBarriers', 'layerARs', 
                     'layerDopings', 'layerMaterials', 'layerDividers'):
                 setattr(self.qclayers, item, np.zeros(rows))
             for q, line in enumerate(lines):
                 line = line.split('\t')
-                self.qclayers.layerWidths[q]    = float(line[1])
+                self.qclayers.layerWidth[q]       = int(np.round(float(line[1])
+                                                       /self.qclayers.xres))
                 self.qclayers.layerBarriers[q]  = float(line[2])
                 self.qclayers.layerARs[q]       = float(line[3])
                 self.qclayers.layerMaterials[q] = float(line[4])
@@ -3345,12 +3358,14 @@ class MainWindow(QMainWindow):
                     break
                 lines.append(line)
             rows = len(lines)
-            for item in ('layerWidths', 'layerBarriers', 'layerARs', 
+            self.qclayers.layerWidth = np.empty(rows, np.int_)
+            for item in ('layerBarriers', 'layerARs', 
                     'layerDopings', 'layerMaterials', 'layerDividers'):
                 setattr(self.qclayers, item, np.zeros(rows))
             for q, line in enumerate(lines):
                 line = line.split('\t')
-                self.qclayers.layerWidths[q]    = float(line[1])
+                self.qclayers.layerWidth[q]       = int(np.round(float(line[1])
+                                                      /self.qclayers.xres))
                 self.qclayers.layerBarriers[q]  = float(line[2])
                 self.qclayers.layerARs[q]       = float(line[3])
                 self.qclayers.layerMaterials[q] = float(line[4])
@@ -3442,9 +3457,9 @@ class MainWindow(QMainWindow):
         filehandle.write("customFacet:" + str(self.strata.customFacet) + '\n')
 
         filehandle.write("# QC layers #\n")
-        for row in xrange(self.qclayers.layerWidths.size):
+        for row in xrange(self.qclayers.layerWidth.size):
             string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, 
-                    self.qclayers.layerWidths[row], 
+                    self.qclayers.xres * self.qclayers.layerWidth[row], 
                     self.qclayers.layerBarriers[row], 
                     self.qclayers.layerARs[row], 
                     self.qclayers.layerMaterials[row], 
@@ -3481,9 +3496,9 @@ class MainWindow(QMainWindow):
         #  filehandle.write("DiffLeng:" + str(self.qclayers.diffLength) + '\n')
 
         #  filehandle.write("regionNum\twellWdiths\tbarrierSwitch\tarSwitch\tmaterial\tdoping\tdivider\n")
-        #  for row in xrange(self.qclayers.layerWidths.size):
+        #  for row in xrange(self.qclayers.layerWidth.size):
             #  string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, 
-                    #  self.qclayers.layerWidths[row], 
+                    #  self.qclayers.xres * self.qclayers.layerWidth[row], 
                     #  self.qclayers.layerBarriers[row], 
                     #  self.qclayers.layerARs[row], 
                     #  self.qclayers.layerMaterials[row], 
@@ -3582,7 +3597,7 @@ class MainWindow(QMainWindow):
 #===============================================================================
 
     def bump_first_layer(self):
-        self.qclayers.layerWidths = np.insert(self.qclayers.layerWidths, 
+        self.qclayers.layerWidth = np.insert(self.qclayers.layerWidth, 
                 0, self.qclayers.layerWidth[-1])
         self.qclayers.layerBarriers = np.insert(self.qclayers.layerBarriers, 
                 0, self.qclayers.layerBarriers[-1])
@@ -3618,8 +3633,8 @@ class MainWindow(QMainWindow):
     def copy_structure(self):
         clipboard = QApplication.clipboard()
         string = ''
-        for layer in self.qclayers.layerWidths[1:]:
-            string += '%g\n' % layer
+        for layer in self.qclayers.layerWidth[1:]:
+            string += '%g\n' % (layer*self.qclayers.xres)
         clipboard.setText(string)
 
 

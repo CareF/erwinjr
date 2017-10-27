@@ -62,13 +62,15 @@ def qclLoad(fname):
             break
         lines.append(line)
     rows = len(lines)
-    variables = ['layerWidths', 'layerBarriers', 'layerARs', 'layerDopings', 
+    qclayers.layerNum = np.empty(rows, np.int_)
+    variables = ['layerBarriers', 'layerARs', 'layerDopings', 
                  'layerMaterials', 'layerDividers']
     for item in variables:
         setattr(qclayers, item, np.zeros(rows))
     for q, line in enumerate(lines):
         line = line.split('\t')
-        qclayers.layerWidths[q]    = float(line[1])
+        qclayers.layerNum[q]       = int(np.round(float(line[1])
+                                              /qclayers.xres))
         qclayers.layerBarriers[q]  = float(line[2])
         qclayers.layerARs[q]       = float(line[3])
         qclayers.layerMaterials[q] = float(line[4])

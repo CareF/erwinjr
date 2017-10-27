@@ -25,13 +25,13 @@
 # TODO: 
 # material related codes should be moved to MaterialConstants
 # try use dict type for substrate restriction on material
-# all width should become integral, with unit xres
 # Add solve well (helping tight binding model design
 # Performance improve: lo_transition_rate and solve_psi: 
 #               parallel support: Done
 #               reduce reductant calculation
 #               Graphic card support?
-# Try matrix eigen solver in solve_psi
+# Try matrix eigen solver in solve_psi - It's O(n^3), compared to what we
+# have for O(n^2) (or O(mn) where m for E resolution and n for x)
 # replace CLIB by Cython
 
 from __future__ import division
@@ -104,7 +104,7 @@ class QCLayers(object):
     """Class for QCLayers
     Member variables: 
         parameters for each layer, np.array type, with len = No. of layers: 
-            layerWidths -float in angstrom, width of each layer
+            layerWidth -int in pixel (xres per pixel), width of each layer
             layerBarriers -boolean(TBD), if the layer is barrier or not
             layerARs -boolean(TBD), if the layer is active region or not
                       only affect basis solver (negelet some coupling
@@ -136,7 +136,7 @@ class QCLayers(object):
                     [well, barrier]*4
     """
     def __init__(self):
-        self.layerWidths = np.array([1.,1.]) # angstrom
+        self.layerWidth = np.array([1,1]) # pix
         self.layerBarriers = np.array([0,0]) # boolean
         self.layerARs = np.array([0,0])      # boolean
         self.layerMaterials = np.array([1,1]) #label
@@ -166,10 +166,15 @@ class QCLayers(object):
         self.update_strain()
         self.populate_x()
 
+    def set_xres(self, res):
+        for n in range(self.layerWidth.size):
+            self.layerWidth[n] = int(np.round(self.layerWidth[n] * self.xres 
+                / res))
+        self.xres = res
+
     def populate_x(self):
         """Extend layer information to position functions
         Layer data: layerWidth
-                    layerNum
                 with len = # of layers and each value repr. a layer
         Position data (OUTPUT/update member variables): 
                     xPoints 
@@ -186,14 +191,10 @@ class QCLayers(object):
         #  print "-----debug----- QCLayers populate_x called"
         #  print self.layerBarriers
         #use rounding to work with selected resolution
-        self.layerNum = np.round(self.layerWidths /
-                self.xres).astype(np.int64)
-        self.layerWidths = self.layerNum * self.xres
         #convert to int to prevent machine rounding errors
-        self.xPoints = self.xres * np.arange(0, self.layerNum.sum())
+        self.xPoints = self.xres * np.arange(0, self.layerWidth.sum())
 
-        #  layerWidthsCumSum = np.concatenate([[0.],self.layerWidths.cumsum()])
-        layerNumCumSum = np.concatenate( ([0], self.layerNum.cumsum()) )
+        layerNumCumSum = np.concatenate( ([0], self.layerWidth.cumsum()) )
         self.xBarriers = np.zeros(self.xPoints.shape)
         self.xARs = np.zeros(self.xPoints.shape)
         self.xMaterials = np.zeros(self.xPoints.shape)
@@ -201,7 +202,7 @@ class QCLayers(object):
         self.xLayerNums = np.zeros(self.xPoints.shape)
 
         #extend layer data for all xpoints
-        for q in xrange(0,self.layerWidths.size):
+        for q in xrange(0,self.layerWidth.size):
             self.xBarriers[ layerNumCumSum[q] : 
                     layerNumCumSum[q+1] ] = self.layerBarriers[q]
             if self.layerARs[q] == 1:
@@ -216,8 +217,8 @@ class QCLayers(object):
         #duplicate layer based on user input repeats
         #  repeats = self.repeats
         if self.repeats >= 2:
-            self.xPoints = np.arange(0, self.layerWidths.sum()
-                + self.layerWidths[1:].sum()*(self.repeats-1), self.xres)
+            self.xPoints = np.arange(0, self.xres*(self.layerWidth.sum()
+                + self.layerWidth[1:].sum()*(self.repeats-1)), self.xres)
             self.xBarriers = np.concatenate(( self.xBarriers, np.tile(
                 self.xBarriers[layerNumCumSum[1]:], self.repeats-1) ))
             self.xARs = np.concatenate(( self.xARs, np.tile(
@@ -273,12 +274,12 @@ class QCLayers(object):
                                 :base+layerNumCumSum[layerSelected+1]+1] \
                             = self.xVc[     base+layerNumCumSum[layerSelected]
                                 :base+layerNumCumSum[layerSelected+1]+1]
-                elif self.layerSelected == self.layerWidths.size: 
+                elif self.layerSelected == self.layerWidth.size: 
                     #last (blank) layer row is selected
                     pass
                 else: 
                     for repeat in xrange(1,self.repeats+1):
-                        base = np.sum(self.layerNum[1:])*(repeat-1)
+                        base = np.sum(self.layerWidth[1:])*(repeat-1)
                         self.xLayerSelected[base+layerNumCumSum[layerSelected]-1
                                 :base+layerNumCumSum[layerSelected+1]+1]\
                             = self.xVc[base+layerNumCumSum[layerSelected]-1
@@ -459,16 +460,12 @@ class QCLayers(object):
             #  # print i+1, self.layerMaterials
             # (BUG FIXED: self.layerMaterials[1:] results in material index
             # mismatch by 1)
-            # self.layerWidths includes an extra layer to promise first=last
+            # self.layerWidth includes an extra layer to promise first=last
             indx = (self.layerMaterials == i+1)
             indx[0] = False # s.t. 1st layer doesn't count
-            self.MaterialWidth[2*i+1] = np.sum(self.layerWidths[indx]
+            self.MaterialWidth[2*i+1] = self.xres*np.sum(self.layerWidth[indx]
                     * self.layerBarriers[indx])
-            #  print self.MaterialWidth
-            #  self.MaterialWidth[2*i+1] = np.sum(self.layerWidths[
-                #  np.logical_and(indx, self.layerBarriers)])
-            #  print self.MaterialWidth
-            self.MaterialWidth[2*i] = np.sum(self.layerWidths[indx]) \
+            self.MaterialWidth[2*i] = self.xres*np.sum(self.layerWidth[indx]) \
                     - self.MaterialWidth[2*i+1]
         #  print "------debug-----", np.sum(self.MaterialWidth)
         self.netStrain = 100 * np.sum(self.MaterialWidth*self.eps_perp) \
@@ -607,10 +604,10 @@ class QCLayers(object):
                 pickle.dump((Epoints, psiEnd), logfile)
             logcount += 1 
             print 'log saved for Epoints and psiEnd (%d)'%logcount
-        if DEBUG >= 1:
-            end = time()
-            print "First round psiFnEnd", end-start
-            start = end
+        #  if DEBUG >= 1:
+            #  end = time()
+            #  print "First round psiFnEnd", end-start
+            #  start = end
         # TODO: maybe improved
         tck = interpolate.splrep(Epoints, psiEnd)
         self.EigenE = interpolate.sproot(tck, mest=len(Epoints))
@@ -812,8 +809,8 @@ class QCLayers(object):
             #substitute proper layer characteristics into dCL[n], hear/tail
             #  padding
             layer = range(dividers[n], dividers[n+1]+1)
-            dCL[n].layerWidths = np.concatenate(
-                    ([PAD_WIDTH], self.layerWidths[layer], [30]))
+            dCL[n].layerWidth = np.concatenate(
+                    ([PAD_WIDTH], self.layerWidth[layer], [30]))
             dCL[n].layerBarriers = np.concatenate(
                     ([1], self.layerBarriers[layer], [1]))
             dCL[n].layerARs = np.concatenate(
@@ -835,7 +832,8 @@ class QCLayers(object):
             dCL[n].solve_psi()
 
             #caculate offsets
-            dCL[n].widthOffset = np.sum(self.layerWidths[range(0,dividers[n])]) #- 100/self.xres
+            dCL[n].widthOffset = self.xres * np.sum(
+                    self.layerWidth[range(0,dividers[n])]) #- 100/self.xres
             dCL[n].fieldOffset = -(dCL[n].widthOffset-PAD_WIDTH) * ANG \
                     * dCL[n].EField * KVpCM            
 
@@ -846,8 +844,8 @@ class QCLayers(object):
             for q in xrange(1,self.repeats):
                 for p in xrange(0,period):
                     dCL.append(copy.deepcopy(dCL[p]))
-                    dCL[counter].widthOffset = np.sum(self.layerWidths[1:])*q \
-                            + dCL[p].widthOffset #- 100/self.xres
+                    dCL[counter].widthOffset = self.xres * np.sum(
+                            self.layerWidth[1:])*q + dCL[p].widthOffset 
                     dCL[counter].fieldOffset = -(dCL[counter].widthOffset-100)*ANG \
                             * dCL[counter].EField * KVpCM
                     counter += 1
@@ -900,9 +898,11 @@ class QCLayers(object):
         for q in xrange(self.EigenE.size):
             prettyIdxs = np.nonzero(self.xyPsiPsi[:,q] > 
                     settings.wf_scale * settings.pretty_plot_factor)[0] 
-            #0.0005 is arbitrary
-            self.xyPsiPsi[0:prettyIdxs[0],q] = np.NaN
-            self.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
+            if prettyIdxs.size != 0:
+                self.xyPsiPsi[0:prettyIdxs[0],q] = np.NaN
+                self.xyPsiPsi[prettyIdxs[-1]:,q] = np.NaN
+            else: 
+                self.xyPsiPsi[:,q] = np.NaN
 
         #sort by ascending energy
         sortID = np.argsort(self.EigenE)
@@ -1127,10 +1127,11 @@ class QCLayers(object):
         energies = abs(np.array(energies)) #in eV
 
         neff = 3
-        Lp = np.sum(self.layerWidths[1:]) * 1e-10 #in m
-        Nq = np.sum(self.layerDopings[1:]*self.layerWidths[1:]) / np.sum(self.layerWidths[1:])
+        Lp = self.xres * np.sum(self.layerWidth[1:]) * 1e-10 #in m
+        Nq = np.sum(self.layerDopings[1:]*self.layerWidth[1:]) / np.sum(self.layerWidth[1:])
         Nq *= 100**3 #convert from cm^-3 to m^-3
-        Ns = np.sum(self.layerDopings[1:]*1e17 * self.layerWidths[1:]*1e-8) #in cm^-2
+        Ns = self.xres * np.sum(self.layerDopings[1:] 
+                * self.layerWidth[1:]) * 1e11 #in cm^-2
         Ns *= 100**2 #from cm^-2 to m^-2
         hw = self.EigenE[stateR] - self.EigenE[lower]
 
