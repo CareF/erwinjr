@@ -45,6 +45,9 @@ LOG = False
 if LOG:
     import pickle
     logcount = 0
+DEBUG = 1
+if DEBUG >= 1:
+    from time import time
 
 import settings
 
@@ -553,12 +556,18 @@ class QCLayers(object):
                     position self.xPoints[x]
         TODO: try matrix eigen solver?
         """
+        #  if DEBUG >= 1:
+            #  start = time()
         Epoints = np.arange(min(self.xVc),
                 max(self.xVc-115*self.EField*1e-5), #?115e-5?
                 self.vertRes/1000)
         xMcE = np.zeros(self.xPoints.shape)
         xPsi = np.zeros(self.xPoints.shape)
         psiEnd = np.zeros(Epoints.size)
+        #  if DEBUG >= 1:
+            #  end = time()
+            #  print "Prepared", end-start
+            #  start = end
 
         #TODO: add adaptive spacing for Eq
         if USE_CLIB:
@@ -598,9 +607,17 @@ class QCLayers(object):
                 pickle.dump((Epoints, psiEnd), logfile)
             logcount += 1 
             print 'log saved for Epoints and psiEnd (%d)'%logcount
+        if DEBUG >= 1:
+            end = time()
+            print "First round psiFnEnd", end-start
+            start = end
         # TODO: maybe improved
         tck = interpolate.splrep(Epoints, psiEnd)
         self.EigenE = interpolate.sproot(tck, mest=len(Epoints))
+        #  if DEBUG >= 1:
+            #  end = time()
+            #  print "Interpolate", end-start
+            #  start = end
 
         if MORE_INTERPOLATION:
             # Near the above approximation result, 
@@ -643,6 +660,10 @@ class QCLayers(object):
                             + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
                             + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
                     self.EigenE[q] = x3
+        #  if DEBUG >= 1:
+            #  end = time()
+            #  print "Second round", end-start
+            #  start = end
 
         #make array for Psi and fill it in
         if USE_CLIB:
@@ -677,6 +698,10 @@ class QCLayers(object):
                 psiInt = np.sum(xPsi**2 * (1+(Eq-self.xVc)/(Eq-self.xVc+self.xEg)))
                 A = 1 / sqrt( self.xres * 1e-10 * psiInt)
                 self.xyPsi[:,p] = A * xPsi
+        #  if DEBUG >= 1:
+            #  end = time()
+            #  print "Get WF", end-start
+            #  start = end
 
         #remove states that come from oscillating end points
         # TODO: change to remove non-bounded states, with user options
@@ -731,6 +756,11 @@ class QCLayers(object):
             self.xyPsiPsiDec[:,q] = self.xyPsiPsi[idxs,q]
         self.xyPsiPsi = self.xyPsiPsiDec
         self.xPointsPost = self.xPoints[idxs]
+
+        #  if DEBUG >= 1:
+            #  end = time()
+            #  print "Post processing", end-start
+            #  start = end
 
     def basisSolve(self):
         """ solve basis for the QC device, with each basis being eigen mode of 
@@ -1158,4 +1188,6 @@ if __name__ == "__main__":
             "It's one of the greatest damn mysteries of physics: "
             "a magic number that comes to us with no understanding by man. "
             "— Richard Feynman")%cQ.inv_alpha()
+
 # vim: ts=4 sw=4 sts=4 expandtab
+
