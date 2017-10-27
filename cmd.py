@@ -3,8 +3,8 @@
 from __future__ import division
 import numpy as np
 from numpy import pi, sqrt
-import ThePhysics
-from ThePhysics import h, c0, e0
+from QCLayers import QCLayers
+from QCLayers import h, c0, e0
 import sys
 import cProfile
 
@@ -13,7 +13,7 @@ if sys.platform == 'darwin':
     newLineChar = '\n'
 
 def qclLoad(fname):
-    qclayers = ThePhysics.QCLayers()
+    qclayers = QCLayers()
     #  print "Loading "+fname
     valDict = {}
     filehandle = open(fname, 'r')

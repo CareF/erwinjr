@@ -50,15 +50,16 @@ from mpl_toolkits.mplot3d import Axes3D
 
 import settings
 import SupportClasses
-import ThePhysics
-from ThePhysics import h, c0, e0
+from QCLayers import QCLayers, cst
+from Strata import Strata
+from QCLayers import h, c0, e0
 
 
 #============================================================================
 # Version
 #============================================================================
-ejVersion = 171020
-majorVersion = '3.0.3'
+ejVersion = 171027
+majorVersion = '3.1.0'
 
 #============================================================================
 # Debug options
@@ -81,8 +82,8 @@ class MainWindow(QMainWindow):
         if sys.platform == "darwin":
             self.newLineChar = '\n'
 
-        self.qclayers = ThePhysics.QCLayers()
-        self.strata = ThePhysics.Strata()
+        self.qclayers = QCLayers()
+        self.strata = Strata()
         self.numMaterials = self.qclayers.numMaterials #=8, to improve (TODO)
 
         self.stratumMaterialsList = ['Active Core', 
@@ -211,11 +212,11 @@ class MainWindow(QMainWindow):
         self.insertLayerAboveButton = QPushButton("Insert Layer Above")
         self.connect(self.insertLayerAboveButton, SIGNAL("clicked()"),
                 self.insert_layerAbove)
-        self.OptimizeFoMButton = QPushButton("Optimize FoM")
+        self.OptimizeFoMButton = QPushButton("Optimize Width (FoM)")
         self.OptimizeFoMButton.setEnabled(False)
         self.connect(self.OptimizeFoMButton, SIGNAL("clicked()"), partial(
             self.OptimizeLayer, goal = self.qclayers.figure_of_merit))
-        self.OptimizeDipoleButton = QPushButton("Optimize Dipole")
+        self.OptimizeDipoleButton = QPushButton("Optimize Width (Dipole)")
         self.connect(self.OptimizeDipoleButton, SIGNAL("clicked()"), partial(
             self.OptimizeLayer, goal = self.qclayers.dipole))
         self.OptimizeDipoleButton.setEnabled(False)
@@ -305,6 +306,39 @@ class MainWindow(QMainWindow):
         LpLayout.addWidget(self.LpStringBox, 2,0, 1,2)
         LpLayout_groupBox = QGroupBox("Period Info")
         LpLayout_groupBox.setLayout(LpLayout)
+
+        # Global Optimization groupbox
+        GlobalOptLayout = QGridLayout()
+        self.targetWL_box = QLineEdit('')
+        self.targetWL_box.setValidator(QDoubleValidator(0,100,1))
+        self.targetWL_box.setSizePolicy(
+                QSizePolicy(QSizePolicy.Minimum,QSizePolicy.Ignored))
+        #  self.targetWL_box.setMaximumWidth(50)
+        self.connect(self.targetWL_box, SIGNAL("editingFinished()"), 
+                self.set_targetWL)
+        GlobalOptLayout.addWidget(QLabel(u"<b>\u03BB</b>:"), 0, 0)
+        GlobalOptLayout.addWidget(self.targetWL_box, 0, 1)
+        GlobalOptLayout.addWidget(QLabel('um'), 0, 2)
+        GlobalOptLayout.addWidget(QLabel("<b>Target function</b>"), 1,0,1,3)
+        self.OptGoalsName = ('FoM', 'Dipole')
+        self.OptGoalsFunc = (self.qclayers.figure_of_merit, 
+                self.qclayers.dipole)
+        #  self.OptGoalsDict = {'FoM':self.qclayers.figure_of_merit, 
+                #  'Dipole': self.qclayers.dipole}
+        self.goalFuncBox = QComboBox()
+        self.goalFuncBox.addItems(self.OptGoalsName)
+        #  self.OptGoal = self.OptGoalsDict[str(self.goalFuncBox.currentText())]
+        self.OptGoal = self.OptGoalsFunc[self.goalFuncBox.currentIndex()]
+        self.connect(self.goalFuncBox, 
+                SIGNAL("currentIndexChanged(int)"), 
+                self.set_goal)
+        GlobalOptLayout.addWidget(self.goalFuncBox, 2, 0, 1, 3)
+        self.GlobalOptButton = QPushButton("Optimize")
+        self.connect(self.GlobalOptButton, SIGNAL("clicked()"),
+                self.GlobalOptimization)
+        GlobalOptLayout.addWidget(self.GlobalOptButton, 3, 0, 1, 3)
+        GlobalOptLayout_groupBox = QGroupBox("Global Optimization")
+        GlobalOptLayout_groupBox.setLayout(GlobalOptLayout)
 
         #set up material composition inputs
         self.mtrl_header1 = QLabel(
@@ -441,6 +475,7 @@ class MainWindow(QMainWindow):
         vBox1.addWidget(self.inputRepeatsBox)
         vBox1.addWidget(basis_groupBox)
         vBox1.addWidget(LpLayout_groupBox)
+        vBox1.addWidget(GlobalOptLayout_groupBox)
         #vBox1.addWidget(designBy_groupBox)
         vBox1.addStretch()
 
@@ -1864,17 +1899,37 @@ class MainWindow(QMainWindow):
         # total length of well (1 period)
         Lw = sum((1-self.qclayers.layerBarriers[LpFirst:LpLast])
                 *self.qclayers.layerWidths[LpFirst:LpLast]) 
-        Lp_string += u"wells: %6.1f%%<br>" % (100.0*Lw/Lp)
-        # average doping of the layers
-        nD = sum(self.qclayers.layerDopings[LpFirst:LpLast]
-                *self.qclayers.layerWidths[LpFirst:LpLast])/Lp
-        Lp_string += (u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup>"
-                u"cm<sup>-3</sup><br>") % nD
-        # what's this?
+        if Lp == 0: 
+            Lp_string += u"wells: NA%%<br>" 
+            # average doping of the layers
+            Lp_string += (u"n<sub>D</sub>: NA\u00D710<sup>17</sup>"
+                    u"cm<sup>-3</sup><br>") 
+        else: 
+            Lp_string += u"wells: %6.1f%%<br>" % (100.0*Lw/Lp)
+            # average doping of the layers
+            nD = sum(self.qclayers.layerDopings[LpFirst:LpLast]
+                    *self.qclayers.layerWidths[LpFirst:LpLast])/Lp
+            Lp_string += (u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup>"
+                    u"cm<sup>-3</sup><br>") % nD
+        # 2D carrier density in 1E11cm-2
         ns = sum(self.qclayers.layerDopings[LpFirst:LpLast]
                 *self.qclayers.layerWidths[LpFirst:LpLast])*1e-2
-        Lp_string += u"n<sub>s</sub>: %6.3f\u00D710<sup>11</sup>" % ns
+        Lp_string += (u"n<sub>s</sub>: %6.3f\u00D710<sup>11</sup>"
+            u"cm<sup>-2</sup") % ns
         self.LpStringBox.setText(Lp_string)
+
+    def set_targetWL(self):
+        try:
+            wl = float(self.targetWL_box.text())
+        except ValueError:
+            QMessageBox.warning(self, 'ErwinJr Error', 
+                'Invalid input:%s'%(self.targetWL_box.text()))
+            self.targetWL_box.setText('')
+        self.targetWL = wl
+        self.targetWL_box.setText('%.1f'%self.targetWL)
+
+    def set_goal(self, goal): 
+        self.OptGoal = self.OptGoalsFunc[goal]
 
     def input_description(self):
         self.qclayers.description = self.DescriptionBox.toPlainText()
@@ -2339,13 +2394,13 @@ class MainWindow(QMainWindow):
         # tauUpperLower is the inverse of transition rate (lifetime)
         self.alphaISB = self.qclayers.alphaISB(upper, lower)
 
-        energyString  = (u"<i>\u03C4<sub>upper</sub></i> : %6.2f ps<br>"
+        self.FoMString  = (u"<i>\u03C4<sub>upper</sub></i> : %6.2f ps<br>"
                 u"<i>\u03C4<sub>lower</sub></i> : %6.2f ps"
                 u"<br>FoM: <b>%6.0f ps \u212B<sup>2</sup></b>"
                 u"<br><i>\u03B1<sub>ISB</sub></i> : %.2f cm<sup>2</sup>") % (
                         self.tauUpper, self.tauLower, self.FoM, self.alphaISB)
 
-        self.pairSelectString.append(energyString)
+        self.pairSelectString.setText(self.pairString + self.FoMString)
 
         self.Calculating(False)
         self.FoMButton.setEnabled(True)
@@ -2464,6 +2519,15 @@ class MainWindow(QMainWindow):
         if DEBUG >= 1:
             print "done"
 
+    def GlobalOptimization(self):
+        if not hasattr(self, 'targetWL'):
+            QMessageBox.warning(self, "ErwinJr Error", 
+                "Target wavelength is not set.")
+            return
+        if DEBUG >= 1:
+            print "Global Optimization for %s"%self.OptGoal.__name__
+        Jaco = 0
+
     def ginput(self, aQPointF):
         """Pair select in GUI, according to mouse click
         SLOT connect to SIGNAL self.picker.selected(const QwtDoublePoint&)
@@ -2510,7 +2574,7 @@ class MainWindow(QMainWindow):
         self.selectedWF.append(curve)
         self.quantumCanvas.replot()
 
-        energyString  = (u"selected: %d, ..<br>"%selectedState)
+        self.pairString  = (u"selected: %d, ..<br>"%selectedState)
 
         #  if np.mod(len(self.stateHolder),2) == 0:
         if len(self.stateHolder) == 2:
@@ -2539,11 +2603,11 @@ class MainWindow(QMainWindow):
                 self.qclayers.populate_x_band()
                 self.opticalDipole = self.qclayers.dipole(upper, lower)            
                 self.tauUpperLower = 1/self.qclayers.lo_transition_rate(upper, lower)
-                energyString  = (u"selected: %d, %d<br>"
+                self.pairString  = (u"selected: %d, %d<br>"
                                  u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
                                  u"coupling: %6.1f meV<br>broadening: %6.1f meV<br>"
                                  u"dipole: <b>%6.1f \u212B</b>"
-                                 u"<br>LO scattering: <b>%6.2g ps</b>") % (
+                                 u"<br>LO scattering: <b>%6.2g ps</b><br>") % (
                                          self.stateHolder[0], 
                                          self.stateHolder[1], 
                                          self.eDiff, self.wavelength,
@@ -2557,10 +2621,10 @@ class MainWindow(QMainWindow):
                 self.opticalDipole = self.qclayers.dipole(upper, lower)
                 self.tauUpperLower = 1/self.qclayers.lo_transition_rate(upper, lower)
                 self.transitionBroadening = 0.1 * self.eDiff
-                energyString = (u"selected: %d, %d<br>"
+                self.pairString = (u"selected: %d, %d<br>"
                                  u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
                                 u"dipole: %6.1f \u212B<br>" 
-                                u"LO scattering: %6.2g ps") % (
+                                u"LO scattering: %6.2g ps<br>") % (
                                         self.stateHolder[0], 
                                         self.stateHolder[1], 
                                         self.eDiff, self.wavelength, 
@@ -2570,7 +2634,7 @@ class MainWindow(QMainWindow):
                 self.FoMButton.setEnabled(False)
 
         self.pairSelectString.clear()
-        self.pairSelectString.setText(energyString)        
+        self.pairSelectString.setText(self.pairString)        
 
     def transfer_optical_parameters(self):
         #set wavelength
@@ -3086,8 +3150,8 @@ class MainWindow(QMainWindow):
         self.opticalCanvas.clear()
         self.optimization1DCanvas.clear()
 
-        self.qclayers = ThePhysics.QCLayers()
-        self.strata = ThePhysics.Strata()
+        self.qclayers = QCLayers()
+        self.strata = Strata()
 
         self.zoomer.zoom(0)
 
@@ -3540,12 +3604,12 @@ class MainWindow(QMainWindow):
         self.update_windowTitle()
 
     def set_temperature(self):
-        nowTemp = ThePhysics.cst.Temperature
+        nowTemp = cst.Temperature
         newTemp, buttonResponse = QInputDialog.getDouble(self, 
                 'ErwinJr Input Dialog', 'Set Temperature', 
                 value=nowTemp, min=0)
         if buttonResponse:
-            ThePhysics.cst.set_temperature(newTemp)
+            cst.set_temperature(newTemp)
             self.qclayers.Temperature = newTemp
             self.qclayers.populate_x()
             self.qclayers.populate_x_band()

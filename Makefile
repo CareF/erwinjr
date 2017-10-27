@@ -1,19 +1,30 @@
 # CC = icc
-# CFLAGS = -march=native -O3 -gcc-name=gcc-6
+# CFLAGS = -march=native -Ofast -gcc-name=gcc-6
 CC = gcc
-CFLAGS = -march=native -Ofast
-cFunctions.so : cFunctions.o
-	$(CC) -shared -fPIC -o cFunctions.so cFunctions.o
+CFLAGS = -O2
 
-cFunctions.o : cFunctions.c complex.h
-	$(CC) -c -fPIC $(CFLAGS) cFunctions.c
+.PHONY : all
+.DEFAULT : all
+all: cQCLayers.so cStrata.so cQCLayersMP.so
 
-cFunctionsMP.so : cFunctionsMP.o
-	$(CC) -shared -fPIC -fopenmp -o cFunctionsMP.so cFunctionsMP.o
+cQCLayers.so : cQCLayers.o
+	$(CC) -shared -fPIC -o cQCLayers.so cQCLayers.o
 
-cFunctionsMP.o : cFunctions.c complex.h
-	$(CC) -c -fPIC -fopenmp -D __MP $(CFLAGS) cFunctions.c -o cFunctionsMP.o
+cQCLayers.o : cQCLayers.c
+	$(CC) -c -fPIC $(CFLAGS) cQCLayers.c
+
+cStrata.so : cStrata.o
+	$(CC) -shared -fPIC -o cStrata.so cStrata.o
+
+cStrata.o : cStrata.c complex.h
+	$(CC) -c -fPIC $(CFLAGS) cStrata.c
+
+cQCLayersMP.so : cQCLayersMP.o
+	$(CC) -shared -fPIC -fopenmp -o cQCLayersMP.so cQCLayersMP.o
+
+cQCLayersMP.o : cQCLayers.c
+	$(CC) -c -fPIC -fopenmp -D __MP $(CFLAGS) cQCLayers.c -o cQCLayersMP.o
 
 .PHONY : clean
 clean :
-	rm cFunctions.so cFunctions.o cFunctionsMP.so cFunctionsMP.o
+	rm cQCLayers.so cQCLayers.o cStrata.so cStrata.o cQCLayersMP.so cQCLayersMP.o
