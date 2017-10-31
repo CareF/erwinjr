@@ -53,6 +53,7 @@ import SupportClasses
 from QCLayers import QCLayers, cst
 from Strata import Strata
 from QCLayers import h, c0, e0
+import SaveLoad
 
 
 #============================================================================
@@ -2331,14 +2332,14 @@ class MainWindow(QMainWindow):
         """
         self.Calculating(True)
 
-        #  try:
-        self.dCL = self.qclayers.basisSolve()
-        self.qclayers.convert_dCL_to_data(self.dCL)
-        self.solveType = 'basis'        
-        self.plotDirty = True
-        self.update_quantumCanvas()
-        #  except (ValueError,IndexError) as err:
-            #  QMessageBox.warning(self,"ErwinJr - Error", str(err))
+        try:
+            self.dCL = self.qclayers.basisSolve()
+            self.qclayers.convert_dCL_to_data(self.dCL)
+            self.solveType = 'basis'        
+            self.plotDirty = True
+            self.update_quantumCanvas()
+        except (ValueError,IndexError) as err:
+            QMessageBox.warning(self,"ErwinJr - Error", str(err))
 
         self.Calculating(False)
 
@@ -3252,7 +3253,7 @@ class MainWindow(QMainWindow):
         return True
 
     def qclPtonLoad(self, fname):
-        """Legacy load"""
+        """Legacy load: No longer updated and supported since Ver 3.0.0"""
         try:
             filehandle = open(fname, 'r')
             self.qclayers.description = filehandle.readline().split(':')[1].strip()
@@ -3311,81 +3312,8 @@ class MainWindow(QMainWindow):
     def qclLoad(self, fname):
         #  print "Loading "+fname
         try:
-            valDict = {}
-            filehandle = open(fname, 'r')
-            filehandle.readline() #throw away 'ErwinJr Data File'
-            while True:
-                line = filehandle.readline()
-                if line == '# QC layers #'+self.newLineChar:
-                    break
-                line = line.split(':')
-                valDict[line[0]] = line[1].strip()
-
-            self.qclayers.description = valDict['Description']
-            self.qclayers.substrate   = valDict['Substrate']
-            self.qclayers.EField      = float(valDict['Efield'])
-            self.qclayers.xres        = float(valDict['xres'])
-            self.qclayers.vertRes     = float(valDict['Eres'])
-            for n in range(self.numMaterials):
-                self.qclayers.moleFrac[n] = float(valDict['moleFrac%d'%(n+1)])
-            self.qclayers.solver      = valDict['Solver']
-            self.qclayers.Temperature = float(valDict['Temp'])
-            self.qclayers.TempFoM     = float(valDict['TempFoM'])
-            self.qclayers.repeats     = int(valDict['PlotPeriods'])
-            self.qclayers.diffLength  = float(valDict['DiffLeng'])
-
-            self.strata.wavelength           = float(valDict['Wavelength'])
-            self.strata.operatingField       = float(valDict['StratumField'])
-            self.strata.Lp                   = float(valDict['Lp'])
-            self.strata.Np                   = float(valDict['Np'])
-            self.strata.aCore                = float(valDict['alphaCore'])
-            self.strata.nCore                = complex(valDict['nCore'])
-            self.strata.nD                   = float(valDict['nD'])
-            self.strata.transitionBroadening = float(valDict['transitionBroadening'])        
-            self.strata.tauUpper             = float(valDict['tauUpper'])
-            self.strata.tauLower             = float(valDict['tauLower'])
-            self.strata.tauUpperLower        = float(valDict['tauUpperLower'])
-            self.strata.opticalDipole        = float(valDict['opticalDipole'])
-            self.strata.FoM                  = float(valDict['FoM'])
-            self.strata.waveguideFacets      = valDict['waveguideFacets']
-            self.strata.waveguideLength      = float(valDict['waveguideLength'])
-            self.strata.customFacet          = float(valDict['customFacet'])
-
-            lines = []
-            while True:
-                line = filehandle.readline()
-                if line == '# Optical strata #'+self.newLineChar:
-                    break
-                lines.append(line)
-            rows = len(lines)
-            self.qclayers.layerWidth = np.empty(rows, np.int_)
-            for item in ('layerBarriers', 'layerARs', 
-                    'layerDopings', 'layerMaterials', 'layerDividers'):
-                setattr(self.qclayers, item, np.zeros(rows))
-            for q, line in enumerate(lines):
-                line = line.split('\t')
-                self.qclayers.layerWidth[q]       = int(np.round(float(line[1])
-                                                      /self.qclayers.xres))
-                self.qclayers.layerBarriers[q]  = float(line[2])
-                self.qclayers.layerARs[q]       = float(line[3])
-                self.qclayers.layerMaterials[q] = float(line[4])
-                self.qclayers.layerDopings[q]   = float(line[5])
-                self.qclayers.layerDividers[q]  = float(line[6])
-
-            lines = filehandle.readlines()
-            rows = len(lines)
-            for item in ('stratumCompositions', 'stratumThicknesses',
-                    'stratumDopings'):
-                setattr(self.strata, item, np.zeros(rows))
-            self.strata.stratumMaterials = []
-            for q, line in enumerate(lines):
-                line = line.split('\t')
-                self.strata.stratumMaterials.append(str(line[1]))
-                self.strata.stratumCompositions[q] = float(line[2])
-                self.strata.stratumThicknesses[q] = float(line[3])
-                self.strata.stratumDopings[q]     = float(line[4])
-
-            filehandle.close()
+            with open(fname, 'r') as f:
+                SaveLoad.qclLoad(f, self.qclayers, self.strata)
         except Exception as err:
             QMessageBox.warning(self,"ErwinJr - Warning",
                              "Could not load *.qcl file.\n"+str(err))
@@ -3421,62 +3349,14 @@ class MainWindow(QMainWindow):
         return False
 
     def qclSave(self, fname):
-        filehandle = open(fname, 'w')
-        filehandle.write("ErwinJr Data File\n")
-        filehandle.write("Version:" + str(ejVersion) + '\n')
-        filehandle.write("Description:" + self.qclayers.description + '\n')
-        filehandle.write("Substrate:" + self.qclayers.substrate + '\n')
-        filehandle.write("Efield:" + str(self.qclayers.EField) + '\n')
-        filehandle.write("xres:" + str(self.qclayers.xres) + '\n')
-        filehandle.write("Eres:" + str(self.qclayers.vertRes) + '\n')
-        for n in range(self.numMaterials ):
-            filehandle.write("moleFrac%d:"%(n+1) +
-                    str(self.qclayers.moleFrac[n]) + '\n')
-        filehandle.write("Solver:" + self.qclayers.solver + '\n')
-        filehandle.write("Temp:" + str(self.qclayers.Temperature) + '\n')
-        filehandle.write("TempFoM:" + str(self.qclayers.TempFoM) + '\n')
-        filehandle.write("PlotPeriods:" + str(self.qclayers.repeats) + '\n')
-        filehandle.write("DiffLeng:" + str(self.qclayers.diffLength) + '\n')
-
-        filehandle.write("Wavelength:" + str(self.strata.wavelength) + '\n')
-        filehandle.write("StratumField:" + str(self.strata.operatingField) + '\n')
-        filehandle.write("Lp:" + str(self.strata.Lp) + '\n')
-        filehandle.write("Np:" + str(self.strata.Np) + '\n')
-        filehandle.write("alphaCore:" + str(self.strata.aCore) + '\n')
-        filehandle.write("nCore:" + str(self.strata.nCore) + '\n')
-        filehandle.write("nD:" + str(self.strata.nD) + '\n')
-        filehandle.write("transitionBroadening:" + 
-                str(self.strata.transitionBroadening) + '\n')
-        filehandle.write("tauUpper:" + str(self.strata.tauUpper) + '\n')
-        filehandle.write("tauLower:" + str(self.strata.tauLower) + '\n')
-        filehandle.write("tauUpperLower:" + str(self.strata.tauUpperLower) + '\n')
-        filehandle.write("opticalDipole:" + str(self.strata.opticalDipole) + '\n')
-        filehandle.write("FoM:" + str(self.strata.FoM) + '\n')
-        filehandle.write("waveguideFacets:" + self.strata.waveguideFacets + '\n')
-        filehandle.write("waveguideLength:" + str(self.strata.waveguideLength) + '\n')
-        filehandle.write("customFacet:" + str(self.strata.customFacet) + '\n')
-
-        filehandle.write("# QC layers #\n")
-        for row in xrange(self.qclayers.layerWidth.size):
-            string = "%d\t%f\t%d\t%d\t%d\t%f\t%d\n" % (row+1, 
-                    self.qclayers.xres * self.qclayers.layerWidth[row], 
-                    self.qclayers.layerBarriers[row], 
-                    self.qclayers.layerARs[row], 
-                    self.qclayers.layerMaterials[row], 
-                    self.qclayers.layerDopings[row], 
-                    self.qclayers.layerDividers[row])
-            filehandle.write(string)
-
-        filehandle.write("# Optical strata #\n")
-        for row in xrange(self.strata.stratumDopings.size):
-            string = "%d\t%s\t%f\t%f\t%f\n" % (row+1, 
-                    self.strata.stratumMaterials[row], 
-                    self.strata.stratumCompositions[row], 
-                    self.strata.stratumThicknesses[row], 
-                    self.strata.stratumDopings[row])
-            filehandle.write(string)
-
-        filehandle.close()
+        try: 
+            with open(fname, 'w') as f:
+                f.write("ErwinJr Data File\n")
+                f.write("Version:" + str(ejVersion) + '\n')
+                SaveLoad.qclSave(f, self.qclayers, self.strata)
+        except Exception as err:
+            QMessageBox.warning(self,"ErwinJr - Warning",
+                             "Could not save *.qcl file.\n"+str(err))
         return True
 
     #  def qclPtonSave(self, fname):
