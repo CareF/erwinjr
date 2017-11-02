@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding:utf-8 -*-
 
-#===============================================================================
+#============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu (CareF)
@@ -21,7 +21,7 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#===============================================================================
+#============================================================================
 
 # TODO: 
 # In plot controls, add "show one period" 
@@ -565,7 +565,7 @@ class QuantumTab(QWidget):
 #==========================================================================
     def update_inputBoxes(self):
         """ Update all input boxes except for the layerTable. 
-        It's also a SLOT connected to LpFirstSpinbox/LpLastSpinBox.valueChanged(int)
+        SLOT connected to LpFirstSpinbox/LpLastSpinBox.valueChanged(int)
         TODO: add GlobalOpt boxes
         """
         try:
@@ -785,9 +785,9 @@ class QuantumTab(QWidget):
         self.update_quantumCanvas()
 
 
-#===============================================================================
+#============================================================================
 # Layer Table Control
-#===============================================================================
+#============================================================================
     def layerNum(self):
         return self.qclayers.layerWidth.size
 
@@ -880,7 +880,8 @@ class QuantumTab(QWidget):
             else:
                 materialWidget = QComboBox()
                 materialWidget.addItems(self.materialList)
-                materialWidget.setCurrentIndex(self.qclayers.layerMaterials[q]-1)
+                materialWidget.setCurrentIndex(
+                        self.qclayers.layerMaterials[q]-1)
                 self.connect(materialWidget, 
                         SIGNAL("currentIndexChanged(int)"), 
                         partial(self.layerTable_materialChanged, q))
@@ -935,12 +936,18 @@ class QuantumTab(QWidget):
         if row == -1 or row >= self.qclayers.layerWidth.size:
             return
 
-        self.qclayers.layerWidth = np.delete(self.qclayers.layerWidth, row)
-        self.qclayers.layerBarriers = np.delete(self.qclayers.layerBarriers, row)
-        self.qclayers.layerARs = np.delete(self.qclayers.layerARs, row)
-        self.qclayers.layerMaterials = np.delete(self.qclayers.layerMaterials, row)
-        self.qclayers.layerDopings = np.delete(self.qclayers.layerDopings, row)
-        self.qclayers.layerDividers = np.delete(self.qclayers.layerDividers, row)
+        self.qclayers.layerWidth = np.delete(
+                self.qclayers.layerWidth, row)
+        self.qclayers.layerBarriers = np.delete(
+                self.qclayers.layerBarriers, row)
+        self.qclayers.layerARs = np.delete(
+                self.qclayers.layerARs, row)
+        self.qclayers.layerMaterials = np.delete(
+                self.qclayers.layerMaterials, row)
+        self.qclayers.layerDopings = np.delete(
+                self.qclayers.layerDopings, row)
+        self.qclayers.layerDividers = np.delete(
+                self.qclayers.layerDividers, row)
 
         if row == self.qclayers.layerWidth.size: #if row == last_row
             #make first item the same as last item
@@ -1635,9 +1642,9 @@ class QuantumTab(QWidget):
         self.update_quantumCanvas()
 
 
-#===============================================================================
+#============================================================================
 # Export Functions
-#===============================================================================
+#============================================================================
     def export_quantumCanvas(self, fname):
         try:
             self.curveAR.detach()
@@ -1682,9 +1689,9 @@ class QuantumTab(QWidget):
                     delimiter=',')
 
 
-#===============================================================================
+#============================================================================
 # View Band Items
-#===============================================================================
+#============================================================================
     def view_Band(self, band):
         # TODO: combine following slot to this one
         self.bandFlags[band] = not self.bandFlags[band]

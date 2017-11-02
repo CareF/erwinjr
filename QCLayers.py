@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding:utf-8 -*-
 
-#===============================================================================
+#============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu (CareF)
@@ -21,7 +21,7 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#===============================================================================
+#============================================================================
 
 # TODO: 
 # material related codes should be moved to MaterialConstants
@@ -72,9 +72,9 @@ else:
     elif sys.platform == 'win32':
         cQ = CDLL('cQCLayers.dll')
 
-#===============================================================================
+#============================================================================
 # Global Variables
-#===============================================================================
+#============================================================================
 import scipy.constants as scconst
 from scipy.constants import h, hbar
 e0 = scconst.e  #electron charge, unit coulomb
@@ -88,14 +88,14 @@ meV = 1e-3 # meV to eV
 
 INV_INF = 1e-20 # for infinit small decay rate (ns-1)
 
-#===============================================================================
+#============================================================================
 # Reference
 # [0]Kale Franz's thesis
 # [1]Handbook of Optics, Vol.2, ISBN: 0070479747
 # [2]Van de Walle C G. Band lineups and deformation potentials in the 
 #    model-solid theory[J]. Physical review B, 1989, 39(3): 1871.
 # [3]Peter Qiang Liu's thesis
-#===============================================================================
+#============================================================================
 
 # for In0.53Ga0.47As, EcG = 0.22004154
 #    use this as a zero point baseline

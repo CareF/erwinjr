@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding:utf-8 -*-
 
-#===============================================================================
+#============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu (CareF)
@@ -21,9 +21,9 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#===============================================================================
+#============================================================================
 
-#===============================================================================
+#============================================================================
 # Reference
 # [1]Handbook of Optics, Vol.2, ISBN: 0070479747
 # [2]Herve P J L, Vandamme L K J. Empirical temperature dependence of the 
@@ -31,7 +31,7 @@
 #    1995, 77(10): 5476-5477.
 # [3]Joachim Pipre, Semiconductor Optoelectronic Devices: Introduction to 
 #    Physics and Simulation, SIBN: 0080469787
-#===============================================================================
+#============================================================================
 from types import MethodType
 from warnings import warn
 from math import sqrt

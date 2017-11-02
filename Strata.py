@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-#===============================================================================
+#============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu (CareF)
@@ -21,7 +21,7 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#===============================================================================
+#============================================================================
 
 # TODO: 
 # material related codes should be moved to MaterialConstants
@@ -48,20 +48,20 @@ try:
 except: 
     print "unable to load cQCLayers"
 
-#===============================================================================
+#==============================================================================
 # Global Variables
-#===============================================================================
+#==============================================================================
 import scipy.constants as scconst
 from scipy.constants import h
 e0 = scconst.e  #electron charge, unit coulomb
 eps0 = scconst.epsilon_0
 c0 = scconst.c
 
-#===============================================================================
+#============================================================================
 # Reference
 # [0]Kale Franz's thesis
 # [1]Handbook of Optics, Vol.2, ISBN: 0070479747
-#===============================================================================
+#============================================================================
 
 def zero_find(xVals, yVals):
     """To find zero points for function y(x) using iterpolation
