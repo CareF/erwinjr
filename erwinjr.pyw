@@ -4,7 +4,7 @@
 #===============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
-# Copyright (C) 2017 Ming Lyu
+# Copyright (C) 2017 Ming Lyu (CareF)
 #
 # A portion of this code is Copyright (c) 2011, California Institute of 
 # Technology ("Caltech"). U.S. Government sponsorship acknowledged.
