@@ -758,7 +758,7 @@ class MainWindow(QMainWindow):
             kCore = 1/(4*pi) * self.strata.aCore * self.strata.wavelength*1e-4 
             # See Def of acore
             # 1e-4: aCore in cm-1, wl in um
-            self.strata.nCore = self.quantumWidget.qclayers.get_nCore(
+            self.strata.nCore = self.quantumWidget.get_nCore(
                     self.strata.wavelength) + 1j*kCore
 
 

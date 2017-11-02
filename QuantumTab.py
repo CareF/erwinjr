@@ -1755,6 +1755,21 @@ class QuantumTab(QWidget):
         self.toOpticalParamsButton.setEnabled(True)
 
 
+    def get_nCore(self, wl):
+        """Get overall active core complex reflaction index (imag part being
+        decay), by average over width. Used for optical mode calculation. 
+        wl for wavelength"""
+        n = np.empty(self.numMaterials)
+        for q in range(self.numMaterials):
+            n[q] = self.qclayers.moleFrac[q] *\
+                        cst[self.qclayers.Mat1[q]].rIndx(wl)\
+                    + (1-self.qclayers.moleFrac[q]) *\
+                        cst[self.qclayers.Mat2[q]].rIndx(wl)
+        # Average n?
+        nCore = np.sum(self.qclayers.MaterialWidth*n)/np.sum(self.qclayers.MaterialWidth) 
+        return nCore
+
+
     def transfer_params(self, strata):
         """ transfer parameters to strata. """
         #set wavelength
@@ -1777,7 +1792,7 @@ class QuantumTab(QWidget):
         kCore = 1/(4*pi) * strata.aCore * strata.wavelength*1e-4 
         # See Def of acore
         # 1e-4: aCore in cm-1, wl in um
-        strata.nCore = self.qclayers.get_nCore(strata.wavelength) + 1j*kCore
+        strata.nCore = self.get_nCore(strata.wavelength) + 1j*kCore
 
         #set tauUpper
         strata.tauUpper = self.tauUpper

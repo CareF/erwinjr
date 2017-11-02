@@ -1161,18 +1161,6 @@ class QCLayers(object):
 
         return alphaISB
 
-    def get_nCore(self, wavelength):
-        """Get overall active core complex reflaction index (imag part being
-        decay), by average over width. Used for optical mode calculation"""
-        # Matrial reflection index for GaAs, InAs, AlAs
-        wl = wavelength # unit um, see [1] Table22
-        n = np.empty(self.numMaterials)
-        for q in range(self.numMaterials):
-            n[q] = self.moleFrac[q]*cst[self.Mat1[q]].rIndx(wl) \
-                    + (1-self.moleFrac[q])*cst[self.Mat2[q]].rIndx(wl)
-        nCore = np.sum(self.MaterialWidth*n)/np.sum(self.MaterialWidth) # Average n?
-        return nCore
-
     def figure_of_merit(self, upper, lower):
         """This function is designed for auto optimization, and will update
         all eigen energy and wave functions"""
