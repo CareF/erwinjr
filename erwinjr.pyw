@@ -4,6 +4,7 @@
 #===============================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
+# Copyright (C) 2017 Ming Lyu
 #
 # A portion of this code is Copyright (c) 2011, California Institute of 
 # Technology ("Caltech"). U.S. Government sponsorship acknowledged.
@@ -122,16 +123,16 @@ class MainWindow(QMainWindow):
 
         self.create_zoomer()
 
-        self.update_inputBoxes()
 
         self.input_substrate('InP')
+        self.update_inputBoxes()
         self.layerTable_refresh()
         self.layerTable.selectRow(1)
         self.layerTable.setFocus()
 
         self.stratumTable_refresh()
 
-        self.update_inputBoxes()
+        #  self.update_inputBoxes()
         self.update_stratum_inputBoxes()
 
         qsettings = QSettings()
@@ -247,6 +248,7 @@ class MainWindow(QMainWindow):
         inputHorzResLabel = QLabel('<center><b>Horizontal<br>Resolution</b></center>')
         self.inputHorzResBox = QComboBox();
         self.inputHorzResBox.addItems(['1.0','0.5','0.25','0.2','0.1'])
+        # remove 0.25? because to 0.1
         self.connect(self.inputHorzResBox, 
                 SIGNAL("currentIndexChanged(int)"), 
                 self.input_horzRes)
@@ -924,10 +926,10 @@ class MainWindow(QMainWindow):
 
 
 
-        opticalWidget = QWidget()
-        opticalWidget.setLayout(opticalLayout)
-        opticalWidget.setAutoFillBackground(True)
-        opticalWidget.setBackgroundRole(QPalette.Window)        
+        self.opticalWidget = QWidget()
+        self.opticalWidget.setLayout(opticalLayout)
+        self.opticalWidget.setAutoFillBackground(True)
+        self.opticalWidget.setBackgroundRole(QPalette.Window)        
 
         # ###############################
         #
@@ -953,7 +955,7 @@ class MainWindow(QMainWindow):
 
 
         self.mainTabWidget.addTab(self.quantumWidget, 'Quantum')
-        self.mainTabWidget.addTab(opticalWidget, 'Optical')
+        self.mainTabWidget.addTab(self.opticalWidget, 'Optical')
 #        self.mainTabWidget.addTab(thermalWidget, 'Thermal')
         self.connect(self.mainTabWidget, SIGNAL('currentChanged(int)'), 
                 self.change_main_tab)
@@ -1889,7 +1891,7 @@ class MainWindow(QMainWindow):
             Lp:total length
             well: persentage of well material 
             nD: average doping (cm-3)
-            ns: ???
+            ns: 2D carrier density in 1E11 cm-2
         """
         LpFirst = self.LpFirstSpinbox.value()
         LpLast = self.LpLastSpinbox.value()+1 
@@ -2286,8 +2288,7 @@ class MainWindow(QMainWindow):
 #===============================================================================
 
     def Calculating(self, is_doing):
-        """UI repaint for doing calculating
-        """
+        """UI repaint for doing calculating """
         for button in (self.solveWholeButton, self.solveBasisButton,
                 self.pairSelectButton):
             button.setEnabled(not is_doing)
@@ -2303,8 +2304,7 @@ class MainWindow(QMainWindow):
 
     def solve_whole(self):  #solves whole structure
         """SLOT connected to SIGNAL self.solveWholeButton.clicked()
-        Whole solver
-        """
+        Whole solver """
         if hasattr(self.qclayers, "EigenE"):
             self.clear_WFs()
         self.pairSelected = False
@@ -2328,8 +2328,7 @@ class MainWindow(QMainWindow):
 
     def solve_basis(self):  #solves structure with basis
         """SLOT connected to SIGNAL self.solveBasisButton.clicked()
-        Basis solver
-        """
+        Basis solver """
         self.Calculating(True)
 
         try:
@@ -2344,6 +2343,8 @@ class MainWindow(QMainWindow):
         self.Calculating(False)
 
     def pair_select(self, on):
+        """ SLOT connected to SINGAL self.pairSelectButton.clicked()
+        Enable/Disable pair selection."""
         if on:
             self.wellSelectButton.setChecked(False)
             self.panButton.setChecked(False)
@@ -2369,7 +2370,7 @@ class MainWindow(QMainWindow):
         #x data is self.qclayers.xPointsPost
         x = aQPointF.x()
 
-        xLayerNum = argmin((self.qclayers.xPoints-x)**2)
+        xLayerNum = np.argmin((self.qclayers.xPoints-x)**2)
         layerNum = self.qclayers.xLayerNums[xLayerNum]
 
         self.layerTable.selectRow(layerNum)
@@ -2893,6 +2894,8 @@ class MainWindow(QMainWindow):
         self.zoom(False)
 
     def well_select(self, on):
+        """ SLOT connected to self.wellSelectButton.toggled(bool) 
+        Prepare for well selection."""
         if on:
             self.pairSelectButton.setChecked(False)
             self.panButton.setChecked(False)
@@ -3676,5 +3679,7 @@ def main():
 
     app.exec_()
 
-main()
+if __name__ == "__main__":
+    main()
 
+# vim: ts=4 sw=4 sts=4 expandtab
