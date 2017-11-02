@@ -1734,7 +1734,7 @@ class QuantumTab(QWidget):
             button.setEnabled(not is_doing)
             button.repaint()
         if self.pairSelected: 
-            self.FoMButton.setEnabled(not is_doing)flag
+            self.FoMButton.setEnabled(not is_doing)
             self.FoMButton.repaint()
             if self.solveType == 'whole':
                 for button in (self.OptimizeFoMButton, self.OptimizeDipoleButton):
