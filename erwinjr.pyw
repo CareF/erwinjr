@@ -1351,7 +1351,7 @@ class MainWindow(QMainWindow):
 
 
     def transfer_optical_parameters(self):
-        """ SLOT connected to SIGNAL self.quantumWidget.toOpticalParamsButton.clicked()
+        """ SLOT connected to quantumWidget.toOpticalParamsButton.clicked()
         Transfer informatin in quantum tab to optical tab"""
         self.quantumWidget.transfer_params(self.strata)
 

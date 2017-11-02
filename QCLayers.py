@@ -159,6 +159,7 @@ class QCLayers(object):
         self.basisInjectorAR = True
         #  self.designByAngs = True
         #  self.designByML = False
+        self.substratesList = ('InP', 'GaAs', 'GaSb', 'GaN')
         self.substrate = 'InP'
 
         self.moleFrac = [0.53, 0.52, 0.53, 0.52, 0.53, 0.52, 0.53, 0.52]
