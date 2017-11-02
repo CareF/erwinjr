@@ -54,6 +54,8 @@ class QuantumTab(QWidget):
         self.qclayers = QCLayers()
         self.numMaterials = self.qclayers.numMaterials #=8, to improve (TODO)
         self.substratesList = ['InP', 'GaAs', 'GaSb', 'GaN']
+
+        # colors for different wavefunctions
         self.colors = [(149,115,179), (110,124,190), (147,177,132),
                 (174,199,82), (128,128,130), (218,189,63), (223,155,74),
                 (210,87,71), (185,82,159), (105,189,69), (20,20,20),
@@ -1811,6 +1813,7 @@ class QuantumTab(QWidget):
         """ SLOT connected to self.goalFuncBox.currentIndexChanged(int)
         To set goal function for global optimization."""
         self.OptGoal = self.OptGoalsFunc[goal]
+
 
     def GlobalOptimization(self):
         """ SLOT connected to self.GlobalOptButton.cliecked()
