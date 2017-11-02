@@ -1162,8 +1162,6 @@ class QCLayers(object):
         return alphaISB
 
     def figure_of_merit(self, upper, lower):
-        """This function is designed for auto optimization, and will update
-        all eigen energy and wave functions"""
         if upper < lower:
             upper, lower = lower, upper
         tauLower = self.lo_life_time(lower)
