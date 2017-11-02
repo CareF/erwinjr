@@ -42,15 +42,18 @@ if __name__  == "__main__":
         print "Usage: python2 %s input_filename [output_name]"%sys.argv[0]
     import cProfile, pstats
     f_input = sys.argv[1]
+    qclayers = qclLoad(f_input)
     if len(sys.argv) == 3: 
         f_output = sys.argv[2]
     else: 
         import time
         f_output = 'PerformanceTest_'+time.strftime("%m-%d-%y-%H:%M:%S",
                 time.localtime())
-    qclayers = qclLoad(f_input)
     cProfile.run('main(qclayers)', filename = f_output)
     p = pstats.Stats(f_output)
     p.strip_dirs().sort_stats('tottime').print_stats(5)
+    if len(sys.argv) == 2: 
+        import subprocess
+        subprocess.Popen(["rm", f_output])
     
 # vim: ts=4 sw=4 sts=4 expandtab
