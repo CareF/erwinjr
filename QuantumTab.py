@@ -411,7 +411,7 @@ class QuantumTab(QWidget):
         self.FoMButton.setEnabled(False)
         self.connect(self.FoMButton, 
                 SIGNAL("clicked()"), 
-                self.figure_of_merit)
+                self.updateFoM)
         self.toOpticalParamsButton = QPushButton("-> Optical Params")
         self.toOpticalParamsButton.setEnabled(False)
         #  self.connect(self.toOpticalParamsButton, 
@@ -1718,12 +1718,11 @@ class QuantumTab(QWidget):
             self.quantumCanvas.canvas().setCursor(Qt.ArrowCursor)
 
 
-    def figure_of_merit(self):
+    def updateFoM(self):
         """ SLOT connected to SIGNAL self.FoMButton.clicked()
         Calculate Figure of merit.  """
         if len(self.stateHolder) < 2:
             return
-
         self.Calculating(True)
         self.FoMButton.setEnabled(False)
         self.FoMButton.repaint()
@@ -1732,9 +1731,6 @@ class QuantumTab(QWidget):
         lower = self.stateHolder[0]        
         if upper < lower:
             upper, lower = lower, upper
-            #  temp = upper
-            #  upper = lower
-            #  lower = temp
 
         self.tauLower = self.qclayers.lo_life_time(lower)
         self.tauUpper = self.qclayers.lo_life_time(upper)
@@ -1768,7 +1764,6 @@ class QuantumTab(QWidget):
         # Average n?
         nCore = np.sum(self.qclayers.MaterialWidth*n)/np.sum(self.qclayers.MaterialWidth) 
         return nCore
-
 
     def transfer_params(self, strata):
         """ transfer parameters to strata. """
@@ -1807,6 +1802,7 @@ class QuantumTab(QWidget):
         #2gamma transition broadening
         strata.transitionBroadening = self.transitionBroadening / 1000 
             # store in eV
+
 
 #==========================================================================
 # Global Optimization
