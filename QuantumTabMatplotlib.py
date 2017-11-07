@@ -46,7 +46,7 @@ from EJcanvas import EJcanvas, EJplotControl
 #============================================================================
 # Debug options
 #============================================================================
-DEBUG = 3
+DEBUG = 2
 if DEBUG >=3: 
     import pickle
     import inspect
