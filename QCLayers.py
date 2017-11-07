@@ -183,13 +183,16 @@ class QCLayers(object):
                        position grid
                     xBarriers: from layerBarriers, is barrier layer
                         should be boolean (TBD)
-                    xARs: from layerARs, is active region
-                        should be boolean (TBD)
+                    xARs: from layerARs and xVc, xVc if is active region
+                        (layerAR == 1) otherwise np.NaN
                     xMaterials: from layerMaterials label/index of material
                         should be int starting from 0 (TBD)
                     xDopings: from layerDopings, doping per volumn
                     xLayerNums 
-                       at xPoints[q] it's xLayerNums[q]-th layer"""
+                       at xPoints[q] it's xLayerNums[q]-th layer
+                    xLayerSelected: from layerSelected and xVc, xVc if it's
+                        the layer indicated by layerSelected, otherwise NaN
+        """
         #  print "-----debug----- QCLayers populate_x called"
         #  print self.layerBarriers
         #use rounding to work with selected resolution
