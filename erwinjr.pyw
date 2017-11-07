@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
 
         self.update_stratum_inputBoxes()
 
-        qsettings = QSettings()
+        qsettings = QSettings(parent=self)
         self.recentFiles = qsettings.value("RecentFiles").toStringList()
         self.restoreGeometry(
                 qsettings.value("MainWindow/Geometry").toByteArray())
