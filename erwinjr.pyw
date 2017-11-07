@@ -41,7 +41,10 @@ from numpy import pi, sqrt
 from functools import partial
 import time
 
+USE_MATPLOTLIB = True
 import matplotlib
+if USE_MATPLOTLIB: 
+    matplotlib.use('Qt4Agg')
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
@@ -53,13 +56,16 @@ from Strata import Strata
 from QCLayers import h, c0, e0
 import SaveLoad
 
-from QuantumTab import QuantumTab
+if USE_MATPLOTLIB:
+    from QuantumTabMatplotlib import QuantumTab
+else:
+    from QuantumTab import QuantumTab
 
 #============================================================================
 # Version
 #============================================================================
-ejVersion = 171101
-majorVersion = '3.2.0'
+ejVersion = 171107
+majorVersion = '3.3.0'
 
 #============================================================================
 # Debug options
@@ -587,9 +593,6 @@ class MainWindow(QMainWindow):
                 self.change_main_tab)
 
         self.setCentralWidget(self.mainTabWidget)
-
-        self.quantumWidget.layerTable.selectRow(0)
-        self.quantumWidget.layerTable.setFocus()
 
 
 
@@ -1578,7 +1581,7 @@ class MainWindow(QMainWindow):
 
         self.filename = None
         self.quantumWidget.plotDirty = False
-        self.quantumWidget.quantumCanvas.clear()
+        #  self.quantumWidget.quantumCanvas.clear()
         self.opticalCanvas.clear()
         self.optimization1DCanvas.clear()
 
@@ -1734,18 +1737,21 @@ class MainWindow(QMainWindow):
 #============================================================================
 
     def exportBandDiagram(self):
-        fname = unicode(QFileDialog.getSaveFileName(self,
-            "ErwinJr - Export Band Structure Image",
-            self.filename.split('.')[0], 
-            "Portable Network Graphics file (*.png)"))
-        if not fname:
-            return
+        if USE_MATPLOTLIB:
+            self.quantumWidget.export_quantumCanvas(self.filename.split('.')[0])
+        else:
+            fname = unicode(QFileDialog.getSaveFileName(self,
+                "ErwinJr - Export Band Structure Image",
+                self.filename.split('.')[0], 
+                "Portable Network Graphics file (*.png)"))
+            if not fname:
+                return
 
-        #set background color to white and save presets
-        bgRole = self.mainTabWidget.backgroundRole()
-        self.mainTabWidget.setBackgroundRole(QPalette.Base)
-        self.quantumWidget.export_quantumCanvas(fname)
-        self.mainTabWidget.setBackgroundRole(bgRole)
+            #set background color to white and save presets
+            bgRole = self.mainTabWidget.backgroundRole()
+            self.mainTabWidget.setBackgroundRole(QPalette.Base)
+            self.quantumWidget.export_quantumCanvas(fname)
+            self.mainTabWidget.setBackgroundRole(bgRole)
 
     def export_band_diagram_data(self):
         fname = unicode(QFileDialog.getSaveFileName(self,
