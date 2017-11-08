@@ -110,12 +110,6 @@ class QuantumTab(QWidget):
         4th column (figureBox):
             !quantumCanvas**
 
-        --- *quantumCanvas ---
-        zoomer
-        picker
-        picker2
-        panner
-
         --- Optimization ---
         OptGoalsName: Name displayed for global optimization target functions
         OptGoalsFunc: the target functions for optimization
