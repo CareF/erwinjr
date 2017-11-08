@@ -37,7 +37,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import PyQt4.Qwt5 as Qwt
 import numpy as np
-from numpy import pi, sqrt
+from numpy import pi
 from functools import partial
 import time
 
