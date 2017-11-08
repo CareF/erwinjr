@@ -57,7 +57,8 @@ cst = MaterialConstantsDict.MaterialConstantsDict()
 
 # TODO: replace CLIB by Cython
 MORE_INTERPOLATION = True # One more time interpolation for eigen solver
-PAD_WIDTH=100 # width padded in the beginning of the given region for basis solver
+PAD_HEAD=100 # width padded in the beginning of the given region for basis solver
+PAD_TAIL=30
 USE_CLIB = True
 MULTI_PROCESSING = True
 from ctypes import *
@@ -184,7 +185,7 @@ class QCLayers(object):
                     xBarriers: from layerBarriers, is barrier layer
                         should be boolean (TBD)
                     xARs: from layerARs and xVc, xVc if is active region
-                        (layerAR == 1) otherwise np.NaN
+                        (layerARs == 1) otherwise np.NaN
                     xMaterials: from layerMaterials label/index of material
                         should be int starting from 0 (TBD)
                     xDopings: from layerDopings, doping per volumn
@@ -785,12 +786,11 @@ class QCLayers(object):
         # TODO: try always at left
         zeroTOone = []
         oneTOzero = []
-        layerAR = np.insert(self.layerARs, 0, self.layerARs[-1])
-        for q in xrange(0,layerAR.size-1):
-            if layerAR[q] == 0 and layerAR[q+1] == 1:
-                zeroTOone.append(q-1)
-            if layerAR[q] == 1 and layerAR[q+1] == 0:
-                oneTOzero.append(q)
+        for q in xrange(0,self.layerARs.size-1):
+            if self.layerARs[q] == 0 and self.layerARs[q+1] == 1:
+                zeroTOone.append(q) 
+            if self.layerARs[q] == 1 and self.layerARs[q+1] == 0:
+                oneTOzero.append(q+1)
 
         dividers = [0, self.layerARs.size-1]
         if self.basisInjectorAR:
@@ -815,7 +815,9 @@ class QCLayers(object):
             #  padding
             layer = range(dividers[n], dividers[n+1]+1)
             dCL[n].layerWidth = np.concatenate(
-                    ([PAD_WIDTH], self.layerWidth[layer], [30]))
+                    ([int(PAD_HEAD/self.xres)], 
+                        self.layerWidth[layer], 
+                        [int(PAD_TAIL/self.xres)]))
             dCL[n].layerBarriers = np.concatenate(
                     ([1], self.layerBarriers[layer], [1]))
             dCL[n].layerARs = np.concatenate(
@@ -839,7 +841,7 @@ class QCLayers(object):
             #caculate offsets
             dCL[n].widthOffset = self.xres * np.sum(
                     self.layerWidth[range(0,dividers[n])]) #- 100/self.xres
-            dCL[n].fieldOffset = -(dCL[n].widthOffset-PAD_WIDTH) * ANG \
+            dCL[n].fieldOffset = -(dCL[n].widthOffset-PAD_HEAD) * ANG \
                     * dCL[n].EField * KVpCM            
 
         #create dCL's and offsets for repeat periods
@@ -871,8 +873,8 @@ class QCLayers(object):
         #count number of wavefunctions
         numWFs = sum([dC.EigenE.size for dC in dCL])
 
-        self.xPointsPost = np.arange(-100, 
-                self.xPoints[-1] + 30 + self.xres, 
+        self.xPointsPost = np.arange(-PAD_HEAD, 
+                self.xPoints[-1] + PAD_TAIL + self.xres, 
                 self.xres)
         self.xyPsi = np.zeros((self.xPointsPost.size, numWFs))
         self.xyPsiPsi = np.NaN*np.zeros(self.xyPsi.shape)
@@ -892,8 +894,8 @@ class QCLayers(object):
                 counter += 1
 
         # cut head and tial to promise the figure is in the right place?
-        head = int(100/self.xres)
-        tail = -int(30/self.xres)
+        head = int(PAD_HEAD/self.xres)
+        tail = -int(PAD_TAIL/self.xres)
         self.xPointsPost = self.xPointsPost[head:tail]
         self.xyPsi = self.xyPsi[head:tail]
         self.xyPsiPsi = self.xyPsiPsi[head:tail]
@@ -1069,10 +1071,10 @@ class QCLayers(object):
         # old version of coupling calculation
         #  DeltaV = np.ones(self.xPointsPost.size)
         #  first = int(dCL[module_i].widthOffset/self.xres)
-        #  last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
+        #  last = first + dCL[module_i].xBarriers[int(PAD_HEAD/self.xres):].size
         #  print "---debug--- coupling_energy"
         #  print first,last
-        #  DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
+        #  DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_HEAD/self.xres):]
         #  DeltaV = 1 - DeltaV #=is well
         #  couplingEnergy = np.sum(psi_i * DeltaV * psi_j) * self.xres * ANG \
                 #  * abs(self.EcG[1] - self.EcG[0]) /meV #* (1-self.xBarriers)
@@ -1083,10 +1085,12 @@ class QCLayers(object):
             return 0
         DeltaV = np.ones(self.xPointsPost.size)
         first = int(dCL[module_i].widthOffset/self.xres)
-        last = first + dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):].size
+        last = first + dCL[module_i].xBarriers[
+                int(PAD_HEAD/self.xres):int(PAD_TAIL/self.xres)].size
         #  print "---debug--- coupling_energy"
         #  print first,last
-        DeltaV[first:last] = dCL[module_i].xBarriers[int(PAD_WIDTH/self.xres):]
+        DeltaV[first:last] = dCL[module_i].xBarriers[
+                int(PAD_HEAD/self.xres):int(PAD_TAIL/self.xres)]
         DeltaV = 1 - DeltaV #=is well
         jMat = int(self.xMaterials[last+1])
         DeltaV *= (self.EcG[2*jMat-1] - self.EcG[2*(jMat-1)])/meV # unit meV
