@@ -1127,13 +1127,14 @@ class QuantumTab(QWidget):
                 self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
         else:
             pass
-        self.layerTable_refresh()
-        #self.qclayers.populate_x()
-        #self.layerTable.selectRow(row)
-        self.layerTable.setCurrentCell(row,column)
-        self.layerTable.setFocus()
 
-        self.update_Lp_box()
+        if not self.updating:
+            self.layerTable_refresh()
+            self.layerTable.setCurrentCell(row,column)
+            self.layerTable.setFocus()
+            self.update_Lp_box()
+            self.plotDirty = True
+            self.update_quantumCanvas
 
         self.emit(SIGNAL('dirty'))
 
