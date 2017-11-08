@@ -1100,20 +1100,31 @@ class QuantumTab(QWidget):
                 return
             #  self.qclayers.layerBarriers[row] = int(item.checkState())//2
             self.qclayers.layerBarriers[row] = (item.checkState() == Qt.Checked)
+            if row == self.qclayers.layerWidth.size-1:
+                self.qclayers.layerBarriers[0] = self.qclayers.layerBarriers[-1]
+
         elif column == 3: #column == 3 for item change in AR column
             if row == self.qclayers.layerWidth.size: 
                 #don't do anything if row is last row
                 return
             #  self.qclayers.layerARs[row] = int(item.checkState())//2
             self.qclayers.layerARs[row] = (item.checkState() == Qt.Checked)
+            if row == self.qclayers.layerWidth.size-1:
+                self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
+
         elif column == 4: #column == 4 for item change in Doping column
             if row == self.qclayers.layerWidth.size: 
                 #don't do anything if row is last row
                 return
             self.qclayers.layerDopings[row] = float(item.text())
+            if row == self.qclayers.layerWidth.size-1:
+                self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
+
         elif column == 5: #column == 5 for item change in Materials column
+            # See layerTable_materialChanged for more information
             #self.qclayers.layerWidth[row] = int(item.text[row])
-           pass
+            if row == self.qclayers.layerWidth.size-1:
+                self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
         else:
             pass
         self.layerTable_refresh()
