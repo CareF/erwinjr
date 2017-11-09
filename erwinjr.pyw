@@ -38,11 +38,8 @@ from PyQt4.QtGui import *
 from functools import partial
 import time
 
-import settings
-import SupportClasses
 from QCLayers import QCLayers, cst
 from Strata import Strata
-from QCLayers import h, c0, e0
 import SaveLoad
 
 USE_MATPLOTLIB = True
