@@ -38,7 +38,6 @@ import numpy as np
 from numpy import pi, sqrt
 from functools import partial, wraps
 
-import settings
 from QCLayers import QCLayers, cst
 from QCLayers import h, c0, e0
 from EJcanvas import EJcanvas, EJplotControl

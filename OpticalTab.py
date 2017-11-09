@@ -40,8 +40,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import settings
 import SupportClasses
 from Strata import Strata
-from QCLayers import QCLayers, cst
-from QCLayers import h, c0, e0
 
 class OpticalTab(QWidget):
     """The Optical Tab of ErwiJr. This isdesigned to be a GUI wrapper of the
