@@ -501,6 +501,7 @@ class QuantumTab(QWidget):
 
         #set up Calculate controls
         self.pairSelectButton = QPushButton("Pair Select")
+        self.pairSelectButton.setEnabled(False)
         self.plotControl.set_custom('pairselect', 
                 self.pairSelectButton,
                 self.state_pick)
@@ -1369,9 +1370,10 @@ class QuantumTab(QWidget):
 
 
     def clear_WFs(self):
-        self.plotDirty = False
+        self.plotDirty = True
         if hasattr(self.qclayers, 'EigenE'):
             delattr(self.qclayers,'EigenE')
+        self.pairSelectButton.setEnabled(False)
         self.update_quantumCanvas()
 
 
@@ -1475,6 +1477,7 @@ class QuantumTab(QWidget):
             self.plotDirty = True
             self.solveType = 'whole'
             self.update_quantumCanvas()
+            self.pairSelectButton.setEnabled(True)
             if DEBUG >= 4: 
                 with open('qclayer.pkl','wb') as f:
                     pickle.dump(self.qclayers, f, pickle.HIGHEST_PROTOCOL)
@@ -1497,6 +1500,7 @@ class QuantumTab(QWidget):
             self.solveType = 'basis'        
             self.plotDirty = True
             self.update_quantumCanvas()
+            self.pairSelectButton.setEnabled(True)
         except (ValueError,IndexError) as err:
             QMessageBox.warning(self,"ErwinJr - Error", str(err))
 

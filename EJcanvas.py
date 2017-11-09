@@ -25,7 +25,7 @@ import matplotlib
 matplotlib.use('Qt4Agg')
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4 import cursord
-from matplotlib.backend_bases import NavigationToolbar2
+from matplotlib.backend_bases import (NavigationToolbar2, cursors)
 from matplotlib.figure import Figure
 
 from PyQt4.QtCore import *
@@ -87,7 +87,8 @@ class EJplotControl(NavigationToolbar2, QObject):
         QObject.__init__(self, parent)
         self.canvas = canvas
         self._actions = {}
-        self.custom_action = {}
+        self._custom_active = {}
+        self._custom_cursor = {}
 
         NavigationToolbar2.__init__(self, canvas)
 
@@ -137,13 +138,14 @@ class EJplotControl(NavigationToolbar2, QObject):
         else: 
             raise TypeError("%s not supported."%callback)
 
-    def set_custom(self, name, button, callback):
+    def set_custom(self, name, button, callback, cursor=cursors.HAND):
             """cusomized callback action, 
             s.t. this class manages the button's check status
             and its interaction with canvas. 
             Note that callback is called when clicke on canvas"""
-            self.custom_action[name] = callback
+            self._custom_active[name] = callback
             self._actions[name] = button
+            self._custom_cursor[name] = cursor
             button.setCheckable(True)
             # TODO Can this function become a decorator?
 
@@ -177,7 +179,7 @@ class EJplotControl(NavigationToolbar2, QObject):
         # sync button checkstates to match active mode
         self._actions['pan'].setChecked(self._active == 'PAN')
         self._actions['zoom'].setChecked(self._active == 'ZOOM')
-        for mode in self.custom_action: 
+        for mode in self._custom_active: 
             self._actions[mode].setChecked(self._active == mode)
 
     def pan(self, *args):
@@ -206,7 +208,7 @@ class EJplotControl(NavigationToolbar2, QObject):
             #  self._idPress = self.canvas.mpl_connect('button_press_event',
                                                     #  self.press[mode])
             self._idRelease = self.canvas.mpl_connect('button_release_event', 
-                    self.custom_action[mode])
+                    self._custom_active[mode])
             self.mode = mode
             self.canvas.widgetlock(self)
         else:
@@ -221,6 +223,25 @@ class EJplotControl(NavigationToolbar2, QObject):
     def set_message(self, s):
         self.message.emit(s)
         #  print s
+
+    def _set_cursor(self, event):
+        # override backend_bases.NavigationToolbar2._set_cursor
+        if not event.inaxes or not self._active:
+            if self._lastCursor != cursors.POINTER:
+                self.set_cursor(cursors.POINTER)
+                self._lastCursor = cursors.POINTER
+        else:
+            if (self._active == 'ZOOM'
+                    and self._lastCursor != cursors.SELECT_REGION):
+                self.set_cursor(cursors.SELECT_REGION)
+                self._lastCursor = cursors.SELECT_REGION
+            elif (self._active == 'PAN' and
+                  self._lastCursor != cursors.MOVE):
+                self.set_cursor(cursors.MOVE)
+                self._lastCursor = cursors.MOVE
+            elif (self._active in self._custom_active and 
+                    self._lastCursor != self._custom_cursor[self._active]):
+                self.set_cursor(self._custom_cursor[self._active])
 
     def set_cursor(self, cursor):
         self.canvas.setCursor(cursord[cursor])
