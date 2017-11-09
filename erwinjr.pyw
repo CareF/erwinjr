@@ -53,8 +53,8 @@ from OpticalTab import OpticalTab
 #============================================================================
 # Version
 #============================================================================
-ejVersion = 171107
-majorVersion = '3.3.0'
+ejVersion = 171109
+majorVersion = '3.4.0'
 
 #============================================================================
 # Debug options
@@ -609,6 +609,7 @@ With contributions from:
 #=======================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
+# Copyright (C) 2017 Ming Lyu
 #
 # A portion of this code is Copyright (c) 2011, California Institute of 
 # Technology ("Caltech"). U.S. Government sponsorship acknowledged.
