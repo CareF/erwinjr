@@ -35,19 +35,8 @@ from __future__ import division
 import os, sys
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-import PyQt4.Qwt5 as Qwt
-import numpy as np
-from numpy import pi
 from functools import partial
 import time
-
-USE_MATPLOTLIB = True
-import matplotlib
-if USE_MATPLOTLIB: 
-    matplotlib.use('Qt4Agg')
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-from mpl_toolkits.mplot3d import Axes3D
 
 import settings
 import SupportClasses
@@ -56,6 +45,7 @@ from Strata import Strata
 from QCLayers import h, c0, e0
 import SaveLoad
 
+USE_MATPLOTLIB = True
 if USE_MATPLOTLIB:
     from QuantumTabMatplotlib import QuantumTab
 else:

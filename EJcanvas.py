@@ -21,11 +21,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #============================================================================
-
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-
-import numpy as np
 import matplotlib
 matplotlib.use('Qt4Agg')
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -33,6 +28,10 @@ from matplotlib.backends.backend_qt4 import cursord
 from matplotlib.backend_bases import NavigationToolbar2
 from matplotlib.figure import Figure
 
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+
+import numpy as np
 import six
 import os
 from functools import partial
