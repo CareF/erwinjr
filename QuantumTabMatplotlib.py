@@ -1361,12 +1361,6 @@ class QuantumTab(QWidget):
             layerNum = self.qclayers.xLayerNums[xLayerNum]
             self.layerTable.selectRow(layerNum)
             self.layerTable.setFocus()
-        #  if on:
-            #  self.picker2.setEnabled(True)
-            #  #  self.quantumCanvas.canvas().setCursor(Qt.PointingHandCursor)
-        #  else:
-            #  self.picker2.setEnabled(False)
-            #  #  self.quantumCanvas.canvas().setCursor(Qt.ArrowCursor)
 
 
     def clear_WFs(self):
