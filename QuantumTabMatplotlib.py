@@ -159,23 +159,23 @@ class QuantumTab(QWidget):
 
         # Platform dependent settings, eg. layerout size settings
         if sys.platform == 'win32': 
-            layerTableSize = 340
-            DescriptionBoxWidth = 190
-            LpStringBoxWidth=135
+            layerTableSize = 400
+            DescriptionBoxWidth = 220
+            LpStringBoxWidth = 150
         elif sys.platform == 'darwin':
             layerTableSize = 405
             DescriptionBoxWidth = 285
-            LpStringBoxWidth=130
+            LpStringBoxWidth = 130
         elif sys.platform == 'linux2':
             layerTableSize = 365
             DescriptionBoxWidth = 240
-            LpStringBoxWidth=150
+            LpStringBoxWidth = 150
         else:
             QMessageBox.warning(self, 'ErwinJr - Warning', 
                     'Platform %s not tested.'%sys.platform)
-            layerTableSize = 340
+            layerTableSize = 400
             DescriptionBoxWidth = 190
-            LpStringBoxWidth=135
+            LpStringBoxWidth= 150
         pairSelectStringWidth = DescriptionBoxWidth
 
 
@@ -295,8 +295,8 @@ class QuantumTab(QWidget):
         self.targetWL_box = QLineEdit('')
         self.targetWL_box.setValidator(QDoubleValidator(0,100,1))
         self.targetWL_box.setSizePolicy(QSizePolicy(
-            QSizePolicy.Minimum,QSizePolicy.Ignored))
-        #  self.targetWL_box.setMaximumWidth(50)
+            QSizePolicy.Maximum,QSizePolicy.Ignored))
+        self.targetWL_box.setMaximumWidth(LpStringBoxWidth-60)
         self.connect(self.targetWL_box,
                 SIGNAL("editingFinished()"), 
                 self.set_targetWL)
@@ -457,7 +457,7 @@ class QuantumTab(QWidget):
             '<center><b>Mole Fractions</b></center>'), 0,0, 1,4)
         mtrl_grid.addWidget(self.mtrl_well, 1,1)
         mtrl_grid.addWidget(self.mtrl_barr, 1,2)
-        mtrl_grid.addWidget(QLabel('<center><b>Offset</b></center>'), 1,3)
+        mtrl_grid.addWidget(QLabel(u'<center><b>ΔE<sub>c</sub></b></center>'), 1,3)
         for n in range(self.numMaterials//2):
             mtrl_grid.addWidget(QLabel(
                 '<center><b>#%d</b></center>'%(n+1)), 2+n, 0)
@@ -507,12 +507,12 @@ class QuantumTab(QWidget):
                 self.state_pick)
         self.connect(self.pairSelectButton, SIGNAL("clicked()"), 
                 partial(self.plotControl.custom, 'pairselect'))
-        self.FoMButton = QPushButton("Figure of Merit")
+        self.FoMButton = QPushButton("FoM")
         self.FoMButton.setEnabled(False)
         self.connect(self.FoMButton, 
                 SIGNAL("clicked()"), 
                 self.updateFoM)
-        self.toOpticalParamsButton = QPushButton("-> Optical Params")
+        self.toOpticalParamsButton = QPushButton("-> Optical")
         self.toOpticalParamsButton.setEnabled(False)
         # SLOT connected to SIGNAL of tranferOpticalParametersButton should
         # be defined out side this tab, in the main window
@@ -605,7 +605,7 @@ class QuantumTab(QWidget):
         strainString = ("<center>Net Strain: <b>%6.3f%%</b></center>" %
                 self.qclayers.netStrain)
         self.strainDescription.setText(strainString)
-        hwLOString = ("<center>LO phonon: <b>%4.1f ~ %4.1f meV</b></center>" %
+        hwLOString = ("<center>E<sub>LO</sub>: <b>%4.1f ~ %4.1f meV</b></center>" %
                 (min(self.qclayers.hwLO)*1000, max(self.qclayers.hwLO)*1000))
         self.LOPhononDescription.setText(hwLOString)
 
@@ -675,6 +675,7 @@ class QuantumTab(QWidget):
             return
 
         if not self.updating:
+            self.plotDirty = True
             self.update_Lp_limits()
             self.update_inputBoxes()
             self.layerTable_refresh()
