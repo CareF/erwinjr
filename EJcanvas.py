@@ -136,11 +136,7 @@ class EJplotControl(NavigationToolbar2, QObject):
         """
         if callback in (self.toolitems[n][-1] for n in
                 range(len(self.toolitems))):
-            if pyqt5:
-                button.clicked.connect(getattr(self, callback))
-            else: 
-                self.parent().connect(button, SIGNAL("clicked()"),
-                        getattr(self, callback))
+            button.clicked.connect(getattr(self, callback))
             self._actions[callback] = button
             if callback in ['zoom', 'pan']:
                 button.setCheckable(True)

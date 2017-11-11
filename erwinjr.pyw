@@ -38,11 +38,6 @@ if pyqt5:
     from PyQt5.QtCore import *
     from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
-    # connect style change:
-        # QObject(self).conenct(signalowner, SIGNAL("signal()"), SLOT) 
-        # to signalowner.signal.connect(SLOT)
-        # ot signalowner.signal[arg].connect(SLOT) (for
-        # signal=currentindexchanged(QString)
     # QString is automatically unicode
     # qsettings.value(...).toxxxx -> qsettings.value(...)
 else:
@@ -128,8 +123,8 @@ class MainWindow(QMainWindow):
 #        thermalTable.setSelectionMode(QTableWidget.SingleSelection)
 #        thermalTable.setMaximumWidth(380)
 #        thermalTable.setMinimumWidth(380)
-#        self.connect(thermalTable,SIGNAL("itemChanged(QTableWidgetItem*)"),self.stratumTable_itemChanged)
-#        self.connect(thermalTable,SIGNAL("itemSelectionChanged()"),self.stratumTable_itemSelectionChanged)
+#        thermalTable.itemChanged.connect(self.stratumTable_itemChanged)
+#        thermalTable.itemSelectionChanged.connect(self.stratumTable_itemSelectionChanged)
 #        vBox1.addWidget(thermalTable)
 
 #        thermalWidget = QWidget()
@@ -144,12 +139,12 @@ class MainWindow(QMainWindow):
         #
         # ##########################
         self.quantumWidget = QuantumTab(self)
-        self.connect(self.quantumWidget, 
-                SIGNAL('dirty'), 
-                self.winUpdate)
-        self.connect(self.quantumWidget.toOpticalParamsButton, 
-                SIGNAL("clicked()"), 
+        self.quantumWidget.dirty.connect(self.winUpdate)
+        self.quantumWidget.toOpticalParamsButton.clicked.connect(
                 self.transfer_optical_parameters)
+        #  self.connect(self.quantumWidget.toOpticalParamsButton, 
+                #  SIGNAL("clicked()"), 
+                #  self.transfer_optical_parameters)
         self.mainTabWidget.addTab(self.quantumWidget, 'Quantum')
 
         # ##########################
@@ -160,8 +155,8 @@ class MainWindow(QMainWindow):
         self.opticalWidget = OpticalTab(self)
         self.mainTabWidget.addTab(self.opticalWidget, 'Optical')
 #        self.mainTabWidget.addTab(thermalWidget, 'Thermal')
-        self.connect(self.mainTabWidget, SIGNAL('currentChanged(int)'), 
-                self.change_main_tab)
+        self.mainTabWidget.currentChanged.connect(self.change_main_tab)
+        #  self.opticalWidget.dirty.connect(self.winUpdate)
         self.connect(self.opticalWidget, 
                 SIGNAL('dirty'), 
                 self.winUpdate)
@@ -225,7 +220,7 @@ class MainWindow(QMainWindow):
             action.setToolTip(tip)
             action.setStatusTip(tip)
         if slot is not None:
-            self.connect(action, SIGNAL("triggered()"), slot)
+            action.triggered.connect(slot)
         if checkable:
             action.setCheckable(True)
         if ischecked:
@@ -261,8 +256,7 @@ class MainWindow(QMainWindow):
                 saveFileAction, saveAsFileAction, None, 
                 exportBandCSVAction, exportQuantumCanvasAction, None, 
                 quit_action)
-        self.connect(self.file_menu, SIGNAL("aboutToShow()"), 
-                self.updateFileMenu)
+        self.file_menu.aboutToShow.connect(self.updateFileMenu)
         #  self.add_actions(self.file_menu, 
                 #  (newFileAction, openFileAction, 
                     #  saveFileAction, saveAsFileAction, None, quit_action))
@@ -329,8 +323,7 @@ class MainWindow(QMainWindow):
                 tip="Close the application", icon="filequit")
         self.fileMenuActions = (newFileAction, openFileAction, 
                 saveFileAction, saveAsFileAction, None, quit_action)
-        self.connect(self.file_menu, SIGNAL("aboutToShow()"), 
-                self.updateFileMenu)
+        self.file_menu.aboutToShow.connect(self.updateFileMenu)
         #self.add_actions(self.file_menu, (newFileAction, openFileAction, saveFileAction, saveAsFileAction, None, quit_action))
 
         #help menu
@@ -367,8 +360,7 @@ class MainWindow(QMainWindow):
                         "&{0}  {1}".format(i + 1, QFileInfo(
                         fname).fileName()), self)
                 action.setData(QVariant(fname))
-                self.connect(action, SIGNAL("triggered()"),
-                             partial(self.fileOpen,fname))
+                action.triggered.connect(partial(self.fileOpen,fname))
                 self.file_menu.addAction(action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.fileMenuActions[-1])
@@ -411,7 +403,6 @@ class MainWindow(QMainWindow):
             return False
 
         self.filename = None
-        self.quantumWidget.plotDirty = False
         #  self.quantumWidget.quantumCanvas.clear()
         self.opticalWidget.opticalCanvas.clear()
         self.opticalWidget.optimization1DCanvas.clear()
