@@ -235,7 +235,8 @@ class MainWindow(QMainWindow):
         saveAsFileAction   = self.create_action("S&ave As", 
                 shortcut="Ctrl+W", slot=self.fileSaveAs, 
                 tip="Save ErwinJr file as", icon="filesaveas")
-        exportQuantumCanvasAction = self.create_action("Export Band Diagram Image", 
+        exportQuantumCanvasAction = self.create_action(
+                "Export Band Diagram Image", 
                 slot=self.exportBandDiagram, 
                 tip="Export Band Diagram Image")
         exportBandCSVAction = self.create_action("Export Band Diagram Data", 
@@ -265,7 +266,8 @@ class MainWindow(QMainWindow):
                 slot=self.quantumWidget.copy_structure, 
                 tip="Copy Layer Structure to Clipboard")
         self.add_actions(self.edit_menu, 
-                (temperatureAction, bumpLayerAction, None, copyStructureAction))
+                (temperatureAction, bumpLayerAction, None,
+                    copyStructureAction))
 
         #view menu
         self.view_menu = self.menuBar().addMenu("&View")
@@ -321,10 +323,14 @@ class MainWindow(QMainWindow):
 
         #help menu
         self.help_menu = self.menuBar().addMenu("&Help")
-        about_action = self.create_action("&About",shortcut='F1', slot=self.on_about)
-        licenses_action = self.create_action("&License", slot=self.on_licenses)
-        tutorialAction = self.create_action("&Tutorial", slot=self.on_tutorial)
-        self.add_actions(self.help_menu, (tutorialAction,about_action,licenses_action))
+        about_action = self.create_action("&About",shortcut='F1',
+                slot=self.on_about)
+        licenses_action = self.create_action("&License",
+                slot=self.on_licenses)
+        tutorialAction = self.create_action("&Tutorial",
+                slot=self.on_tutorial)
+        self.add_actions(self.help_menu, (tutorialAction,
+            about_action, licenses_action))
 
 
 
@@ -533,8 +539,10 @@ class MainWindow(QMainWindow):
             recentFiles = QVariant(self.recentFiles) if self.recentFiles \
                     else QVariant()
             qsettings.setValue("RecentFiles", recentFiles)
-            qsettings.setValue("MainWindow/Geometry", QVariant(self.saveGeometry()))
-            qsettings.setValue("MainWindow/State", QVariant(self.saveState()))
+            qsettings.setValue(
+                    "MainWindow/Geometry", QVariant(self.saveGeometry()))
+            qsettings.setValue(
+                    "MainWindow/State", QVariant(self.saveState()))
         else:
             event.ignore()
 
@@ -547,7 +555,8 @@ class MainWindow(QMainWindow):
 
     def exportBandDiagram(self):
         if USE_MATPLOTLIB:
-            self.quantumWidget.export_quantumCanvas(self.filename.split('.')[0])
+            self.quantumWidget.export_quantumCanvas(
+                    self.filename.split('.')[0])
         else:
             fname = unicode(QFileDialog.getSaveFileName(self,
                 "ErwinJr - Export Band Structure Image",
@@ -585,14 +594,17 @@ class MainWindow(QMainWindow):
             self.quantumWidget.set_temperature(newTemp)
 
 
-
-
 #============================================================================
 # Help Menu Items
 #============================================================================
 
     def on_about(self):
-        msg = """ ErwinJr 2.x Authors and Contributors
+        msg = """ ErwinJr 3.x Authors and Contributors
+
+         * Ming Lyu
+            minglyu@princeton.edu
+
+        ErwinJr 2.x Authors and Contributors
 
          * Kale J. Franz, PhD (Jet Propulsion Laboratory)
             kfranz@alumni.princeton.edu
@@ -628,7 +640,8 @@ With contributions from:
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================
 """
-        QMessageBox.about(self, "ErwinJr " + str(ejVersion), copyright1.strip())
+        QMessageBox.about(self, "ErwinJr " + str(ejVersion),
+                copyright1.strip())
 
     def on_tutorial(self):
         if os.name == "nt":
@@ -646,7 +659,8 @@ def main():
     app.setOrganizationDomain("erwinjr.org")
     app.setApplicationName("ErwinJr")
     qsettingsSystem = QSettings(QSettings.SystemScope,"JPL","ErwinJr")
-    installDirectory = str(qsettingsSystem.value('installDirectory').toString())
+    installDirectory = str(qsettingsSystem.value(
+        'installDirectory').toString())
     if installDirectory:
         os.chdir(installDirectory)
 
