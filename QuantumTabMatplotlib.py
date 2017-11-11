@@ -28,8 +28,21 @@
 # save and load pickle for qclayers
 # replace qwt by matplotlib
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+pyqt5 = False
+if pyqt5:
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+    # connect style change:
+        # QObject(self).conenct(signalowner, SIGNAL("signal()"), SLOT) 
+        # to signalowner.signal.connect(SLOT)
+        # ot signalowner.signal[arg].connect(SLOT) (for
+        # signal=currentindexchanged(QString)
+    # QString = unicode
+    # self.emit(SIGNAL('dirty')) -> self.dirty.emit()
+else:
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
 #  from matplotlib.backend_bases import key_press_handler
 #  from matplotlib.backends.backend_qt4agg \
         #  import NavigationToolbar2QT as NavigationToolbar
@@ -127,6 +140,9 @@ class QuantumTab(QWidget):
         !set_temperature
         (private is omitted)
         """
+    if pyqt5: 
+        dirty = pyqtSignal()
+
     def __init__(self, parent=None):
         super(QuantumTab, self).__init__(parent)
         self.qclayers = QCLayers()
@@ -840,22 +856,22 @@ class QuantumTab(QWidget):
                     (layerWidth*self.qclayers.xres))
             width.setTextAlignment(Qt.AlignCenter)
             if bool(self.qclayers.layerBarriers[q]):
-                width.setBackgroundColor(gray)
+                width.setBackground(gray)
             self.layerTable.setItem(q, 0, width)
             if q == 0:
                 width.setFlags(Qt.NoItemFlags)
-                width.setBackgroundColor(gray2)
+                width.setBackground(gray2)
 
             #ML Setup
             numML = self.qclayers.xres*layerWidth/self.qclayers.MLThickness[q]
             item = QTableWidgetItem("%5.1f" % numML)
             item.setTextAlignment(Qt.AlignCenter)
             if bool(self.qclayers.layerBarriers[q]):
-                item.setBackgroundColor(gray)
+                item.setBackground(gray)
             self.layerTable.setItem(q, 1, item)
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
-                item.setBackgroundColor(gray2)
+                item.setBackground(gray2)
 
             #Barrier Layer Setup
             item = QTableWidgetItem()
@@ -863,11 +879,11 @@ class QuantumTab(QWidget):
             item.setCheckState(Qt.Checked if
                     self.qclayers.layerBarriers[q]==1 else Qt.Unchecked)
             if bool(self.qclayers.layerBarriers[q]):
-                item.setBackgroundColor(gray)
+                item.setBackground(gray)
             self.layerTable.setItem(q, 2, item)
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
-                item.setBackgroundColor(gray2)
+                item.setBackground(gray2)
 
             #Active Region Layer Setup
             item = QTableWidgetItem()
@@ -875,28 +891,28 @@ class QuantumTab(QWidget):
             item.setCheckState(Qt.Checked if
                     self.qclayers.layerARs[q]==1 else Qt.Unchecked)
             if bool(self.qclayers.layerBarriers[q]):
-                item.setBackgroundColor(gray)
+                item.setBackground(gray)
             self.layerTable.setItem(q, 3, item)
             if q == 0:
                 item.setFlags(Qt.NoItemFlags)
-                item.setBackgroundColor(gray2)
+                item.setBackground(gray2)
 
             #Layer Doping Setup
             doping = QTableWidgetItem(unicode(self.qclayers.layerDopings[q]))
             doping.setTextAlignment(Qt.AlignCenter)
             if bool(self.qclayers.layerBarriers[q]):
-                doping.setBackgroundColor(gray)
+                doping.setBackground(gray)
             self.layerTable.setItem(q, 4, doping)
             if q == 0:
                 doping.setFlags(Qt.NoItemFlags)
-                doping.setBackgroundColor(gray2)
+                doping.setBackground(gray2)
 
             #Material Setup
             if q == 0:
                 item = QTableWidgetItem(unicode(self.materialList[
                     int(self.qclayers.layerMaterials[q])-1]))
                 #TODO: reformat layerMaterials to int begin at 0
-                item.setBackgroundColor(gray2)
+                item.setBackground(gray2)
                 item.setFlags(Qt.NoItemFlags)
                 self.layerTable.setItem(q, 5, item)
             else:

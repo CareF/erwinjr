@@ -22,14 +22,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #============================================================================
 import matplotlib
-matplotlib.use('Qt4Agg')
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4 import cursord
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5 import cursord
 from matplotlib.backend_bases import (NavigationToolbar2, cursors)
 from matplotlib.figure import Figure
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+pyqt5 = False
+if pyqt5: 
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+else: 
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
 
 import numpy as np
 import six
@@ -130,8 +136,11 @@ class EJplotControl(NavigationToolbar2, QObject):
         """
         if callback in (self.toolitems[n][-1] for n in
                 range(len(self.toolitems))):
-            self.parent().connect(button, SIGNAL("clicked()"), 
-                    getattr(self, callback))
+            if pyqt5:
+                button.clicked.connect(getattr(self, callback))
+            else: 
+                self.parent().connect(button, SIGNAL("clicked()"),
+                        getattr(self, callback))
             self._actions[callback] = button
             if callback in ['zoom', 'pan']:
                 button.setCheckable(True)
@@ -280,8 +289,12 @@ class EJplotControl(NavigationToolbar2, QObject):
         filters = ';;'.join(filters)
 
         # for future update to pyqt5, change it to getSaveFileName
-        fname, filter = QFileDialog.getSaveFileNameAndFilter(self.parent(),
-                caption, filename, filters, selectedFilter)
+        if pyqt5:
+            fname, filter = QFileDialog.getSaveFileName(self.parent(),
+                    caption, filename, filters, selectedFilter)
+        else:
+            fname, filter = QFileDialog.getSaveFileNameAndFilter(
+                    self.parent(), caption, filename, filters, selectedFilter)
         if fname:
             try:
                 self.canvas.figure.savefig(six.text_type(fname), 

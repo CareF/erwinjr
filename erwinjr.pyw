@@ -33,8 +33,21 @@
 
 from __future__ import division
 import os, sys
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+pyqt5 = False
+if pyqt5:
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+    # connect style change:
+        # QObject(self).conenct(signalowner, SIGNAL("signal()"), SLOT) 
+        # to signalowner.signal.connect(SLOT)
+        # ot signalowner.signal[arg].connect(SLOT) (for
+        # signal=currentindexchanged(QString)
+    # QString is automatically unicode
+    # qsettings.value(...).toxxxx -> qsettings.value(...)
+else:
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
 from functools import partial
 import time
 
@@ -201,9 +214,8 @@ class MainWindow(QMainWindow):
             else:
                 target.addAction(action)
 
-    def create_action(self, text, slot=None, shortcut=None, 
-                        icon=None, tip=None, checkable=False, 
-                        signal="triggered()", ischecked=False):
+    def create_action(self, text, slot=None, shortcut=None, icon=None, 
+            tip=None, checkable=False, ischecked=False):
         action = QAction(text, self)
         if icon is not None:
             action.setIcon(QIcon("images/%s.png" % icon))
@@ -213,7 +225,7 @@ class MainWindow(QMainWindow):
             action.setToolTip(tip)
             action.setStatusTip(tip)
         if slot is not None:
-            self.connect(action, SIGNAL(signal), slot)
+            self.connect(action, SIGNAL("triggered()"), slot)
         if checkable:
             action.setCheckable(True)
         if ischecked:
@@ -364,10 +376,16 @@ class MainWindow(QMainWindow):
     def addRecentFile(self, fname):
         if fname is None:
             return
-        if not self.recentFiles.contains(fname):
-            self.recentFiles.prepend(QString(fname))
-            while self.recentFiles.count() > 9:
-                self.recentFiles.takeLast()
+        if pyqt5:
+            if not fname in self.recentFiles:
+                self.recentFiles.insert(0, fname)
+                while self.recentFiles.count() > 9:
+                    self.recentFiles.pop()
+        else:
+            if not self.recentFiles.contains(fname):
+                self.recentFiles.prepend(QString(fname))
+                while self.recentFiles.count() > 9:
+                    self.recentFiles.takeLast()
 
     def loadInitialFile(self):
         qsettings = QSettings()
