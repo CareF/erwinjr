@@ -215,7 +215,6 @@ void beta_find(double wavelength, const double *thicknesses, const double *index
 
     double abschiOld=0.0, abschiNew=0.0, absdeltachi=0.0;
     int chiMinIdx = 0;
-    int q=0;
     do{
         //set betas
         betas[0] = beta0;
