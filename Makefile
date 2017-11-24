@@ -1,29 +1,29 @@
-# CC = icc
-CFLAGS = -march=native -Ofast -gcc-name=gcc-6 -Wall
-CC = gcc
-CFLAGS = -O2 -Wall
+CC = icc
+CFLAGS = -march=native -Ofast -gcc-name=gcc-6 -Wall -c -fPIC
+# CC = gcc
+# CFLAGS = -O2 -Wall -c -fPIC
 
 .PHONY : all
 .DEFAULT : all
 all: cQCLayers.so cStrata.so cQCLayersMP.so
 
 cQCLayers.so : cQCLayers.o
-	$(CC) -shared -fPIC -o cQCLayers.so cQCLayers.o
+	$(CC) -shared -fPIC $< -o $@ 
 
 cQCLayers.o : cQCLayers.c
-	$(CC) -c -fPIC $(CFLAGS) cQCLayers.c
+	$(CC) $(CFLAGS) $<
 
 cStrata.so : cStrata.o
-	$(CC) -shared -fPIC -o cStrata.so cStrata.o
+	$(CC) -shared -fPIC $< -o $@ 
 
 cStrata.o : cStrata.c complex.h
-	$(CC) -c -fPIC $(CFLAGS) cStrata.c
+	$(CC) $(CFLAGS) $<
 
 cQCLayersMP.so : cQCLayersMP.o
-	$(CC) -shared -fPIC -fopenmp -o cQCLayersMP.so cQCLayersMP.o
+	$(CC) -shared -fPIC -fopenmp $< -o $@ 
 
 cQCLayersMP.o : cQCLayers.c
-	$(CC) -c -fPIC -fopenmp -D __MP $(CFLAGS) cQCLayers.c -o cQCLayersMP.o
+	$(CC) -fopenmp -D __MP $(CFLAGS) $< -o $@
 
 .PHONY : clean
 clean :
