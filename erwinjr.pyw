@@ -32,12 +32,20 @@
 # add status bar
 
 from __future__ import division
+
+__pyqt5__ = False
+__USE_MATPLOTLIB__ = True
+
 import os
 import sys
 from functools import partial
 import time
-pyqt5 = False
-if pyqt5:
+
+from QCLayers import QCLayers, cst
+from Strata import Strata
+import SaveLoad
+
+if __pyqt5__:
     from PyQt5.QtCore import *
     from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
@@ -47,17 +55,12 @@ else:
     from PyQt4.QtCore import *
     from PyQt4.QtGui import *
 
-from QCLayers import QCLayers, cst
-from Strata import Strata
-import SaveLoad
-
-USE_MATPLOTLIB = True
-if USE_MATPLOTLIB:
+if __USE_MATPLOTLIB__:
     from QuantumTabMatplotlib import QuantumTab
+    from OpticalTab import OpticalTab
 else:
     from QuantumTab import QuantumTab
-
-from OpticalTab import OpticalTab
+    from OpticalTab import OpticalTab
 
 # ===========================================================================
 # Version
@@ -363,7 +366,7 @@ class MainWindow(QMainWindow):
     def addRecentFile(self, fname):
         if fname is None:
             return
-        if pyqt5:
+        if __pyqt5__:
             if fname not in self.recentFiles:
                 self.recentFiles.insert(0, fname)
                 while self.recentFiles.count() > 9:
@@ -551,7 +554,7 @@ class MainWindow(QMainWindow):
 # Export Functions
 # ===========================================================================
     def exportBandDiagram(self):
-        if USE_MATPLOTLIB:
+        if __USE_MATPLOTLIB__:
             self.quantumWidget.export_quantumCanvas(
                     self.filename.split('.')[0])
         else:

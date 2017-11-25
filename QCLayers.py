@@ -36,34 +36,33 @@
 # replace CLIB by Cython
 
 from __future__ import division
+
+__LOG__ = False
+__DEBUG__ = 1
+
+__USE_CLIB__ = True
+__MORE_INTERPOLATION__ = True  # One more time interpolation for eigen solver
+__MULTI_PROCESSING__ = True
+
 import copy
 import sys
 import numpy as np
 from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
 from scipy import interpolate
 
-LOG = False
-#  import matplotlib.pyplot as plt
-if LOG:
-    import pickle
-    logcount = 0
-DEBUG = 1
-if DEBUG >= 1:
-    from time import time
-
 import settings
-
 import MaterialConstantsDict
 cst = MaterialConstantsDict.MaterialConstantsDict()
 
+if __LOG__:
+    import pickle
+    logcount = 0
+if __DEBUG__ >= 1:
+    from time import time
+
 # TODO: replace CLIB by Cython
-MORE_INTERPOLATION = True  # One more time interpolation for eigen solver
-PAD_HEAD=100  # width padded in the beginning of the given region for basis solver
-PAD_TAIL=30
-USE_CLIB = True
-MULTI_PROCESSING = True
 from ctypes import *
-if MULTI_PROCESSING:
+if __MULTI_PROCESSING__:
     if sys.platform in ('linux2', 'darwin', 'cygwin'):
         cQ = CDLL('./cQCLayersMP.so')
     elif sys.platform == 'win32':
@@ -77,18 +76,17 @@ else:
 # ===========================================================================
 # Global Variables
 # ===========================================================================
-import scipy.constants as scconst
+from scipy.constants import (e as e0, epsilon_0 as eps0,
+                             electron_mass as m0, c as c0)
 from scipy.constants import h, hbar
-e0 = scconst.e  # electron charge, unit coulomb
-eps0 = scconst.epsilon_0
-m0 = scconst.electron_mass   # free electron mass (kg)
-c0 = scconst.c
 
 ANG = 1e-10    # angstrom to meter
 KVpCM = 1e5    # KV/cm to V/m
 meV = 1e-3     # meV to eV
 
 INV_INF = 1e-20  # for infinit small decay rate (ns-1)
+PAD_HEAD=100  # width padded in the beginning of the given region for basis solver
+PAD_TAIL=30
 
 # ===========================================================================
 # Reference
@@ -584,7 +582,7 @@ class QCLayers(object):
         psiEnd = np.zeros(Epoints.size)
 
         # TODO: add adaptive spacing for Eq
-        if USE_CLIB:
+        if __USE_CLIB__:
             # Call C function to get boundary dependence of energy EPoints[n],
             # the return value is psiEnd[n]
             # for n with psiEnd[n]=0, EPoints[n] is eigenenergy
@@ -612,7 +610,7 @@ class QCLayers(object):
                                            1 / xMcE[q] + 1 / xMcE[q-1]) *
                                           xPsi[q] - xPsi[q-1] / xMcE[q-1])
                 psiEnd[p] = xPsi[-1]
-        if LOG:
+        if __LOG__:
             global logcount
             with file("EpointsLog%d.pkl" % logcount, 'w') as logfile:
                 pickle.dump((Epoints, psiEnd), logfile)
@@ -622,7 +620,7 @@ class QCLayers(object):
         tck = interpolate.splrep(Epoints, psiEnd)
         self.EigenE = interpolate.sproot(tck, mest=len(Epoints))
 
-        if MORE_INTERPOLATION:
+        if __MORE_INTERPOLATION__:
             # Near the above approximation result,
             # try to get a more precise result
             xnear = np.empty(3*len(self.EigenE))
@@ -647,7 +645,7 @@ class QCLayers(object):
                          xPsi.ctypes.data_as(c_void_p))
                 fxnear[n] = xPsi[-1]
             idxs = 3*np.arange(len(self.EigenE))+1
-            if USE_CLIB:
+            if __USE_CLIB__:
                 cQ.inv_quadratic_interp(xnear.ctypes.data_as(c_void_p),
                                         fxnear.ctypes.data_as(c_void_p),
                                         idxs.ctypes.data_as(POINTER(c_int)),
@@ -671,7 +669,7 @@ class QCLayers(object):
                     self.EigenE[q] = x3
 
         # make array for Psi and fill it in
-        if USE_CLIB:
+        if __USE_CLIB__:
             # with eigenenregy EigenE, here call C function to get wave
             # function
             self.xyPsi = np.zeros(self.xPoints.size*self.EigenE.size)
@@ -969,7 +967,7 @@ class QCLayers(object):
 
         # Kale's thesis Eq.(2.68)
         kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
-        if USE_CLIB:
+        if __USE_CLIB__:
             inv_tau_int = cQ.inv_tau_int
             inv_tau_int.restype = c_double
             Iij = inv_tau_int(xPoints.size, c_double(self.xres),

@@ -1,67 +1,67 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-#============================================================================
+# ===========================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu (CareF)
 #
-# A portion of this code is Copyright (c) 2011, California Institute of 
+# A portion of this code is Copyright (c) 2011, California Institute of
 # Technology ("Caltech"). U.S. Government sponsorship acknowledged.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#============================================================================
+# ===========================================================================
 
-# TODO: 
+# TODO:
 # material related codes should be moved to MaterialConstants
 
 from __future__ import division
-#  from numpy import *
+
+__USE_CLIB__ = True
+
 import numpy as np
 from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
 from scipy import interpolate
-import copy, sys
+import copy
+import sys
 
 import settings
 
 from QCLayers import cst
 
 # TODO: replace CLIB by Cython
-USE_CLIB = True
 from ctypes import *
-try: 
+try:
     if sys.platform in ('linux2', 'darwin', 'cygwin'):
         cS = CDLL('./cStrata.so')
     elif sys.platform == 'win32':
         cS = CDLL('cStrata.dll')
-except: 
+except:
     print "unable to load cQCLayers"
 
-#==============================================================================
+# =============================================================================
 # Global Variables
-#==============================================================================
-import scipy.constants as scconst
+# =============================================================================
 from scipy.constants import h
-e0 = scconst.e  #electron charge, unit coulomb
-eps0 = scconst.epsilon_0
-c0 = scconst.c
+from scipy.constants import (e as e0, epsilon_0 as eps, c as c0)
 
-#============================================================================
+# ===========================================================================
 # Reference
 # [0]Kale Franz's thesis
 # [1]Handbook of Optics, Vol.2, ISBN: 0070479747
-#============================================================================
+# ===========================================================================
+
 
 def zero_find(xVals, yVals):
     """To find zero points for function y(x) using iterpolation
@@ -69,9 +69,10 @@ def zero_find(xVals, yVals):
     # TODO: may be improved for near degenerate states
     # For eigen energy solver, psiEnd's dependence on energy is significant
     # near eigenenergy
-    tck = interpolate.splrep(xVals.real,yVals.real)
+    tck = interpolate.splrep(xVals.real, yVals.real)
     #  print "------debug------ Here zero_find is called"
     return interpolate.sproot(tck, mest=len(xVals))
+
 
 class Strata(object):
     """Strata property for optical mode solver
@@ -82,50 +83,49 @@ class Strata(object):
         self.stratumThicknesses = np.array([0.])
         self.stratumDopings = np.array([0.])
 
-        self.wavelength = 4.7 # unit? micron?
+        self.wavelength = 4.7  # unit micron
         self.operatingField = 0
         self.Lp = 1
         self.Np = 1
 
         # aCore is the alpha defined in [1], Sec 36.3, (10), measured in cm-1
         # representing decay rate in the material.. wl independent?
-        self.aCore = 0 # = 4\pi k /\lambda
-        self.nCore = 4 # index of the active core?
-        self.nD = 0    # ?not used
+        self.aCore = 0  # = 4\pi k /\lambda
+        self.nCore = 4  # index of the active core?
+        self.nD = 0     # ?not used
 
         self.tauUpper = 0.0
         self.tauLower = 0.0
         self.tauUpperLower = 1.0e-3
         self.opticalDipole = 0.0
-        self.FoM = 0.0 # ?
-        self.transitionBroadening = 1.0e-5 # eV
-        self.waveguideFacets = 'as-cleaved + as-cleaved'  
+        self.transitionBroadening = 1.0e-5  # eV
+        self.waveguideFacets = 'as-cleaved + as-cleaved'
         # can be combination of "as-cleaved", "perfect HR", "perfect AR",
         # "custom coating"
-        self.customFacet = 0.0  
-        self.waveguideLength = 3.0 #unit?
+        self.customFacet = 0.0
+        self.waveguideLength = 3.0  # unit?
 
         self.frontFacet = 0
         self.backFacet = 0
 
         self.beta = 3+0j
 
-        self.xres = 0.01 #um -> angstrom?
+        self.xres = 0.01  # um -> angstrom?
         self.stratumSelected = 0
 
         self.notDopableList = ['Air', 'Au', 'SiO2', 'SiNx']
-        self.needsCompositionList = ['InGaAs','InAlAs']
+        self.needsCompositionList = ['InGaAs', 'InAlAs']
 
         self.populate_rIndexes()
 
     def populate_rIndexes(self):
         """ Matrial reflection index for GaAs, InAs, AlAs and InP """
-        wl = self.wavelength # unit um, see [1] Table22
+        wl = self.wavelength  # unit um, see [1] Table22
 
         self.stratumRIndexes = np.zeros(self.stratumDopings.size, dtype=np.complex128)
         for q, material in enumerate(self.stratumMaterials):
             # Calculate reflection index (complex for decay) for each stratum?
-            #TODO: combine codes for different materials
+            # TODO: combine codes for different materials
             if material == 'Active Core':
                 self.stratumRIndexes[q] = self.nCore
             elif material == 'InP':
@@ -135,8 +135,8 @@ class Strata(object):
                 me0 = cst['InP'].me0
                 a = 8.97E-5*wl**2/me0*self.stratumDopings[q]
                 eps = n_InP**2 - a / (1+1j*5.305e-3*wl**2*nue)
-                n_InPd = sqrt( 0.5 *(abs(eps) + eps.real))
-                k_InPd = sqrt( 0.5 *(abs(eps) - eps.real))
+                n_InPd = sqrt(0.5 *(abs(eps) + eps.real))
+                k_InPd = sqrt(0.5 *(abs(eps) - eps.real))
                 self.stratumRIndexes[q] = n_InPd + 1j*k_InPd
             elif material == 'GaAs':
                 # 1.4 < wl < 11
@@ -145,8 +145,8 @@ class Strata(object):
                 me0 = cst['GaAs'].me0
                 a = 8.97E-5*wl**2/me0*self.stratumDopings[q]
                 eps = n_GaAs**2 - a / (1+1j*5.305e-3*wl**2*nue)
-                n_GaAsd = sqrt( 0.5 *(abs(eps) + eps.real))
-                k_GaAsd = sqrt( 0.5 *(abs(eps) - eps.real))
+                n_GaAsd = sqrt(0.5 *(abs(eps) + eps.real))
+                k_GaAsd = sqrt(0.5 *(abs(eps) - eps.real))
                 self.stratumRIndexes[q] = n_GaAsd + 1j*k_GaAsd
             elif material == 'InGaAs':
                 # 3.7 < wl < 31.3
@@ -160,8 +160,8 @@ class Strata(object):
                 me0 = xFrac*cst['InAs'].me0 + (1-xFrac)*cst['GaAs'].me0
                 a = 8.97E-5*wl**2/me0*self.stratumDopings[q]
                 eps = n_InGaAs**2 - a / (1+1j*5.305e-3*wl**2*nue)
-                n_InGaAs = sqrt( 0.5 *(abs(eps) + eps.real))
-                k_InGaAs = sqrt( 0.5 *(abs(eps) - eps.real))
+                n_InGaAs = sqrt(0.5 *(abs(eps) + eps.real))
+                k_InGaAs = sqrt(0.5 *(abs(eps) - eps.real))
                 self.stratumRIndexes[q] = n_InGaAs + 1j*k_InGaAs
             elif material == 'InAlAs':
                 xFrac = self.stratumCompositions[q]
@@ -175,8 +175,8 @@ class Strata(object):
                 me0 = (1-xFrac)*cst['AlAs'].me0 + xFrac*cst['InAs'].me0
                 a = 8.97E-5*wl**2/me0*self.stratumDopings[q]
                 eps = n_AlInAs**2 - a / (1+1j*5.305e-3*wl**2*nue)
-                n_AlInAs = sqrt( 0.5 *(abs(eps) + eps.real))
-                k_AlInAs = sqrt( 0.5 *(abs(eps) - eps.real))
+                n_AlInAs = sqrt(0.5 *(abs(eps) + eps.real))
+                k_AlInAs = sqrt(0.5 *(abs(eps) - eps.real))
                 self.stratumRIndexes[q] = n_AlInAs + 1j*k_AlInAs
             elif material == 'Au':
                 C1=-0.1933; C2=0.3321; C3=0.0938
@@ -188,7 +188,7 @@ class Strata(object):
                 #from Jean Nguyen's Thesis
                 C1 = 2.0019336; C2 = 0.15265213; C3 = 4.0495557
                 D0=-0.00282; D1=0.003029; D2=-0.0006982
-                D3=-0.0002839; D4=0.0001816; D5=-3.948e-005 
+                D3=-0.0002839; D4=0.0001816; D5=-3.948e-005
                 D6=4.276e-006; D7=-2.314e-007; D8=4.982e-009
                 n_SiNx = C1 + C2/wl**2 + C3/wl**4
                 k_SiNx = D0 + D1*wl + D2*wl**2 + D3*wl**3 + D4*wl**4 \
@@ -233,7 +233,7 @@ class Strata(object):
         #convert to int to prevent machine rounding errors
         self.xPoints = self.xres * np.arange(0, self.stratumThickNum.sum(), 1)
 
-        stratumThickNumCumSum = np.concatenate( ([0], 
+        stratumThickNumCumSum = np.concatenate( ([0],
             self.stratumThickNum.cumsum()) )
         self.xn = np.zeros(self.xPoints.size, dtype=np.complex128)
         self.xAC = np.zeros(self.xPoints.size) #binary designation for Active Core
@@ -243,11 +243,11 @@ class Strata(object):
             self.xn[stratumThickNumCumSum[q] :
                     stratumThickNumCumSum[q+1]] = self.stratumRIndexes[q]
             if self.stratumMaterials[q] == 'Active Core':
-                self.xAC[stratumThickNumCumSum[q] : 
+                self.xAC[stratumThickNumCumSum[q] :
                         stratumThickNumCumSum[q+1]] = 1
 
         # make array to show selected stratum in mainCanvas
-        # ? what is this used for? 
+        # ? what is this used for?
         self.xStratumSelected = np.zeros(self.xPoints.shape) * np.NaN
         if self.stratumSelected != -1: #if not no row selected
             self.xStratumSelected[stratumThickNumCumSum[self.stratumSelected]
@@ -296,18 +296,18 @@ class Strata(object):
 
             betas = np.arange(betaMin.real+0.01,betaMax.real,0.01)
 
-            if USE_CLIB: #do chi_find in c
+            if __USE_CLIB__: #do chi_find in c
                 chiImag = np.zeros(len(betas),dtype=float)
                 betasReal = betas.real
                 betasImag = betas.imag
                 stratumRIndexesReal = self.stratumRIndexes.real.copy()
                 stratumRIndexesImag = self.stratumRIndexes.imag.copy()
-                cS.chiImag_array(c_double(self.wavelength), 
-                        self.stratumThicknesses.ctypes.data_as(c_void_p), 
-                        stratumRIndexesReal.ctypes.data_as(c_void_p), 
-                        stratumRIndexesImag.ctypes.data_as(c_void_p), 
-                        int(self.stratumRIndexes.size), 
-                        betasReal.ctypes.data_as(c_void_p), 
+                cS.chiImag_array(c_double(self.wavelength),
+                        self.stratumThicknesses.ctypes.data_as(c_void_p),
+                        stratumRIndexesReal.ctypes.data_as(c_void_p),
+                        stratumRIndexesImag.ctypes.data_as(c_void_p),
+                        int(self.stratumRIndexes.size),
+                        betasReal.ctypes.data_as(c_void_p),
                         betasImag.ctypes.data_as(c_void_p),
                         int(betasReal.size), chiImag.ctypes.data_as(c_void_p))
                 beta0s = zero_find(betas.real, chiImag)
@@ -326,19 +326,19 @@ class Strata(object):
             stratumRIndexesReal = self.stratumRIndexes.real.copy()
             stratumRIndexesImag = self.stratumRIndexes.imag.copy()
             betaOut = np.array([0.0, 0.0])
-            beta = cS.beta_find(c_double(self.wavelength), 
-                    self.stratumThicknesses.ctypes.data_as(c_void_p), 
-                    stratumRIndexesReal.ctypes.data_as(c_void_p), 
-                    stratumRIndexesImag.ctypes.data_as(c_void_p), 
-                    int(self.stratumRIndexes.size), c_double(betaIn.real), 
-                    c_double(betaIn.imag), c_double(beta_find_precision), 
+            beta = cS.beta_find(c_double(self.wavelength),
+                    self.stratumThicknesses.ctypes.data_as(c_void_p),
+                    stratumRIndexesReal.ctypes.data_as(c_void_p),
+                    stratumRIndexesImag.ctypes.data_as(c_void_p),
+                    int(self.stratumRIndexes.size), c_double(betaIn.real),
+                    c_double(betaIn.imag), c_double(beta_find_precision),
                     betaOut.ctypes.data_as(c_void_p))
             beta = betaOut[0] + 1j*betaOut[1]
         else:
             rInc = 0.0001; iInc = 1j*1e-6
             abschiNew=1
             while True:
-                betas = [beta, beta+rInc, beta-rInc, beta+iInc, beta-iInc, 
+                betas = [beta, beta+rInc, beta-rInc, beta+iInc, beta-iInc,
                          beta+rInc+iInc, beta-rInc-iInc, beta+rInc-iInc,
                          beta-rInc+iInc]
                 if True:
@@ -352,11 +352,11 @@ class Strata(object):
                     for p, betaIn in enumerate(betas):
                         stratumRIndexesReal = self.stratumRIndexes.real.copy()
                         stratumRIndexesImag = self.stratumRIndexes.imag.copy()
-                        chi[p] = abschi_find(c_double(self.wavelength), 
-                                self.stratumThicknesses.ctypes.data_as(c_void_p), 
-                                stratumRIndexesReal.ctypes.data_as(c_void_p), 
-                                stratumRIndexesImag.ctypes.data_as(c_void_p), 
-                                int(self.stratumRIndexes.size), c_double(betaIn.real), 
+                        chi[p] = abschi_find(c_double(self.wavelength),
+                                self.stratumThicknesses.ctypes.data_as(c_void_p),
+                                stratumRIndexesReal.ctypes.data_as(c_void_p),
+                                stratumRIndexesImag.ctypes.data_as(c_void_p),
+                                int(self.stratumRIndexes.size), c_double(betaIn.real),
                                 c_double(betaIn.imag))
                 abschiOld = abschiNew
                 abschiNew = min(abs(chi))
@@ -371,7 +371,7 @@ class Strata(object):
         n=copy.copy(self.stratumRIndexes)[::-1]
         thicknesses = copy.copy(self.stratumThicknesses)[::-1]
         ThickNum = copy.copy(self.stratumThickNum)[::-1]
-        #  xres = self.xres        
+        #  xres = self.xres
 
         z0 = 0.003768
         #z0 = 376.8
@@ -408,7 +408,7 @@ class Strata(object):
                     [-1j*gamma[q]*sin(phi[q]), cos(phi[q])]])
                 M = np.dot(Mj,M)
 
-        xI = abs(xI)**2 
+        xI = abs(xI)**2
         xI = xI / max(xI)
         self.xI = xI[::-1]
 
@@ -432,7 +432,7 @@ class Strata(object):
         sigma0 = 4*pi*e0**2 / (h*c0*eps0*neff) * Eph/deltaE * z**2
 
         #gain
-        tauEff = self.tauUpper * (1 - self.tauLower 
+        tauEff = self.tauUpper * (1 - self.tauLower
                 / self.tauUpperLower) * 1e-12
         Lp = self.Lp * 1e-10
         self.gain = sigma0 * tauEff / (e0 * Lp) #m/A
