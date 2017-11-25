@@ -526,7 +526,7 @@ class MainWindow(QMainWindow):
                 SaveLoad.qclSave(f, self.quantumWidget.qclayers,
                                  self.opticalWidget.strata)
         except Exception as err:
-            QMessageBox.warning(self,"ErwinJr - Warning",
+            QMessageBox.warning(self, "ErwinJr - Warning",
                                 "Could not save *.qcl file.\n"+str(err))
         return True
 
@@ -652,7 +652,7 @@ def main():
     app.setOrganizationName("JPL")
     app.setOrganizationDomain("erwinjr.org")
     app.setApplicationName("ErwinJr")
-    qsettingsSystem = QSettings(QSettings.SystemScope,"JPL","ErwinJr")
+    qsettingsSystem = QSettings(QSettings.SystemScope, "JPL", "ErwinJr")
     installDirectory = str(qsettingsSystem.value(
         'installDirectory').toString())
     if installDirectory:

@@ -239,7 +239,6 @@ class QCLayers(object):
             self.xLayerNums = np.concatenate((self.xLayerNums, np.tile(
                 self.xLayerNums[layerNumCumSum[1]:], self.repeats-1)))
 
-
         # this hack is needed because sometimes self.xPoints is one element too big
         self.xPoints = self.xPoints[0:self.xBarriers.size]
 
@@ -657,14 +656,18 @@ class QCLayers(object):
             else:
                 for q, idx in enumerate(idxs):
                     # do quadratic interpolation
-                    x0=xnear[idx-1]; fx0=fxnear[idx-1]
-                    x1=xnear[idx];   fx1=fxnear[idx]
-                    x2=xnear[idx+1]; fx2=fxnear[idx+1]
-                    d1=(fx1-fx0)/(x1-x0); d2=(fx2-fx1)/(x2-x1)
+                    x0=xnear[idx-1]
+                    fx0=fxnear[idx-1]
+                    x1=xnear[idx]
+                    fx1=fxnear[idx]
+                    x2=xnear[idx+1]
+                    fx2=fxnear[idx+1]
+                    d1=(fx1-fx0)/(x1-x0)
+                    d2=(fx2-fx1)/(x2-x1)
                     # inverse quadratic interpolation
-                    x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) \
-                            + x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) \
-                            + x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
+                    x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) +\
+                        x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) +\
+                        x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
                     self.EigenE[q] = x3
 
         # make array for Psi and fill it in
