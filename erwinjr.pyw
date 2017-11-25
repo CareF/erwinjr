@@ -1,29 +1,29 @@
 #!/usr/bin/env python2
 # -*- coding:utf-8 -*-
 
-#============================================================================
+# ===========================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu (CareF)
 #
-# A portion of this code is Copyright (c) 2011, California Institute of 
+# A portion of this code is Copyright (c) 2011, California Institute of
 # Technology ("Caltech"). U.S. Government sponsorship acknowledged.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#============================================================================
+# ===========================================================================
 
-# TODO: 
+# TODO:
 # replace np.hstack (done, but self.strata part to test)
 # find replacement for psyco
 # try to seperate this file to smaller ones (done for quantumtab
@@ -32,7 +32,10 @@
 # add status bar
 
 from __future__ import division
-import os, sys
+import os
+import sys
+from functools import partial
+import time
 pyqt5 = False
 if pyqt5:
     from PyQt5.QtCore import *
@@ -43,8 +46,6 @@ if pyqt5:
 else:
     from PyQt4.QtCore import *
     from PyQt4.QtGui import *
-from functools import partial
-import time
 
 from QCLayers import QCLayers, cst
 from Strata import Strata
@@ -58,16 +59,17 @@ else:
 
 from OpticalTab import OpticalTab
 
-#============================================================================
+# ===========================================================================
 # Version
-#============================================================================
+# ===========================================================================
 ejVersion = 171109
 majorVersion = '3.4.0'
 
-#============================================================================
+# ===========================================================================
 # Debug options
-#============================================================================
+# ===========================================================================
 DEBUG = 1
+
 
 class MainWindow(QMainWindow):
     def __init__(self, fileName=None, parent=None):
@@ -78,7 +80,6 @@ class MainWindow(QMainWindow):
             self.newLineChar = '\n'
 
         self.filename = fileName
-
 
         self.create_main_frame()
         self.create_Quantum_menu()
@@ -100,11 +101,9 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self.update_windowTitle()
 
-
-
-#============================================================================
-# Create Main Frame        
-#============================================================================
+# ===========================================================================
+# Create Main Frame
+# ===========================================================================
 
     def create_main_frame(self):
 
@@ -132,7 +131,6 @@ class MainWindow(QMainWindow):
 #        thermalWidget.setAutoFillBackground(True)
 #        thermalWidget.setBackgroundRole(QPalette.Window)
 
-
         # ##########################
         #
         # Quantum Tab
@@ -142,9 +140,6 @@ class MainWindow(QMainWindow):
         self.quantumWidget.dirty.connect(self.winUpdate)
         self.quantumWidget.toOpticalParamsButton.clicked.connect(
                 self.transfer_optical_parameters)
-        #  self.connect(self.quantumWidget.toOpticalParamsButton, 
-                #  SIGNAL("clicked()"), 
-                #  self.transfer_optical_parameters)
         self.mainTabWidget.addTab(self.quantumWidget, 'Quantum')
 
         # ##########################
@@ -154,15 +149,14 @@ class MainWindow(QMainWindow):
         # ##########################
         self.opticalWidget = OpticalTab(self)
         self.mainTabWidget.addTab(self.opticalWidget, 'Optical')
-#        self.mainTabWidget.addTab(thermalWidget, 'Thermal')
+        #  self.mainTabWidget.addTab(thermalWidget, 'Thermal')
         self.mainTabWidget.currentChanged.connect(self.change_main_tab)
         #  self.opticalWidget.dirty.connect(self.winUpdate)
-        self.connect(self.opticalWidget, 
-                SIGNAL('dirty'), 
-                self.winUpdate)
+        self.connect(self.opticalWidget,
+                     SIGNAL('dirty'),
+                     self.winUpdate)
 
         self.setCentralWidget(self.mainTabWidget)
-
 
     def winUpdate(self):
         """ SLOT connected to self.quantumWidget.dirty and
@@ -170,27 +164,24 @@ class MainWindow(QMainWindow):
         self.dirty = True
         self.update_windowTitle()
 
-
     def transfer_optical_parameters(self):
         """ SLOT connected to quantumWidget.toOpticalParamsButton.clicked()
         Transfer informatin in quantum tab to optical tab"""
         self.quantumWidget.transfer_params(self.opticalWidget.strata)
 
-        #GUI settings
+        # GUI settings
         self.quantumWidget.toOpticalParamsButton.setEnabled(False)
         self.opticalWidget.editOpticalParametersBox.setChecked(False)
 
-        #update all the input boxes
+        # update all the input boxes
         self.opticalWidget.update_stratum_inputBoxes()
 
-        #update the stratumTable
+        # update the stratumTable
         self.opticalWidget.stratumTable_refresh()
 
-
-
-#============================================================================
+# ===========================================================================
 # General Menu Functions
-#============================================================================
+# ===========================================================================
     def change_main_tab(self, tabIdx):
         self.menuBar().clear()
         if tabIdx == 0:
@@ -209,8 +200,8 @@ class MainWindow(QMainWindow):
             else:
                 target.addAction(action)
 
-    def create_action(self, text, slot=None, shortcut=None, icon=None, 
-            tip=None, checkable=False, ischecked=False):
+    def create_action(self, text, slot=None, shortcut=None, icon=None,
+                      tip=None, checkable=False, ischecked=False):
         action = QAction(text, self)
         if icon is not None:
             action.setIcon(QIcon("images/%s.png" % icon))
@@ -228,120 +219,124 @@ class MainWindow(QMainWindow):
         return action
 
     def create_Quantum_menu(self):
-        #file menu
+        # file menu
         self.file_menu = self.menuBar().addMenu("&File")
-        newFileAction      = self.create_action("&New...", 
-                slot=self.fileNew, shortcut=QKeySequence.New, 
-                icon="filenew", tip="New ErwinJr file")
-        openFileAction     = self.create_action("&Open", 
-                shortcut="Ctrl+O", slot=self.fileOpen, 
-                tip="Open ErwinJr file", icon="fileopen")
-        saveFileAction     = self.create_action("&Save", 
-                shortcut="Ctrl+S", slot=self.fileSave, 
-                tip="Save ErwinJr file", icon="filesave")
-        saveAsFileAction   = self.create_action("S&ave As", 
-                shortcut="Ctrl+W", slot=self.fileSaveAs, 
-                tip="Save ErwinJr file as", icon="filesaveas")
+        newFileAction = self.create_action(
+            "&New...", slot=self.fileNew, shortcut=QKeySequence.New,
+            icon="filenew", tip="New ErwinJr file")
+        openFileAction = self.create_action(
+            "&Open", shortcut="Ctrl+O", slot=self.fileOpen,
+            tip="Open ErwinJr file", icon="fileopen")
+        saveFileAction = self.create_action(
+            "&Save", shortcut="Ctrl+S", slot=self.fileSave,
+            tip="Save ErwinJr file", icon="filesave")
+        saveAsFileAction = self.create_action(
+            "S&ave As", shortcut="Ctrl+W", slot=self.fileSaveAs,
+            tip="Save ErwinJr file as", icon="filesaveas")
         exportQuantumCanvasAction = self.create_action(
-                "Export Band Diagram Image", 
-                slot=self.exportBandDiagram, 
+                "Export Band Diagram Image",
+                slot=self.exportBandDiagram,
                 tip="Export Band Diagram Image")
-        exportBandCSVAction = self.create_action("Export Band Diagram Data", 
-                slot=self.export_band_diagram_data, 
-                tip="Export Band Diagram Data")
-        quit_action = self.create_action("&Quit", 
-                slot=self.close, shortcut="Ctrl+Q", 
-                tip="Close the application", icon="filequit")
-        self.fileMenuActions = (newFileAction, openFileAction, 
-                saveFileAction, saveAsFileAction, None, 
-                exportBandCSVAction, exportQuantumCanvasAction, None, 
-                quit_action)
+        exportBandCSVAction = self.create_action(
+            "Export Band Diagram Data", slot=self.export_band_diagram_data,
+            tip="Export Band Diagram Data")
+        quit_action = self.create_action(
+            "&Quit", slot=self.close, shortcut="Ctrl+Q",
+            tip="Close the application", icon="filequit")
+        self.fileMenuActions = (
+            newFileAction, openFileAction, saveFileAction, saveAsFileAction,
+            None, exportBandCSVAction, exportQuantumCanvasAction, None,
+            quit_action)
         self.file_menu.aboutToShow.connect(self.updateFileMenu)
-        #  self.add_actions(self.file_menu, 
-                #  (newFileAction, openFileAction, 
-                    #  saveFileAction, saveAsFileAction, None, quit_action))
 
-        #edit menu
+        # edit menu
         self.edit_menu = self.menuBar().addMenu("&Edit")
-        temperatureAction = self.create_action("&Temperature", 
-                slot=self.set_temperature, tip="Set temperature")
-        bumpLayerAction = self.create_action("&Bump First Layer", 
-                slot=self.quantumWidget.bump_first_layer, 
-                tip="Move zeroth layer to first layer")
-        copyStructureAction = self.create_action("&Copy Structure", 
-                slot=self.quantumWidget.copy_structure, 
-                tip="Copy Layer Structure to Clipboard")
-        self.add_actions(self.edit_menu, 
-                (temperatureAction, bumpLayerAction, None,
-                    copyStructureAction))
+        temperatureAction = self.create_action(
+            "&Temperature", slot=self.set_temperature, tip="Set temperature")
+        bumpLayerAction = self.create_action(
+            "&Bump First Layer", slot=self.quantumWidget.bump_first_layer,
+            tip="Move zeroth layer to first layer")
+        copyStructureAction = self.create_action(
+            "&Copy Structure", slot=self.quantumWidget.copy_structure,
+            tip="Copy Layer Structure to Clipboard")
+        self.add_actions(self.edit_menu, (temperatureAction,
+                                          bumpLayerAction, None,
+                                          copyStructureAction))
 
-        #view menu
+        # view menu
         self.view_menu = self.menuBar().addMenu("&View")
-        VXBandAction = self.create_action("X Valley Conduction Band", 
+        VXBandAction = self.create_action(
+                "X Valley Conduction Band",
                 checkable=True, ischecked=self.quantumWidget.plotVX,
                 slot=self.quantumWidget.view_VXBand)
-        VLBandAction = self.create_action("L Valley Conduction Band", 
+        VLBandAction = self.create_action(
+                "L Valley Conduction Band",
                 checkable=True, ischecked=self.quantumWidget.plotVL,
                 slot=self.quantumWidget.view_VLBand)
-        LHBandAction = self.create_action("Light Hole Valence Band", 
+        LHBandAction = self.create_action(
+                "Light Hole Valence Band",
                 checkable=True, ischecked=self.quantumWidget.plotLH,
                 slot=self.quantumWidget.view_LHBand)
-        SOBandAction = self.create_action("Split Off Valence Band", 
+        SOBandAction = self.create_action(
+                "Split Off Valence Band",
                 checkable=True, ischecked=self.quantumWidget.plotSO,
                 slot=self.quantumWidget.view_SOBand)
-        self.add_actions(self.view_menu, 
-                (VXBandAction,VLBandAction,LHBandAction,SOBandAction))        
+        self.add_actions(self.view_menu, (VXBandAction,
+                                          VLBandAction,
+                                          LHBandAction,
+                                          SOBandAction))
 
-        #help menu
+        # help menu
         self.help_menu = self.menuBar().addMenu("&Help")
-        about_action = self.create_action("&About",shortcut='F1', 
-                slot=self.on_about)
-        licenses_action = self.create_action("&License", 
-                slot=self.on_licenses)
-        tutorialAction = self.create_action("&Tutorial", 
-                slot=self.on_tutorial)
-        self.add_actions(self.help_menu, 
-                (tutorialAction,about_action,licenses_action))
+        about_action = self.create_action("&About", shortcut='F1',
+                                          slot=self.on_about)
+        licenses_action = self.create_action("&License",
+                                             slot=self.on_licenses)
+        tutorialAction = self.create_action("&Tutorial",
+                                            slot=self.on_tutorial)
+        self.add_actions(self.help_menu, (tutorialAction,
+                                          about_action,
+                                          licenses_action))
 
     def create_Optical_menu(self):
-        #file menu
+        # file menu
         self.file_menu = self.menuBar().addMenu("&File")
-        newFileAction      = self.create_action("&New...", 
-                self.fileNew, QKeySequence.New, 
-                "filenew", "New ErwinJr file")
-        openFileAction     = self.create_action("&Open", 
-                shortcut="Ctrl+O", slot=self.fileOpen, 
-                tip="Open ErwinJr file", icon="fileopen")
-        saveFileAction     = self.create_action("&Save", 
-                shortcut="Ctrl+S", slot=self.fileSave, 
-                tip="Save ErwinJr file", icon="filesave")
-        saveAsFileAction   = self.create_action("S&ave As", 
-                shortcut="Ctrl+W", slot=self.fileSaveAs, 
-                tip="Save ErwinJr file as", icon="filesaveas")
-        quit_action = self.create_action("&Quit", 
-                slot=self.close, shortcut="Ctrl+Q", 
-                tip="Close the application", icon="filequit")
-        self.fileMenuActions = (newFileAction, openFileAction, 
-                saveFileAction, saveAsFileAction, None, quit_action)
+        newFileAction = self.create_action(
+            "&New...", self.fileNew, QKeySequence.New,
+            "filenew", "New ErwinJr file")
+        openFileAction = self.create_action(
+            "&Open", shortcut="Ctrl+O", slot=self.fileOpen,
+            tip="Open ErwinJr file", icon="fileopen")
+        saveFileAction = self.create_action(
+            "&Save", shortcut="Ctrl+S", slot=self.fileSave,
+            tip="Save ErwinJr file", icon="filesave")
+        saveAsFileAction = self.create_action(
+            "S&ave As", shortcut="Ctrl+W", slot=self.fileSaveAs,
+            tip="Save ErwinJr file as", icon="filesaveas")
+        quit_action = self.create_action(
+            "&Quit", slot=self.close, shortcut="Ctrl+Q",
+            tip="Close the application", icon="filequit")
+        self.fileMenuActions = (newFileAction, openFileAction,
+                                saveFileAction, saveAsFileAction,
+                                None, quit_action)
         self.file_menu.aboutToShow.connect(self.updateFileMenu)
-        #self.add_actions(self.file_menu, (newFileAction, openFileAction, saveFileAction, saveAsFileAction, None, quit_action))
+        # self.add_actions(self.file_menu, (newFileAction, openFileAction, saveFileAction, saveAsFileAction, None, quit_action))
 
-        #help menu
+        # help menu
         self.help_menu = self.menuBar().addMenu("&Help")
-        about_action = self.create_action("&About",shortcut='F1',
-                slot=self.on_about)
+        about_action = self.create_action("&About", shortcut='F1',
+                                          slot=self.on_about)
         licenses_action = self.create_action("&License",
-                slot=self.on_licenses)
+                                             slot=self.on_licenses)
         tutorialAction = self.create_action("&Tutorial",
-                slot=self.on_tutorial)
+                                            slot=self.on_tutorial)
         self.add_actions(self.help_menu, (tutorialAction,
-            about_action, licenses_action))
+                                          about_action, licenses_action))
 
 
-
-#============================================================================
+# ===========================================================================
 # File Menu Items
-#============================================================================
+# ===========================================================================
     def updateFileMenu(self):
         """SLOT connected to self.file_menu.aboutToShow()
         Update for recent files"""
@@ -358,9 +353,9 @@ class MainWindow(QMainWindow):
             for i, fname in enumerate(recentFiles):
                 action = QAction(
                         "&{0}  {1}".format(i + 1, QFileInfo(
-                        fname).fileName()), self)
+                            fname).fileName()), self)
                 action.setData(QVariant(fname))
-                action.triggered.connect(partial(self.fileOpen,fname))
+                action.triggered.connect(partial(self.fileOpen, fname))
                 self.file_menu.addAction(action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.fileMenuActions[-1])
@@ -369,7 +364,7 @@ class MainWindow(QMainWindow):
         if fname is None:
             return
         if pyqt5:
-            if not fname in self.recentFiles:
+            if fname not in self.recentFiles:
                 self.recentFiles.insert(0, fname)
                 while self.recentFiles.count() > 9:
                     self.recentFiles.pop()
@@ -396,7 +391,7 @@ class MainWindow(QMainWindow):
         self.filename = fname
         self.addRecentFile(fname)
         self.dirty = False
-        self.update_windowTitle()       
+        self.update_windowTitle()
 
     def fileNew(self):
         if not self.okToContinue():
@@ -424,10 +419,10 @@ class MainWindow(QMainWindow):
 
     def okToContinue(self):
         if self.dirty:
-            reply = QMessageBox.question(self, 
-                    "ErwinJr " + str(majorVersion) + " - Unsaved Changes", 
-                    "Save unsaved changes?", 
-                    QMessageBox.Yes|QMessageBox.No|QMessageBox.Cancel)
+            reply = QMessageBox.question(
+                self, "ErwinJr " + str(majorVersion) + " - Unsaved Changes",
+                "Save unsaved changes?",
+                QMessageBox.Yes|QMessageBox.No|QMessageBox.Cancel)
             if reply == QMessageBox.Cancel:
                 return False
             elif reply == QMessageBox.Yes:
@@ -436,43 +431,40 @@ class MainWindow(QMainWindow):
 
     def update_windowTitle(self):
         if self.filename is not None:
-            self.setWindowTitle("ErwinJr " + str(majorVersion) + 
-                    " - %s[*]" % os.path.basename(str(self.filename)))
+            self.setWindowTitle("ErwinJr " + str(majorVersion) + " - %s[*]" %
+                                os.path.basename(str(self.filename)))
         else:
             self.setWindowTitle("ErwinJr " + str(majorVersion) + "[*]")
         self.setWindowModified(self.dirty)
 
-    def fileOpen(self, fname = None):
-        #if not self.okToContinue():
-        #    return False
-
-        #clear all old data, also calls self.okToContinue()
-        if not self.fileNew(): 
+    def fileOpen(self, fname=None):
+        # clear all old data, also calls self.okToContinue()
+        if not self.fileNew():
             return False
         if fname is None:
             dir = os.path.dirname(str(self.filename)) if self.filename else "."
-            fname =unicode(QFileDialog.getOpenFileName(self,
-                "ErwinJr - Choose file", dir, 
+            fname =unicode(QFileDialog.getOpenFileName(
+                self, "ErwinJr - Choose file", dir,
                 "ErwinJr files (*.qcl)\nAll files (*.*)"))
-        #open file and determine if it is from the Matlab version of ErwinJr
+        # open file and determine if it is from the Matlab version of ErwinJr
         filehandle = open(fname, 'r')
         firstLine = filehandle.readline()
         filehandle.close()
         if fname:
             if firstLine.split(':')[0] == 'Description':
-                QMessageBox.warning(self, 'ErwinJr Error', 
-                        'Older .qcl format is no longer supported '
-                        'for Ver>3.0.')
+                QMessageBox.warning(
+                    self, 'ErwinJr Error',
+                    'Older .qcl format is no longer supported for Ver>3.0.')
                 #  self.qclPtonLoad(fname)
             elif firstLine == 'ErwinJr Data File' + self.newLineChar:
                 self.qclLoad(fname)
             else:
-                QMessageBox.warning(self,'ErwinJr Error',
-                        'Could not recognize input file.')
+                QMessageBox.warning(self, 'ErwinJr Error',
+                                    'Could not recognize input file.')
                 return
             self.quantumWidget.reloaded()
 
-            #if firstLine == 'ErwinJr Data File\n':
+            # if firstLine == 'ErwinJr Data File\n':
             self.opticalWidget.strata.populate_rIndexes()
             self.opticalWidget.update_stratum_inputBoxes()
             self.opticalWidget.stratumTable_refresh()
@@ -486,22 +478,21 @@ class MainWindow(QMainWindow):
 
         return True
 
-
     def qclLoad(self, fname):
         #  print "Loading "+fname
         try:
             with open(fname, 'r') as f:
                 SaveLoad.qclLoad(f, self.quantumWidget.qclayers,
-                        self.opticalWidget.strata)
+                                 self.opticalWidget.strata)
         except Exception as err:
-            QMessageBox.warning(self,"ErwinJr - Warning",
-                             "Could not load *.qcl file.\n"+str(err))
+            QMessageBox.warning(self, "ErwinJr - Warning",
+                                "Could not load *.qcl file.\n"+str(err))
 
     def fileSave(self):
         if self.filename is None:
             return self.fileSaveAs()
         else:
-            #os.path.extsep
+            # os.path.extsep
             if self.filename.split('.')[-1] == 'qcl':
                 if self.qclSave(self.filename):
                     self.dirty = False
@@ -510,15 +501,15 @@ class MainWindow(QMainWindow):
                 else:
                     return False
             else:
-                raise IOError('The *.' + self.filename.split('.')[-1] + 
-                        ' extension is not supported.')
+                raise IOError('The *.' + self.filename.split('.')[-1] +
+                              ' extension is not supported.')
                 return False
 
     def fileSaveAs(self):
         fname = self.filename if self.filename is not None else "."
         typeString = "ErwinJr 2.x file (*.qcl)\nAll files (*.*)"
-        fname = unicode(QFileDialog.getSaveFileName(self,
-            "ErwinJr - Save File", QString(fname), typeString))
+        fname = unicode(QFileDialog.getSaveFileName(
+            self, "ErwinJr - Save File", QString(fname), typeString))
         if fname:
             if "." not in fname:
                 fname += ".qcl"
@@ -528,25 +519,25 @@ class MainWindow(QMainWindow):
         return False
 
     def qclSave(self, fname):
-        try: 
+        try:
             with open(fname, 'w') as f:
                 f.write("ErwinJr Data File\n")
                 f.write("Version:" + str(ejVersion) + '\n')
                 SaveLoad.qclSave(f, self.quantumWidget.qclayers,
-                        self.opticalWidget.strata)
+                                 self.opticalWidget.strata)
         except Exception as err:
             QMessageBox.warning(self,"ErwinJr - Warning",
-                             "Could not save *.qcl file.\n"+str(err))
+                                "Could not save *.qcl file.\n"+str(err))
         return True
 
     def closeEvent(self, event):
         if self.okToContinue():
             qsettings = QSettings()
-            filename = QVariant(QString(self.filename)) if self.filename \
-                    else QVariant()
+            filename = (QVariant(QString(self.filename)) if self.filename
+                        else QVariant())
             qsettings.setValue("LastFile", filename)
-            recentFiles = QVariant(self.recentFiles) if self.recentFiles \
-                    else QVariant()
+            recentFiles = (QVariant(self.recentFiles) if self.recentFiles
+                           else QVariant())
             qsettings.setValue("RecentFiles", recentFiles)
             qsettings.setValue(
                     "MainWindow/Geometry", QVariant(self.saveGeometry()))
@@ -556,57 +547,54 @@ class MainWindow(QMainWindow):
             event.ignore()
 
 
-
-
-#============================================================================
+# ===========================================================================
 # Export Functions
-#============================================================================
-
+# ===========================================================================
     def exportBandDiagram(self):
         if USE_MATPLOTLIB:
             self.quantumWidget.export_quantumCanvas(
                     self.filename.split('.')[0])
         else:
-            fname = unicode(QFileDialog.getSaveFileName(self,
-                "ErwinJr - Export Band Structure Image",
-                self.filename.split('.')[0], 
+            fname = unicode(QFileDialog.getSaveFileName(
+                self, "ErwinJr - Export Band Structure Image",
+                self.filename.split('.')[0],
                 "Portable Network Graphics file (*.png)"))
             if not fname:
                 return
 
-            #set background color to white and save presets
+            # set background color to white and save presets
             bgRole = self.mainTabWidget.backgroundRole()
             self.mainTabWidget.setBackgroundRole(QPalette.Base)
             self.quantumWidget.export_quantumCanvas(fname)
             self.mainTabWidget.setBackgroundRole(bgRole)
 
     def export_band_diagram_data(self):
-        fname = unicode(QFileDialog.getSaveFileName(self,
-            "ErwinJr - Export Band Structure Data",
-            self.filename.split('.')[0], 
+        fname = unicode(QFileDialog.getSaveFileName(
+            self, "ErwinJr - Export Band Structure Data",
+            self.filename.split('.')[0],
             "Comma-Separated Value file (*.csv)"))
-        if fname != '': #if user doesn't click cancel
+        if fname != '':
+            # if user doesn't click cancel
             self.quantumWidget.export_band_data(fname)
 
 
-#============================================================================
+# ===========================================================================
 # Edit Menu Items
-#============================================================================
+# ===========================================================================
     def set_temperature(self):
-        # TODO: make it explict 
+        # TODO: make it explict
         nowTemp = cst.Temperature
-        newTemp, buttonResponse = QInputDialog.getDouble(self, 
-                'ErwinJr Input Dialog', 'Set Temperature', 
-                value=nowTemp, min=0)
+        newTemp, buttonResponse = QInputDialog.getDouble(
+            self, 'ErwinJr Input Dialog', 'Set Temperature',
+            value=nowTemp, min=0)
         if buttonResponse:
             cst.set_temperature(newTemp)
             self.quantumWidget.set_temperature(newTemp)
 
 
-#============================================================================
+# ===========================================================================
 # Help Menu Items
-#============================================================================
-
+# ===========================================================================
     def on_about(self):
         msg = """ ErwinJr 3.x Authors and Contributors
 
@@ -632,34 +620,31 @@ With contributions from:
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu
 #
-# A portion of this code is Copyright (c) 2011, California Institute of 
+# A portion of this code is Copyright (c) 2011, California Institute of
 # Technology ("Caltech"). U.S. Government sponsorship acknowledged.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================
 """
         QMessageBox.about(self, "ErwinJr " + str(ejVersion),
-                copyright1.strip())
+                          copyright1.strip())
 
     def on_tutorial(self):
         if os.name == "nt":
             os.startfile("tutorial.pdf")
         elif os.name == "posix":
-            os.system("/usr/bin/xdg-open tutorial.pdf")  
-
-
-
+            os.system("/usr/bin/xdg-open tutorial.pdf")
 
 
 def main():
@@ -684,7 +669,7 @@ def main():
 
     app.setWindowIcon(QIcon('images/EJpng48x48.png'))
 
-    #this block handles a filename passed in by command line
+    # this block handles a filename passed in by command line
     try:
         fileName = sys.argv[1]
         name, ext = os.path.splitext(fileName)
@@ -698,23 +683,15 @@ def main():
     form.show()
     splash.finish(form)
 
-    # Import Psyco if available
-    #  try:
-        #  import psyco
-        #  psyco.full()
-    #  except ImportError:
-        #  noPsycoBox = QMessageBox(QMessageBox.Question, 'EwrinJr '+str(majorVersion), "Psyco could not be loaded.\nExecution will be slowed.")
-        #  noPsycoBox.exec_()
-
     qsettings = QSettings()
     if not qsettings.value('firstRun').toInt()[1]:
         if not installDirectory:
             qsettingsSystem.setValue("installDirectory", QVariant(os.getcwd()))
-        firstRunBox = QMessageBox(QMessageBox.Question, 
-                'EwrinJr '+str(majorVersion), 
-                ("Welcome to ErwinJr!\n" 
-                "Since this is your first time running the program, "
-                "would you like to open an example file or a blank file?"),
+        firstRunBox = QMessageBox(
+            QMessageBox.Question, 'EwrinJr '+str(majorVersion),
+            ("Welcome to ErwinJr!\n"
+             "Since this is your first time running the program, "
+             "would you like to open an example file or a blank file?"),
             parent=form)
         firstRunBox.addButton("Blank File", QMessageBox.NoRole)
         firstRunBox.addButton("Example File", QMessageBox.YesRole)
@@ -725,8 +702,8 @@ def main():
             form.fileNew()
         qsettings.setValue("firstRun", 1)
 
-
     app.exec_()
+
 
 if __name__ == "__main__":
     main()
