@@ -98,6 +98,7 @@ class Strata(object):
         self.tauLower = 0.0
         self.tauUpperLower = 1.0e-3
         self.opticalDipole = 0.0
+        self.FoM = 0.0
         self.transitionBroadening = 1.0e-5  # eV
         self.waveguideFacets = 'as-cleaved + as-cleaved'
         # can be combination of "as-cleaved", "perfect HR", "perfect AR",
