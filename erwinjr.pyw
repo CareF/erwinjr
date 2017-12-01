@@ -38,6 +38,7 @@ __USE_MATPLOTLIB__ = True
 
 import os
 import sys
+import traceback
 from functools import partial
 import time
 
@@ -77,10 +78,6 @@ DEBUG = 1
 class MainWindow(QMainWindow):
     def __init__(self, fileName=None, parent=None):
         super(MainWindow, self).__init__(parent)
-
-        self.newLineChar = '\n'
-        if sys.platform == "darwin":
-            self.newLineChar = '\n'
 
         self.filename = fileName
 
@@ -444,13 +441,13 @@ class MainWindow(QMainWindow):
         # clear all old data, also calls self.okToContinue()
         if not self.fileNew():
             return False
-        if fname is None:
+        if not fname:
             dir = os.path.dirname(str(self.filename)) if self.filename else "."
             fname =unicode(QFileDialog.getOpenFileName(
                 self, "ErwinJr - Choose file", dir,
                 "ErwinJr files (*.qcl)\nAll files (*.*)"))
         # open file and determine if it is from the Matlab version of ErwinJr
-        filehandle = open(fname, 'r')
+        filehandle = open(fname, 'rU')
         firstLine = filehandle.readline()
         filehandle.close()
         if fname:
@@ -459,7 +456,7 @@ class MainWindow(QMainWindow):
                     self, 'ErwinJr Error',
                     'Older .qcl format is no longer supported for Ver>3.0.')
                 #  self.qclPtonLoad(fname)
-            elif firstLine == 'ErwinJr Data File' + self.newLineChar:
+            elif firstLine == 'ErwinJr Data File\n':
                 self.qclLoad(fname)
             else:
                 QMessageBox.warning(self, 'ErwinJr Error',
@@ -484,12 +481,13 @@ class MainWindow(QMainWindow):
     def qclLoad(self, fname):
         #  print "Loading "+fname
         try:
-            with open(fname, 'r') as f:
+            with open(fname, 'rU') as f:
                 SaveLoad.qclLoad(f, self.quantumWidget.qclayers,
                                  self.opticalWidget.strata)
         except Exception as err:
             QMessageBox.warning(self, "ErwinJr - Warning",
-                                "Could not load *.qcl file.\n"+str(err))
+                                "Could not load *.qcl file.\n"+
+                                traceback.format_exc())
 
     def fileSave(self):
         if self.filename is None:
@@ -530,7 +528,8 @@ class MainWindow(QMainWindow):
                                  self.opticalWidget.strata)
         except Exception as err:
             QMessageBox.warning(self, "ErwinJr - Warning",
-                                "Could not save *.qcl file.\n"+str(err))
+                                "Could not save *.qcl file.\n"+
+                                traceback.format_exc())
         return True
 
     def closeEvent(self, event):
