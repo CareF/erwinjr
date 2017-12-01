@@ -58,7 +58,7 @@ else:
 
 if __USE_MATPLOTLIB__:
     from QuantumTabMatplotlib import QuantumTab
-    from OpticalTab import OpticalTab
+    from OpticalTabMock import OpticalTab
 else:
     from QuantumTab import QuantumTab
     from OpticalTab import OpticalTab
