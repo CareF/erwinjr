@@ -50,7 +50,8 @@ import numpy as np
 from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
 from scipy import interpolate
 
-import settings
+from settings import (wf_scale, wf_min_height, pretty_plot_factor,
+                      plot_decimate_factor, phonon_integral_factor)
 import MaterialConstantsDict
 cst = MaterialConstantsDict.MaterialConstantsDict()
 
@@ -61,17 +62,18 @@ if __DEBUG__ >= 1:
     from time import time
 
 # TODO: replace CLIB by Cython
-from ctypes import *
-if __MULTI_PROCESSING__:
-    if sys.platform in ('linux2', 'darwin', 'cygwin'):
-        cQ = CDLL('./cQCLayersMP.so')
-    elif sys.platform == 'win32':
-        cQ = CDLL('cQCLayersMP.dll')
-else:
-    if sys.platform in ('linux2', 'darwin', 'cygwin'):
-        cQ = CDLL('./cQCLayers.so')
-    elif sys.platform == 'win32':
-        cQ = CDLL('cQCLayers.dll')
+if __USE_CLIB__:
+    from ctypes import *
+    if __MULTI_PROCESSING__:
+        if sys.platform in ('linux2', 'darwin', 'cygwin'):
+            cQ = CDLL('./cQCLayersMP.so')
+        elif sys.platform == 'win32':
+            cQ = CDLL('cQCLayersMP.dll')
+    else:
+        if sys.platform in ('linux2', 'darwin', 'cygwin'):
+            cQ = CDLL('./cQCLayers.so')
+        elif sys.platform == 'win32':
+            cQ = CDLL('cQCLayers.dll')
 
 # ===========================================================================
 # Global Variables
@@ -374,7 +376,7 @@ class QCLayers(object):
             self.numMaterials = 8
             self.Mat1 = ['InAs', 'AlSb']*4
             self.Mat2 = ['InSb', 'GaSb']*4
-            MatCross = ['InAsSb', 'AlGaSb']*4  
+            MatCross = ['InAsSb', 'AlGaSb']*4
             # Note EgG's bowing moleFrac deps
         else:
             raise TypeError('substrate selection not allowed')
@@ -609,14 +611,14 @@ class QCLayers(object):
                     xPsi[q+1] = xMcE[q] * ((2 * (self.xres*1e-10 / hbar)**2 *
                                            (self.xVc[q] - Eq)*e0 +
                                            1 / xMcE[q] + 1 / xMcE[q-1]) *
-                                          xPsi[q] - xPsi[q-1] / xMcE[q-1])
+                                           xPsi[q] - xPsi[q-1] / xMcE[q-1])
                 psiEnd[p] = xPsi[-1]
         if __LOG__:
             global logcount
             with file("EpointsLog%d.pkl" % logcount, 'w') as logfile:
                 pickle.dump((Epoints, psiEnd), logfile)
             logcount += 1
-            print 'log saved for Epoints and psiEnd (%d)' % logcount
+            print "log saved for Epoints and psiEnd (%d)" % logcount
         # TODO: maybe improved
         tck = interpolate.splrep(Epoints, psiEnd)
         self.EigenE = interpolate.sproot(tck, mest=len(Epoints))
@@ -634,17 +636,28 @@ class QCLayers(object):
                 xnear[3*q:3*q+3] = self.EigenE[q] + approxwidth * \
                     np.arange(-1, 2)
 
-            for n, x in enumerate(xnear):
-                cQ.psiFn(c_double(x), int(1), int(xPsi.size),
-                         c_double(self.xres),
-                         self.xVc.ctypes.data_as(c_void_p),
-                         self.xEg.ctypes.data_as(c_void_p),
-                         self.xF.ctypes.data_as(c_void_p),
-                         self.xEp.ctypes.data_as(c_void_p),
-                         self.xESO.ctypes.data_as(c_void_p),
-                         self.xMc.ctypes.data_as(c_void_p),
-                         xMcE.ctypes.data_as(c_void_p),
-                         xPsi.ctypes.data_as(c_void_p))
+            for n, Eq in enumerate(xnear):
+                if __USE_CLIB__:
+                    cQ.psiFn(c_double(Eq), int(1), int(xPsi.size),
+                             c_double(self.xres),
+                             self.xVc.ctypes.data_as(c_void_p),
+                             self.xEg.ctypes.data_as(c_void_p),
+                             self.xF.ctypes.data_as(c_void_p),
+                             self.xEp.ctypes.data_as(c_void_p),
+                             self.xESO.ctypes.data_as(c_void_p),
+                             self.xMc.ctypes.data_as(c_void_p),
+                             xMcE.ctypes.data_as(c_void_p),
+                             xPsi.ctypes.data_as(c_void_p))
+                else:
+                    xMcE = self.eff_mass(Eq)
+                    xMcE[1:] = (xMcE[:-1] + xMcE[1:])/2
+                    xPsi[0] = 0
+                    for x in range(1, xPsi.size):
+                        # not tested.. C files are better
+                        xPsi[x] = (xPsi[x] * (
+                            2*(self.xres*ANG/hbar)**2 * (self.xVc[x] - Eq) *
+                            e0 + 1/xMcE[x] + 1/xMcE[n-1]) -
+                                   xPsi[x-1]/xMcE[x-1]) * xMcE[x]
                 fxnear[n] = xPsi[-1]
             idxs = 3*np.arange(len(self.EigenE))+1
             if __USE_CLIB__:
@@ -722,15 +735,15 @@ class QCLayers(object):
             self.xyPsi = self.xyPsi[:, idxs]
 
         # 4.5e-10 scales size of wavefunctions, arbitrary for nice plots
-        self.xyPsiPsi = self.xyPsi*self.xyPsi*settings.wf_scale
+        self.xyPsiPsi = self.xyPsi*self.xyPsi*wf_scale
 
         # remove states that are smaller than minimum height (remove zero
         # solutions?)-test case not showing any effect
         # addresses states high above band edge
         # 0.014 is arbitrary; changes if 4.5e-10 changes
         #  idxs = np.nonzero(self.xyPsiPsi.max(0) >
-        #                   settings.wf_scale * settings.wf_min_height)[0]
-        idxs = self.xyPsiPsi.max(0) > settings.wf_scale*settings.wf_min_height
+        #                   wf_scale * wf_min_height)[0]
+        idxs = self.xyPsiPsi.max(0) > wf_scale*wf_min_height
         self.EigenE = self.EigenE[idxs]
         self.xyPsi = self.xyPsi[:, idxs]
         self.xyPsiPsi = self.xyPsiPsi[:, idxs]
@@ -743,13 +756,13 @@ class QCLayers(object):
             # 0.0005 is arbitrary
             prettyIdxs = np.nonzero(
                 self.xyPsiPsi[:, q] >
-                settings.wf_scale * settings.pretty_plot_factor)[0]
+                wf_scale * pretty_plot_factor)[0]
             self.xyPsiPsi[0:prettyIdxs[0], q] = np.NaN
             self.xyPsiPsi[prettyIdxs[-1]:, q] = np.NaN
 
         # decimate plot points: seems for better time and memory performance?
         idxs = np.arange(0, self.xPoints.size, int(
-            settings.plot_decimate_factor/self.xres), dtype=int)
+            plot_decimate_factor/self.xres), dtype=int)
         self.xyPsiPsiDec = np.zeros((idxs.size, self.EigenE.size))
         for q in xrange(self.EigenE.size):
             self.xyPsiPsiDec[:, q] = self.xyPsiPsi[idxs, q]
@@ -881,7 +894,7 @@ class QCLayers(object):
                 end = begin + dC.xyPsi[:, q].size
                 wf[begin:end] = dC.xyPsi[:, q]
                 self.xyPsi[:, counter] = wf
-                self.xyPsiPsi[:, counter] = wf**2 * settings.wf_scale
+                self.xyPsiPsi[:, counter] = wf**2 * wf_scale
                 counter += 1
 
         # cut head and tial to promise the figure is in the right place?
@@ -896,7 +909,7 @@ class QCLayers(object):
         for q in xrange(self.EigenE.size):
             prettyIdxs = np.nonzero(
                 self.xyPsiPsi[:, q] >
-                settings.wf_scale * settings.pretty_plot_factor)[0]
+                wf_scale * pretty_plot_factor)[0]
             if prettyIdxs.size != 0:
                 self.xyPsiPsi[0:prettyIdxs[0], q] = np.NaN
                 self.xyPsiPsi[prettyIdxs[-1]:, q] = np.NaN
@@ -912,7 +925,7 @@ class QCLayers(object):
 
         #  #decimate plot points
         # idxs = np.arange(0,self.xPoints.size, int(
-        #     settings.plot_decimate_factor/self.xres), dtype=int)
+        #     plot_decimate_factor/self.xres), dtype=int)
         #  self.xyPsiPsiDec = np.zeros([idxs.size, self.EigenE.size])
         #  for q in xrange(self.EigenE.size):
         #      self.xyPsiPsiDec[:,q] = self.xyPsiPsi[idxs,q]
@@ -945,9 +958,9 @@ class QCLayers(object):
 
         # zero head and tail cut off
         idxs_i = np.nonzero(
-            psi_i > settings.wf_scale * settings.phonon_integral_factor)[0]
+            psi_i > wf_scale * phonon_integral_factor)[0]
         idxs_j = np.nonzero(
-            psi_j > settings.wf_scale * settings.phonon_integral_factor)[0]
+            psi_j > wf_scale * phonon_integral_factor)[0]
         idx_first = (idxs_i[0], idxs_j[0])
         idx_last = (idxs_i[-1], idxs_j[-1])
         if max(idx_first) > min(idx_last):
@@ -1092,7 +1105,8 @@ class QCLayers(object):
         DeltaV = 1 - DeltaV  # =is well
         jMat = int(self.xMaterials[last+1])
         DeltaV *= (self.EcG[2*jMat-1] - self.EcG[2*(jMat-1)])/meV  # unit meV
-        couplingEnergy = (np.sum(psi_i * (DeltaV + Ej) * psi_j)) * self.xres * ANG
+        couplingEnergy = (np.sum(psi_i * (DeltaV + Ej) * psi_j)) * \
+            self.xres * ANG
         return couplingEnergy  # unit meV
 
     def broadening_energy(self, upper, lower):
@@ -1178,9 +1192,10 @@ class QCLayers(object):
 
 
 if __name__ == "__main__":
-    print ("1/alpha ~ %d\n"
-           "It's one of the greatest damn mysteries of physics: "
-           "a magic number that comes to us with no understanding by man. "
-           "— Richard Feynman") % cQ.inv_alpha()
+    if __USE_CLIB__:
+        print "1/alpha ~ %d" % cQ.inv_alpha()
+        print "It's one of the greatest damn mysteries of physics"
+    else:
+        print "QCLayers.py called"
 
 # vim: ts=4 sw=4 sts=4 expandtab

@@ -36,8 +36,6 @@ from scipy import interpolate
 import copy
 import sys
 
-import settings
-
 from QCLayers import cst
 
 # TODO: replace CLIB by Cython
