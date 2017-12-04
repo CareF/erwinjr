@@ -37,7 +37,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
 
-import settings
+from settings import antialiased
 import SupportClasses
 from Strata import Strata
 
@@ -1016,7 +1016,7 @@ class OpticalTab(QWidget):
         self.curvenR = Qwt.QwtPlotCurve()
         self.curvenR.setData(self.strata.xPoints,self.strata.xn.real)
         self.curvenR.setPen(QPen(Qt.black, 1.5))
-        if settings.antialiased:
+        if antialiased:
             self.curvenR.setRenderHint(Qwt.QwtPlotItem.RenderAntialiased)
         self.curvenR.attach(self.opticalCanvas)
         self.opticalCanvas.setAxisTitle(Qwt.QwtPlot.yLeft, 'Refractive Index')
@@ -1028,7 +1028,7 @@ class OpticalTab(QWidget):
                     self.strata.xPoints, self.strata.xStratumSelected,
                     mask)
             self.stratumSelection.setPen(QPen(Qt.blue, 2))
-            if settings.antialiased:
+            if antialiased:
                 self.stratumSelection.setRenderHint(Qwt.QwtPlotItem.RenderAntialiased)
             self.stratumSelection.attach(self.opticalCanvas)
 
@@ -1038,7 +1038,7 @@ class OpticalTab(QWidget):
             self.curvexI.setData(self.strata.xPoints, 
                     self.strata.xI*self.strata.stratumRIndexes.real.max())
             self.curvexI.setPen(QPen(Qt.red, 1.5))
-            if settings.antialiased:
+            if antialiased:
                 self.curvexI.setRenderHint(Qwt.QwtPlotItem.RenderAntialiased)
             self.curvexI.attach(self.opticalCanvas)
             self.opticalCanvas.setAxisTitle(Qwt.QwtPlot.yLeft, 
@@ -1130,7 +1130,7 @@ class OpticalTab(QWidget):
         mask = ~np.isnan(yVals)
         optiCurve = SupportClasses.MaskedCurve(xVals, yVals, mask)
         optiCurve.setPen(QPen(Qt.blue, 1.5))
-        if settings.antialiased:
+        if antialiased:
             optiCurve.setRenderHint(Qwt.QwtPlotItem.RenderAntialiased)
         optiCurve.attach(self.optimization1DCanvas)
 

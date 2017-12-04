@@ -6,25 +6,25 @@
 # Copyright (C) 2012 Kale J. Franz, PhD
 # Copyright (C) 2017 Ming Lyu (CareF)
 #
-# A portion of this code is Copyright (c) 2011, California Institute of 
+# A portion of this code is Copyright (c) 2011, California Institute of
 # Technology ("Caltech"). U.S. Government sponsorship acknowledged.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #============================================================================
 
-# TODO: 
-# In plot controls, add "show one period" 
+# TODO:
+# In plot controls, add "show one period"
 # save and load pickle for qclayers
 # replace qwt by matplotlib
 
@@ -45,15 +45,15 @@ from QCLayers import h, c0, e0
 # Debug options
 #============================================================================
 DEBUG = 1
-if DEBUG >=3: 
+if DEBUG >=3:
     import pickle
 
 class QuantumTab(QWidget):
     """The Quantum Tab of ErwinJr. This is designed to be a GUI wrapper of
     the class QCLayers
-    Member viable (! label public interface): 
+    Member viable (! label public interface):
         !qclayers: A class to describe the physics of QC layers
-        numMaterials: copy from qclayers, the number of difference kinds of 
+        numMaterials: copy from qclayers, the number of difference kinds of
                     materials supported
         materialList: for Material column in the layerTable
         colors: colors for different wavefunctions
@@ -89,7 +89,7 @@ class QuantumTab(QWidget):
             OptimizeFoMButton       OptimizeDipoleButton
             !layerTable
 
-        3rd column (solveBox): 
+        3rd column (solveBox):
             solveBasisButton
             solveWholeButton
             DescriptionBox
@@ -118,7 +118,7 @@ class QuantumTab(QWidget):
         OptGoalsFunc: the target functions for optimization
         OptGoal: the target function to optimize
 
-    Member method (! label public interface): 
+    Member method (! label public interface):
         !reloaded
         !get_nCore
         !layerNum
@@ -144,7 +144,7 @@ class QuantumTab(QWidget):
 
         # Global Optimization target functions (goal)
         self.OptGoalsName = ('FoM', 'Dipole')
-        self.OptGoalsFunc = (self.qclayers.figure_of_merit, 
+        self.OptGoalsFunc = (self.qclayers.figure_of_merit,
                 self.qclayers.dipole)
 
         self.plotDirty = False
@@ -158,7 +158,7 @@ class QuantumTab(QWidget):
         self.pairSelected = False
 
         # Platform dependent settings, eg. layerout size settings
-        if sys.platform == 'win32': 
+        if sys.platform == 'win32':
             layerTableSize = 340
             DescriptionBoxWidth = 190
             LpStringBoxWidth=135
@@ -171,7 +171,7 @@ class QuantumTab(QWidget):
             DescriptionBoxWidth = 240
             LpStringBoxWidth=150
         else:
-            QMessageBox.warning(self, 'ErwinJr - Warning', 
+            QMessageBox.warning(self, 'ErwinJr - Warning',
                     'Platform %s not tested.'%sys.platform)
             layerTableSize = 340
             DescriptionBoxWidth = 190
@@ -189,7 +189,7 @@ class QuantumTab(QWidget):
         self.inputSubstrateBox = QComboBox()
         self.inputSubstrateBox.addItems(self.qclayers.substratesList)
         self.connect(self.inputSubstrateBox,
-                SIGNAL("currentIndexChanged(const QString)"), 
+                SIGNAL("currentIndexChanged(const QString)"),
                 self.input_substrate)
         settingBox.addWidget(self.inputSubstrateBox)
 
@@ -199,8 +199,8 @@ class QuantumTab(QWidget):
         self.inputEFieldBox.setDecimals(1)
         self.inputEFieldBox.setSuffix(' kV/cm')
         self.inputEFieldBox.setRange(0.0,250.0)
-        self.connect(self.inputEFieldBox, 
-                SIGNAL("valueChanged(double)"), 
+        self.connect(self.inputEFieldBox,
+                SIGNAL("valueChanged(double)"),
                 self.input_EField)
         settingBox.addWidget(self.inputEFieldBox)
 
@@ -210,8 +210,8 @@ class QuantumTab(QWidget):
         # TODO: add unit here (angstrom)
         self.inputHorzResBox.addItems(['1.0','0.5','0.25','0.2','0.1'])
         # remove 0.25? because to 0.1
-        self.connect(self.inputHorzResBox, 
-                SIGNAL("currentIndexChanged(int)"), 
+        self.connect(self.inputHorzResBox,
+                SIGNAL("currentIndexChanged(int)"),
                 self.input_horzRes)
         settingBox.addWidget(self.inputHorzResBox)
 
@@ -224,7 +224,7 @@ class QuantumTab(QWidget):
         self.inputVertResBox.setSingleStep(0.1)
         self.inputVertResBox.setSuffix(' meV')
         self.connect(self.inputVertResBox,
-                SIGNAL("valueChanged(double)"), 
+                SIGNAL("valueChanged(double)"),
                 self.input_vertRes)
         # TODO: check the SLOT if it can make use of the input
         settingBox.addWidget(self.inputVertResBox)
@@ -234,9 +234,9 @@ class QuantumTab(QWidget):
         self.inputRepeatsBox = QSpinBox()
         self.inputRepeatsBox.setValue(1)
         self.inputRepeatsBox.setRange(1,5)
-        self.connect(self.inputRepeatsBox, 
-                SIGNAL("valueChanged(int)"), 
-                self.input_repeats) 
+        self.connect(self.inputRepeatsBox,
+                SIGNAL("valueChanged(int)"),
+                self.input_repeats)
         # TODO: check the SLOT if it can make use of the input
         settingBox.addWidget(self.inputRepeatsBox)
 
@@ -251,10 +251,10 @@ class QuantumTab(QWidget):
         basisLayout.addWidget(self.inputInjectorARCheck)
         basis_groupBox.setLayout(basisLayout)
         self.connect(self.inputARInjectorCheck,
-                SIGNAL("stateChanged(int)"), 
+                SIGNAL("stateChanged(int)"),
                 self.input_basis)
         self.connect(self.inputInjectorARCheck,
-                SIGNAL("stateChanged(int)"), 
+                SIGNAL("stateChanged(int)"),
                 self.input_basis)
         settingBox.addWidget(basis_groupBox)
 
@@ -263,15 +263,15 @@ class QuantumTab(QWidget):
         self.LpFirstSpinbox = QSpinBox()
         self.LpFirstSpinbox.setValue(1)
         self.LpFirstSpinbox.setRange(1,1)
-        self.connect(self.LpFirstSpinbox, 
-                SIGNAL("valueChanged(int)"), 
-                self.update_inputBoxes) 
+        self.connect(self.LpFirstSpinbox,
+                SIGNAL("valueChanged(int)"),
+                self.update_inputBoxes)
         # TODO: change this slot to prevent unnecessary data updates
         self.LpLastSpinbox  = QSpinBox()
         self.LpLastSpinbox.setValue(1)
         self.LpLastSpinbox.setRange(1,1)
         self.connect(self.LpLastSpinbox,
-                SIGNAL("valueChanged(int)"), 
+                SIGNAL("valueChanged(int)"),
                 self.update_inputBoxes)
         # TODO: change this slot to prevent unnecessary data updates
         self.LpStringBox = QTextEdit('')
@@ -297,13 +297,13 @@ class QuantumTab(QWidget):
             QSizePolicy.Minimum,QSizePolicy.Ignored))
         #  self.targetWL_box.setMaximumWidth(50)
         self.connect(self.targetWL_box,
-                SIGNAL("editingFinished()"), 
+                SIGNAL("editingFinished()"),
                 self.set_targetWL)
         self.goalFuncBox = QComboBox()
         self.goalFuncBox.addItems(self.OptGoalsName)
         self.OptGoal = self.OptGoalsFunc[self.goalFuncBox.currentIndex()]
-        self.connect(self.goalFuncBox, 
-                SIGNAL("currentIndexChanged(int)"), 
+        self.connect(self.goalFuncBox,
+                SIGNAL("currentIndexChanged(int)"),
                 self.set_goal)
         self.GlobalOptButton = QPushButton("Optimize")
         self.connect(self.GlobalOptButton,
@@ -328,24 +328,24 @@ class QuantumTab(QWidget):
         ########################################################
         layerBox = QGridLayout()
         self.insertLayerAboveButton = QPushButton("Insert Layer Above")
-        self.connect(self.insertLayerAboveButton, 
+        self.connect(self.insertLayerAboveButton,
                 SIGNAL("clicked()"),
                 self.insert_layerAbove)
         layerBox.addWidget(self.insertLayerAboveButton, 0,0)
         self.deleteLayerButton = QPushButton("Delete Layer")
-        self.connect(self.deleteLayerButton, 
+        self.connect(self.deleteLayerButton,
                 SIGNAL("clicked()"),
                 self.delete_layer)
-        layerBox.addWidget(self.deleteLayerButton, 0,1)        
+        layerBox.addWidget(self.deleteLayerButton, 0,1)
 
         self.OptimizeFoMButton = QPushButton("Optimize Width (FoM)")
         self.OptimizeFoMButton.setEnabled(False)
-        self.connect(self.OptimizeFoMButton, 
-                SIGNAL("clicked()"), 
-                partial(self.OptimizeLayer, 
+        self.connect(self.OptimizeFoMButton,
+                SIGNAL("clicked()"),
+                partial(self.OptimizeLayer,
                     goal = self.qclayers.figure_of_merit))
         self.OptimizeDipoleButton = QPushButton("Optimize Width (Dipole)")
-        self.connect(self.OptimizeDipoleButton, 
+        self.connect(self.OptimizeDipoleButton,
                 SIGNAL("clicked()"),
                 partial(self.OptimizeLayer,
                     goal = self.qclayers.dipole))
@@ -391,8 +391,8 @@ class QuantumTab(QWidget):
             QSizePolicy.Fixed,QSizePolicy.Fixed))
         self.DescriptionBox.setMaximumHeight(40)
         self.DescriptionBox.setMaximumWidth(DescriptionBoxWidth)
-        self.connect(self.DescriptionBox, 
-                SIGNAL("textChanged()"), 
+        self.connect(self.DescriptionBox,
+                SIGNAL("textChanged()"),
                 self.input_description)
         DescLayout = QVBoxLayout()
         DescLayout.addWidget(self.DescriptionBox)
@@ -416,7 +416,7 @@ class QuantumTab(QWidget):
             self.MoleFracWellBox[n].setRange(0.0, 1.0)
             self.MoleFracWellBox[n].setSingleStep(0.001)
             self.connect(self.MoleFracWellBox[n],
-                    SIGNAL("editingFinished()"), 
+                    SIGNAL("editingFinished()"),
                     partial(self.input_moleFrac, 2*n))
             self.MoleFracBarrBox.append(QDoubleSpinBox())
             self.MoleFracBarrBox[n].setDecimals(3)
@@ -424,7 +424,7 @@ class QuantumTab(QWidget):
             self.MoleFracBarrBox[n].setRange(0.0, 1.0)
             self.MoleFracBarrBox[n].setSingleStep(0.001)
             self.connect(self.MoleFracBarrBox[n],
-                    SIGNAL("editingFinished()"), 
+                    SIGNAL("editingFinished()"),
                     partial(self.input_moleFrac, 2*n+1))
             self.offsetLabel.append(QLabel(''))
         self.strainDescription = QLabel('')
@@ -452,7 +452,7 @@ class QuantumTab(QWidget):
         #set up plot control inputs
         self.zoominButton = QPushButton("Zoom In")
         self.zoominButton.setCheckable(True)
-        self.connect(self.zoominButton, 
+        self.connect(self.zoominButton,
                 SIGNAL("toggled(bool)"),
                 self.zoom_in)
         self.zoomOutButton = QPushButton("Zoom Out")
@@ -467,7 +467,7 @@ class QuantumTab(QWidget):
         self.wellSelectButton = QPushButton("Layer Select")
         self.wellSelectButton.setCheckable(True)
         self.connect(self.wellSelectButton,
-                SIGNAL("toggled(bool)"), 
+                SIGNAL("toggled(bool)"),
                 self.well_select)
         self.clearWFsButton = QPushButton("Clear")
         self.connect(self.clearWFsButton,
@@ -486,18 +486,18 @@ class QuantumTab(QWidget):
         #set up Calculate controls
         self.pairSelectButton = QPushButton("Pair Select")
         self.pairSelectButton.setCheckable(True)
-        self.connect(self.pairSelectButton, 
-                SIGNAL("toggled(bool)"), 
+        self.connect(self.pairSelectButton,
+                SIGNAL("toggled(bool)"),
                 self.pair_select)
         self.FoMButton = QPushButton("Figure of Merit")
         self.FoMButton.setEnabled(False)
-        self.connect(self.FoMButton, 
-                SIGNAL("clicked()"), 
+        self.connect(self.FoMButton,
+                SIGNAL("clicked()"),
                 self.updateFoM)
         self.toOpticalParamsButton = QPushButton("-> Optical Params")
         self.toOpticalParamsButton.setEnabled(False)
-        #  self.connect(self.toOpticalParamsButton, 
-                #  SIGNAL("clicked()"), 
+        #  self.connect(self.toOpticalParamsButton,
+                #  SIGNAL("clicked()"),
                 #  self.transfer_optical_parameters)
         # SLOT connected to SIGNAL of tranferOpticalParametersButton should
         # be defined out side this tab, in the main window
@@ -564,7 +564,7 @@ class QuantumTab(QWidget):
 # Input Controls
 #==========================================================================
     def update_inputBoxes(self):
-        """ Update all input boxes except for the layerTable. 
+        """ Update all input boxes except for the layerTable.
         SLOT connected to LpFirstSpinbox/LpLastSpinBox.valueChanged(int)
         TODO: add GlobalOpt boxes
         """
@@ -597,7 +597,7 @@ class QuantumTab(QWidget):
 
         self.inputVertResBox.setValue(self.qclayers.vertRes)
         self.inputEFieldBox.setValue(self.qclayers.EField)
-        self.inputHorzResBox.setCurrentIndex(self.inputHorzResBox.findText( 
+        self.inputHorzResBox.setCurrentIndex(self.inputHorzResBox.findText(
             QString(unicode(self.qclayers.xres))))
         self.inputRepeatsBox.setValue(self.qclayers.repeats)
         self.update_Lp_box()
@@ -609,9 +609,9 @@ class QuantumTab(QWidget):
         update substrate chosen """
         if substrateType == 'InP':
             self.qclayers.substrate = 'InP'
-            self.materialList = ['InGaAs/AlInAs #1', 
-                    'InGaAs/AlInAs #2', 
-                    'InGaAs/AlInAs #3', 
+            self.materialList = ['InGaAs/AlInAs #1',
+                    'InGaAs/AlInAs #2',
+                    'InGaAs/AlInAs #3',
                     'InGaAs/AlInAs #4']
             self.mtrl_well.setText( '<center><b>\
                     In<sub>x</sub>Ga<sub>1-x</sub>As\
@@ -622,9 +622,9 @@ class QuantumTab(QWidget):
 
         elif substrateType == 'GaAs':
             self.qclayers.substrate = 'GaAs'
-            self.materialList = ['AlGaAs/AlGaAs #1', 
-                    'AlGaAs/AlGaAs #2', 
-                    'AlGaAs/AlGaAs #3', 
+            self.materialList = ['AlGaAs/AlGaAs #1',
+                    'AlGaAs/AlGaAs #2',
+                    'AlGaAs/AlGaAs #3',
                     'AlGaAs/AlGaAs #4']
             self.mtrl_well.setText('<center><b>\
                     Al<sub>x</sub>Ga<sub>1-x</sub>As\
@@ -635,9 +635,9 @@ class QuantumTab(QWidget):
 
         elif substrateType == 'GaSb':
             self.qclayers.substrate = 'GaSb'
-            self.materialList = ['InAsSb/AlGaSb #1', 
-                    'InAsSb/AlGaSb #2', 
-                    'InAsSb/AlGaSb #3', 
+            self.materialList = ['InAsSb/AlGaSb #1',
+                    'InAsSb/AlGaSb #2',
+                    'InAsSb/AlGaSb #3',
                     'InAsSb/AlGaSb #4']
             self.mtrl_well.setText('<center><b>\
                     InAs<sub>y</sub>Sb<sub>1-y</sub>\
@@ -648,7 +648,7 @@ class QuantumTab(QWidget):
 
         elif substrateType == 'GaN':
             #  self.input_substrate(self.qclayers.substrate)
-            QMessageBox.information(self, 'ErwinJr Error', 
+            QMessageBox.information(self, 'ErwinJr Error',
                     'III-Nitride substrates have not yet been implemented.')
             self.inputSubstrateBox.setCurrentIndex(
                     self.inputSubstrateBox.findText(self.qclayers.substrate))
@@ -719,14 +719,14 @@ class QuantumTab(QWidget):
 
     def update_Lp_box(self):
         """
-        Update Lp box in the Period Info box (GUI): 
+        Update Lp box in the Period Info box (GUI):
             Lp:total length
-            well: persentage of well material 
+            well: persentage of well material
             nD: average doping (cm-3)
             ns: 2D carrier density in 1E11 cm-2
         """
         LpFirst = self.LpFirstSpinbox.value()
-        LpLast = self.LpLastSpinbox.value()+1 
+        LpLast = self.LpLastSpinbox.value()+1
             #+1 because range is not inclusive of last value
         # total length of the layers (1 period)
         Lp = sum(self.qclayers.layerWidth[LpFirst:LpLast]) *self.qclayers.xres
@@ -734,12 +734,12 @@ class QuantumTab(QWidget):
         # total length of well (1 period)
         Lw = sum((1-self.qclayers.layerBarriers[LpFirst:LpLast])
                 *self.qclayers.layerWidth[LpFirst:LpLast]) *self.qclayers.xres
-        if Lp == 0: 
-            Lp_string += u"wells: NA%%<br>" 
+        if Lp == 0:
+            Lp_string += u"wells: NA%%<br>"
             # average doping of the layers
             Lp_string += (u"n<sub>D</sub>: NA\u00D710<sup>17</sup>"
-                    u"cm<sup>-3</sup><br>") 
-        else: 
+                    u"cm<sup>-3</sup><br>")
+        else:
             Lp_string += u"wells: %6.1f%%<br>" % (100.0*Lw/Lp)
             # average doping of the layers
             nD = self.qclayers.xres * sum(
@@ -763,7 +763,7 @@ class QuantumTab(QWidget):
         self.emit(SIGNAL('dirty'))
 
     def input_moleFrac(self, boxID):
-        """ SLOT connected to self.MoleFracWellBox[n].editingFinished() 
+        """ SLOT connected to self.MoleFracWellBox[n].editingFinished()
             and MoleFracBarrBox[n].editingFinished()
         Update moleFrac for material."""
         self.qclayers.moleFrac[boxID] = float(
@@ -778,7 +778,7 @@ class QuantumTab(QWidget):
         self.update_quantumCanvas()
 
 
-    def set_temperature(self, T): 
+    def set_temperature(self, T):
         self.qclayers.Temperature = T
         self.qclayers.populate_x()
         self.qclayers.populate_x_band()
@@ -795,18 +795,18 @@ class QuantumTab(QWidget):
         """Refresh layer table, called every time after data update"""
         # Block itemChanged SIGNAL while refreshing
         #  self.clear_WFs()
-        self.layerTable.blockSignals(True) 
+        self.layerTable.blockSignals(True)
         self.layerTable.clear()
         self.layerTable.setColumnCount(6)
         self.layerTable.setRowCount(self.qclayers.layerWidth.size+1)
-        self.layerTable.setHorizontalHeaderLabels(['Width', 'ML', 'Brr', 
+        self.layerTable.setHorizontalHeaderLabels(['Width', 'ML', 'Brr',
             'AR', 'Doping', 'Material'])
         #  vertLabels = []
         #  for n in xrange(self.qclayers.layerWidth.size+1):
             #  vertLabels.append(str(n))
         vertLabels = [str(n) for n in
                 range(self.qclayers.layerWidth.size+1)]
-        self.layerTable.setVerticalHeaderLabels(vertLabels)        
+        self.layerTable.setVerticalHeaderLabels(vertLabels)
 
         #color for barrier layers
         gray = QColor(230,230,240)  # for Barrier layers
@@ -882,8 +882,8 @@ class QuantumTab(QWidget):
                 materialWidget.addItems(self.materialList)
                 materialWidget.setCurrentIndex(
                         self.qclayers.layerMaterials[q]-1)
-                self.connect(materialWidget, 
-                        SIGNAL("currentIndexChanged(int)"), 
+                self.connect(materialWidget,
+                        SIGNAL("currentIndexChanged(int)"),
                         partial(self.layerTable_materialChanged, q))
                 self.layerTable.setCellWidget(q, 5, materialWidget)
 
@@ -904,7 +904,7 @@ class QuantumTab(QWidget):
                 self.qclayers.layerBarriers, row,
                 0 if self.qclayers.layerBarriers[row] == 1 else 1)
         self.qclayers.layerARs = np.insert(
-                self.qclayers.layerARs, row, 
+                self.qclayers.layerARs, row,
                 self.qclayers.layerARs[row])
         self.qclayers.layerMaterials = np.insert(
                 self.qclayers.layerMaterials, row,
@@ -992,7 +992,7 @@ class QuantumTab(QWidget):
                 # TODO: bug to fix, np.mod is not good for xres < 0.5
                 # potential solution is to change internal length to int
                 # times xres
-                QMessageBox.warning(self,"ErwinJr - Warning", 
+                QMessageBox.warning(self,"ErwinJr - Warning",
                         ("You entered a width that is not compatible with "
                         "the minimum horizontal resolution. "
                         "%f %% %f = %f"%(new_width, self.qclayers.xres,
@@ -1002,19 +1002,19 @@ class QuantumTab(QWidget):
                 self.qclayers.layerWidth = np.append(
                         self.qclayers.layerWidth, new_width_int)
                 self.qclayers.layerBarriers = np.append(
-                        self.qclayers.layerBarriers, 
+                        self.qclayers.layerBarriers,
                         0 if self.qclayers.layerBarriers[-1] == 1 else 1)
                 self.qclayers.layerARs = np.append(
-                        self.qclayers.layerARs, 
+                        self.qclayers.layerARs,
                         self.qclayers.layerARs[-1])
                 self.qclayers.layerMaterials = np.append(
-                        self.qclayers.layerMaterials, 
+                        self.qclayers.layerMaterials,
                         self.qclayers.layerMaterials[-1])
                 self.qclayers.layerDopings = np.append(
-                        self.qclayers.layerDopings, 
+                        self.qclayers.layerDopings,
                         self.qclayers.layerDopings[-1])
                 self.qclayers.layerDividers = np.append(
-                        self.qclayers.layerDividers, 
+                        self.qclayers.layerDividers,
                         self.qclayers.layerDividers[-1])
                 row += 1 #used so that last (blank) row is again selected
 
@@ -1035,21 +1035,21 @@ class QuantumTab(QWidget):
                 #  self.qclayers.layerARs[0] = self.qclayers.layerARs[-1]
                 #  self.qclayers.layerMaterials[0] = self.qclayers.layerMaterials[-1]
                 #  self.qclayers.layerDopings[0] = self.qclayers.layerDopings[-1]
-                #  self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]  
+                #  self.qclayers.layerDividers[0] = self.qclayers.layerDividers[-1]
 
             else: #change Width of selected row in-place
                 self.qclayers.layerWidth[row] = new_width_int
 
         elif column == 1: #column == 1 for ML
             if self.qclayers.xres != 0.1:
-                QMessageBox.warning(self,"ErwinJr - Warning", 
-                        (u"Horizontal Resolution of 0.1 \u212B required" 
+                QMessageBox.warning(self,"ErwinJr - Warning",
+                        (u"Horizontal Resolution of 0.1 \u212B required"
                         u"when setting monolayer thicknesses."))
                 return
             if row == self.qclayers.layerWidth.size: #add row at end of list
                 pass
             elif row == self.qclayers.layerWidth.size-1:
-                self.qclayers.layerWidth[row] = int(np.round( 
+                self.qclayers.layerWidth[row] = int(np.round(
                     self.qclayers.MLThickness[row] * float(item.text())
                     / self.qclayers.xres))
 
@@ -1065,22 +1065,22 @@ class QuantumTab(QWidget):
 
             else: #change Width of selected row in-place
                 self.qclayers.layerWidth[row] = int(np.round(
-                        self.qclayers.MLThickness[row] * float(item.text()) 
+                        self.qclayers.MLThickness[row] * float(item.text())
                         / self.qclayers.xres ))
         elif column == 2: #column == 2 for item change in Barrier column
-            if row == self.qclayers.layerWidth.size: 
+            if row == self.qclayers.layerWidth.size:
                 #don't do anything if row is last row
                 return
             #  self.qclayers.layerBarriers[row] = int(item.checkState())//2
             self.qclayers.layerBarriers[row] = (item.checkState() == Qt.Checked)
         elif column == 3: #column == 3 for item change in AR column
-            if row == self.qclayers.layerWidth.size: 
+            if row == self.qclayers.layerWidth.size:
                 #don't do anything if row is last row
                 return
             #  self.qclayers.layerARs[row] = int(item.checkState())//2
             self.qclayers.layerARs[row] = (item.checkState() == Qt.Checked)
         elif column == 4: #column == 4 for item change in Doping column
-            if row == self.qclayers.layerWidth.size: 
+            if row == self.qclayers.layerWidth.size:
                 #don't do anything if row is last row
                 return
             self.qclayers.layerDopings[row] = float(item.text())
@@ -1111,7 +1111,7 @@ class QuantumTab(QWidget):
 
 
     def layerTable_materialChanged(self, row, selection):
-        """SLOT as partial(self.layerTable_materialChanged, q)) connected to 
+        """SLOT as partial(self.layerTable_materialChanged, q)) connected to
         materialWidget.currentIndexChanged(int) """
         self.qclayers.layerMaterials[row] = selection+1
         #self.layerTable_refresh()
@@ -1123,17 +1123,17 @@ class QuantumTab(QWidget):
 
     def bump_first_layer(self):
         """Move zeroth layer to first layer"""
-        self.qclayers.layerWidth = np.insert(self.qclayers.layerWidth, 
+        self.qclayers.layerWidth = np.insert(self.qclayers.layerWidth,
                 0, self.qclayers.layerWidth[-1])
-        self.qclayers.layerBarriers = np.insert(self.qclayers.layerBarriers, 
+        self.qclayers.layerBarriers = np.insert(self.qclayers.layerBarriers,
                 0, self.qclayers.layerBarriers[-1])
-        self.qclayers.layerARs = np.insert(self.qclayers.layerARs, 
+        self.qclayers.layerARs = np.insert(self.qclayers.layerARs,
                 0, self.qclayers.layerARs[-1])
-        self.qclayers.layerMaterials = np.insert(self.qclayers.layerMaterials, 
+        self.qclayers.layerMaterials = np.insert(self.qclayers.layerMaterials,
                 0, self.qclayers.layerMaterials[-1])
-        self.qclayers.layerDopings = np.insert(self.qclayers.layerDopings, 
+        self.qclayers.layerDopings = np.insert(self.qclayers.layerDopings,
                 0, self.qclayers.layerDopings[-1])
-        self.qclayers.layerDividers = np.insert(self.qclayers.layerDividers, 
+        self.qclayers.layerDividers = np.insert(self.qclayers.layerDividers,
                 0, self.qclayers.layerDividers[-1])
 
         self.update_inputBoxes()
@@ -1152,14 +1152,14 @@ class QuantumTab(QWidget):
 
 
     def OptimizeLayer(self, goal):
-        """ SLOT connected to SINGAL 
+        """ SLOT connected to SINGAL
                 self.OptimizeFomButton/OptimizeDipoleButton.clicked()
         Optimize the thickness of selected layer to maximaze the goal
-        function using Newton's method.. 
+        function using Newton's method..
         Support only for whole solve """
         row = self.layerTable.currentRow()
         if row == -1 or row >= self.qclayers.layerWidth.size:
-            QMessageBox.warning(self, "ErwinJr Error", 
+            QMessageBox.warning(self, "ErwinJr Error",
                 "Invalid layer selection.")
             return
 
@@ -1169,7 +1169,7 @@ class QuantumTab(QWidget):
             xres = self.qclayers.xres
             step = 1 # * xres
             upper = self.stateHolder[1]
-            lower = self.stateHolder[0]        
+            lower = self.stateHolder[0]
             old_width = -1
             origin_width = new_width = self.qclayers.layerWidth[row]
             if DEBUG >= 1:
@@ -1198,7 +1198,7 @@ class QuantumTab(QWidget):
                 diff = (goals[2] - goals[0])/2
                 diff2 = goals[0] + goals[2] - 2*goals[1]
 
-                step_cutoff = 0.5E3 
+                step_cutoff = 0.5E3
                 old_width = new_width
                 # set a cutoff s.t. Newton's method won't go too far
                 if -diff2 < 1/step_cutoff:
@@ -1226,7 +1226,7 @@ class QuantumTab(QWidget):
                 if DEBUG >= 1:
                     print "\tgoal_new = %f, wl = %.1f um"%(goal_new, wavelength)
 
-                while goal_new < goal_old*0.95: 
+                while goal_new < goal_old*0.95:
                     #  So a step will not go too far
                     #  new_width = (old_width + new_width)/2
                     new_width = int( (old_width + new_width)/(2))
@@ -1255,7 +1255,7 @@ class QuantumTab(QWidget):
             self.qclayers.layerWidth[row] = new_width
         finally:
             self.Calculating(False)
-            if self.qclayers.layerWidth[row] != origin_width: 
+            if self.qclayers.layerWidth[row] != origin_width:
                 self.clear_WFs()
                 self.layerTable_refresh()
                 self.qclayers.populate_x()
@@ -1305,8 +1305,8 @@ class QuantumTab(QWidget):
             self.quantumCanvas.canvas())
         self.picker.setRubberBandPen(QPen(Qt.green))
         self.picker.setTrackerPen(QPen(Qt.black))
-        self.picker.connect(self.picker, 
-                SIGNAL('selected(const QwtDoublePoint&)'), 
+        self.picker.connect(self.picker,
+                SIGNAL('selected(const QwtDoublePoint&)'),
                 self.ginput)
         self.picker.setEnabled(False)
 
@@ -1319,8 +1319,8 @@ class QuantumTab(QWidget):
             self.quantumCanvas.canvas())
         #self.picker2.setRubberBandPen(QPen(Qt.green))
         self.picker2.setTrackerPen(QPen(Qt.black))
-        self.picker2.connect(self.picker2, 
-                SIGNAL('selected(const QwtDoublePoint&)'), 
+        self.picker2.connect(self.picker2,
+                SIGNAL('selected(const QwtDoublePoint&)'),
                 self.hinput)
         self.picker2.setEnabled(False)
 
@@ -1414,19 +1414,19 @@ class QuantumTab(QWidget):
                 self.transitionBroadening = self.qclayers.broadening_energy(
                         upper, lower)
                 self.qclayers.populate_x_band()
-                self.opticalDipole = self.qclayers.dipole(upper, lower)            
+                self.opticalDipole = self.qclayers.dipole(upper, lower)
                 self.tauUpperLower = 1/self.qclayers.lo_transition_rate(upper, lower)
                 self.pairString  = (u"selected: %d, %d<br>"
                                  u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
                                  u"coupling: %6.1f meV<br>broadening: %6.1f meV<br>"
                                  u"dipole: <b>%6.1f \u212B</b>"
                                  u"<br>LO scattering: <b>%6.2g ps</b><br>") % (
-                                         self.stateHolder[0], 
-                                         self.stateHolder[1], 
+                                         self.stateHolder[0],
+                                         self.stateHolder[1],
                                          self.eDiff, self.wavelength,
-                                         couplingEnergy, 
-                                         self.transitionBroadening, 
-                                         self.opticalDipole, 
+                                         couplingEnergy,
+                                         self.transitionBroadening,
+                                         self.opticalDipole,
                                          self.tauUpperLower)
 
             elif self.solveType is 'whole':
@@ -1436,18 +1436,18 @@ class QuantumTab(QWidget):
                 self.transitionBroadening = 0.1 * self.eDiff
                 self.pairString = (u"selected: %d, %d<br>"
                                  u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
-                                u"dipole: %6.1f \u212B<br>" 
+                                u"dipole: %6.1f \u212B<br>"
                                 u"LO scattering: %6.2g ps<br>") % (
-                                        self.stateHolder[0], 
-                                        self.stateHolder[1], 
-                                        self.eDiff, self.wavelength, 
+                                        self.stateHolder[0],
+                                        self.stateHolder[1],
+                                        self.eDiff, self.wavelength,
                                         self.opticalDipole,
                                         self.tauUpperLower)
             else:
                 self.FoMButton.setEnabled(False)
 
         self.pairSelectString.clear()
-        self.pairSelectString.setText(self.pairString)        
+        self.pairSelectString.setText(self.pairString)
 
 
     def update_quantumCanvas(self):
@@ -1535,9 +1535,9 @@ class QuantumTab(QWidget):
             self.curveSelection.detach()
         except AttributeError:
             #self.curveSelection has not yet been formed
-            pass       
+            pass
         except RuntimeError:
-            #self.curveSelection deleted with self.quantumCanvas.clear()        
+            #self.curveSelection deleted with self.quantumCanvas.clear()
             pass
         if self.qclayers.layerSelected >= 0 and \
                 self.qclayers.layerSelected < self.qclayers.layerWidth.size:
@@ -1622,7 +1622,7 @@ class QuantumTab(QWidget):
 
 
     def well_select(self, on):
-        """ SLOT connected to self.wellSelectButton.toggled(bool) 
+        """ SLOT connected to self.wellSelectButton.toggled(bool)
         Prepare for well selection."""
         if on:
             self.pairSelectButton.setChecked(False)
@@ -1673,8 +1673,8 @@ class QuantumTab(QWidget):
 
 
     def export_band_data(self, fname):
-        np.savetxt(fname.split('.')[0] + '_CB' + '.csv', 
-                np.column_stack([self.qclayers.xPoints,self.qclayers.xVc]), 
+        np.savetxt(fname.split('.')[0] + '_CB' + '.csv',
+                np.column_stack([self.qclayers.xPoints,self.qclayers.xVc]),
                 delimiter=',')
 
         try: self.qclayers.xyPsiPsi
@@ -1684,8 +1684,8 @@ class QuantumTab(QWidget):
             for q in xrange(self.qclayers.EigenE.size):
                 xyPsiPsiEig[:,q] = self.qclayers.xyPsiPsi[:,q] + \
                         self.qclayers.EigenE[q]
-            np.savetxt(fname.split('.')[0] + '_States' + '.csv', 
-                    np.column_stack([self.qclayers.xPointsPost, xyPsiPsiEig]), 
+            np.savetxt(fname.split('.')[0] + '_States' + '.csv',
+                    np.column_stack([self.qclayers.xPointsPost, xyPsiPsiEig]),
                     delimiter=',')
 
 
@@ -1740,7 +1740,7 @@ class QuantumTab(QWidget):
                 self.pairSelectButton):
             button.setEnabled(not is_doing)
             button.repaint()
-        if self.pairSelected: 
+        if self.pairSelected:
             self.FoMButton.setEnabled(not is_doing)
             self.FoMButton.repaint()
             if self.solveType == 'whole':
@@ -1763,8 +1763,8 @@ class QuantumTab(QWidget):
             self.plotDirty = True
             self.solveType = 'whole'
             self.update_quantumCanvas()
-            if DEBUG >= 4: 
-                with open('qclayer.pkl','wb') as f:
+            if DEBUG >= 4:
+                with open('qclayer.pkl', 'wb') as f:
                     pickle.dump(self.qclayers, f, pickle.HIGHEST_PROTOCOL)
                 print self.qclayers.EigenE
         except (IndexError,TypeError) as err:
@@ -1781,7 +1781,7 @@ class QuantumTab(QWidget):
         try:
             self.dCL = self.qclayers.basisSolve()
             self.qclayers.convert_dCL_to_data(self.dCL)
-            self.solveType = 'basis'        
+            self.solveType = 'basis'
             self.plotDirty = True
             self.update_quantumCanvas()
         except (ValueError,IndexError) as err:
@@ -1825,7 +1825,7 @@ class QuantumTab(QWidget):
         self.FoMButton.repaint()
 
         upper = self.stateHolder[1]
-        lower = self.stateHolder[0]        
+        lower = self.stateHolder[0]
         if upper < lower:
             upper, lower = lower, upper
 
@@ -1850,7 +1850,7 @@ class QuantumTab(QWidget):
 
     def get_nCore(self, wl):
         """Get overall active core complex reflaction index (imag part being
-        decay), by average over width. Used for optical mode calculation. 
+        decay), by average over width. Used for optical mode calculation.
         wl for wavelength"""
         n = np.empty(self.numMaterials)
         for q in range(self.numMaterials):
@@ -1859,7 +1859,7 @@ class QuantumTab(QWidget):
                     + (1-self.qclayers.moleFrac[q]) *\
                         cst[self.qclayers.Mat2[q]].rIndx(wl)
         # Average n?
-        nCore = np.sum(self.qclayers.MaterialWidth*n)/np.sum(self.qclayers.MaterialWidth) 
+        nCore = np.sum(self.qclayers.MaterialWidth*n)/np.sum(self.qclayers.MaterialWidth)
         return nCore
 
     def transfer_params(self, strata):
@@ -1870,7 +1870,7 @@ class QuantumTab(QWidget):
         strata.operatingField = self.qclayers.EField
         #set Lp
         LpFirst = self.LpFirstSpinbox.value()
-        LpLast = self.LpLastSpinbox.value()+1 
+        LpLast = self.LpLastSpinbox.value()+1
             #+1 because range is not inclusive of last value
         strata.Lp = self.qclayers.xres * np.sum(
                 self.qclayers.layerWidth[LpFirst:LpLast])
@@ -1881,7 +1881,7 @@ class QuantumTab(QWidget):
         #set aCore
         strata.aCore = self.alphaISB
         #set nCore
-        kCore = 1/(4*pi) * strata.aCore * strata.wavelength*1e-4 
+        kCore = 1/(4*pi) * strata.aCore * strata.wavelength*1e-4
         # See Def of acore
         # 1e-4: aCore in cm-1, wl in um
         strata.nCore = self.get_nCore(strata.wavelength) + 1j*kCore
@@ -1897,7 +1897,7 @@ class QuantumTab(QWidget):
         #set figure of merit
         strata.FoM = self.FoM
         #2gamma transition broadening
-        strata.transitionBroadening = self.transitionBroadening / 1000 
+        strata.transitionBroadening = self.transitionBroadening / 1000
             # store in eV
 
 
@@ -1910,14 +1910,14 @@ class QuantumTab(QWidget):
         try:
             wl = float(self.targetWL_box.text())
         except ValueError:
-            QMessageBox.warning(self, 'ErwinJr Error', 
+            QMessageBox.warning(self, 'ErwinJr Error',
                 'Invalid input:%s'%(self.targetWL_box.text()))
             self.targetWL_box.setText('')
         self.targetWL = wl
         self.targetWL_box.setText('%.1f'%self.targetWL)
 
 
-    def set_goal(self, goal): 
+    def set_goal(self, goal):
         """ SLOT connected to self.goalFuncBox.currentIndexChanged(int)
         To set goal function for global optimization."""
         self.OptGoal = self.OptGoalsFunc[goal]
@@ -1927,7 +1927,7 @@ class QuantumTab(QWidget):
         """ SLOT connected to self.GlobalOptButton.cliecked()
         To conduct global Optimization (TBD)."""
         if not hasattr(self, 'targetWL'):
-            QMessageBox.warning(self, "ErwinJr Error", 
+            QMessageBox.warning(self, "ErwinJr Error",
                 "Target wavelength is not set.")
             return
         if DEBUG >= 1:
