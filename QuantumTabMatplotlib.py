@@ -28,13 +28,18 @@
 # save and load pickle for qclayers
 # replace qwt by matplotlib
 
+__pyqt5__ = False
+
 import sys
 import numpy as np
 from numpy import pi, sqrt
 from functools import partial, wraps
 
-pyqt5 = False
-if pyqt5:
+from QCLayers import QCLayers, cst
+from QCLayers import h, c0, e0
+from EJcanvas import EJcanvas, EJplotControl
+
+if __pyqt5__:
     from PyQt5.QtCore import *
     from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
@@ -42,10 +47,6 @@ if pyqt5:
 else:
     from PyQt4.QtCore import *
     from PyQt4.QtGui import *
-
-from QCLayers import QCLayers, cst
-from QCLayers import h, c0, e0
-from EJcanvas import EJcanvas, EJplotControl
 
 # ===========================================================================
 # Debug options
@@ -163,6 +164,9 @@ class QuantumTab(QWidget):
 
         self.stateHolder = []
         self.pairSelected = False
+        # plotType can be mode, wf or DoS (TODO)
+        self.plotType = "wf"
+        self.fillplot = 0.3  # alpha of fill; False for not fill
 
         # Platform dependent settings, eg. layerout size settings
         if sys.platform == 'win32':
@@ -1267,18 +1271,29 @@ class QuantumTab(QWidget):
 
         if hasattr(self.qclayers, 'EigenE'):
             self.curveWF = []
+            #  scale = np.max(np.abs(self.qclayers.xyPsiPlot[:, n]))
+            if self.plotType == "mode":
+                y = self.qclayers.xyPsiPsi
+            elif self.plotType == "wf":
+                y = self.qclayers.xyPsiPlot
             for n in range(self.qclayers.EigenE.size):
-                if n in self.stateHolder:
-                    curve, = self.quantumCanvas.axes.plot(
+                curve, = self.quantumCanvas.axes.plot(
+                    self.qclayers.xPointsPost,
+                    y[:, n] + self.qclayers.EigenE[n],
+                    color=self.colors[np.mod(n, len(self.colors))])
+                if self.fillplot:
+                    self.quantumCanvas.axes.fill_between(
                         self.qclayers.xPointsPost,
-                        self.qclayers.xyPsiPsi[:, n]+self.qclayers.EigenE[n],
-                        'k', linewidth=2)
-                else:
-                    curve, = self.quantumCanvas.axes.plot(
-                        self.qclayers.xPointsPost,
-                        self.qclayers.xyPsiPsi[:, n]+self.qclayers.EigenE[n],
-                        color=self.colors[np.mod(n, len(self.colors))])
+                        y[:, n] + self.qclayers.EigenE[n],
+                        self.qclayers.EigenE[n],
+                        facecolor=self.colors[np.mod(n, len(self.colors))],
+                        alpha=self.fillplot)
                 self.curveWF.append(curve)
+            for n in self.stateHolder:
+                curve, = self.quantumCanvas.axes.plot(
+                    self.qclayers.xPointsPost,
+                    y[:, n] + self.qclayers.EigenE[n],
+                    'k', linewidth=2)
 
         self.quantumCanvas.draw()
 
@@ -1443,7 +1458,10 @@ class QuantumTab(QWidget):
             y = event.ydata
             xData = np.tile(self.qclayers.xPointsPost,
                             (self.qclayers.xyPsiPsi.shape[1], 1)).T
-            yData = self.qclayers.xyPsiPsi + self.qclayers.EigenE
+            if self.plotType in ("mode", "wf"):
+                yData = self.qclayers.EigenE + (self.qclayers.xyPsiPsi
+                                                if self.plotType == "mode"
+                                                else self.qclayers.xyPsiPlot)
 
             width, height = self.quantumCanvas.axes.bbox.size
             xmin, xmax = self.quantumCanvas.axes.get_xlim()

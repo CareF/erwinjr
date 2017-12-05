@@ -50,7 +50,7 @@ import numpy as np
 from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
 from scipy import interpolate
 
-from settings import (wf_scale, wf_min_height, pretty_plot_factor,
+from settings import (wf_scale, psi_scale, wf_min_height, pretty_plot_factor,
                       plot_decimate_factor, phonon_integral_factor)
 import MaterialConstantsDict
 cst = MaterialConstantsDict.MaterialConstantsDict()
@@ -747,7 +747,8 @@ class QCLayers(object):
         self.EigenE = self.EigenE[idxs]
         self.xyPsi = self.xyPsi[:, idxs]
         self.xyPsiPsi = self.xyPsiPsi[:, idxs]
-        self.xyPsiPsi2 = copy.deepcopy(self.xyPsiPsi)
+        #  self.xyPsiPsi2 = copy.deepcopy(self.xyPsiPsi)
+        self.xyPsiPlot = self.xyPsi*psi_scale
 
         # implement pretty plot:
         # remove long zero head and tail of the wave functions
@@ -758,16 +759,24 @@ class QCLayers(object):
                 self.xyPsiPsi[:, q] >
                 wf_scale * pretty_plot_factor)[0]
             self.xyPsiPsi[0:prettyIdxs[0], q] = np.NaN
+            self.xyPsiPlot[0:prettyIdxs[0], q] = np.NaN
             self.xyPsiPsi[prettyIdxs[-1]:, q] = np.NaN
+            self.xyPsiPlot[prettyIdxs[-1]:, q] = np.NaN
 
         # decimate plot points: seems for better time and memory performance?
         idxs = np.arange(0, self.xPoints.size, int(
             plot_decimate_factor/self.xres), dtype=int)
-        self.xyPsiPsiDec = np.zeros((idxs.size, self.EigenE.size))
-        for q in xrange(self.EigenE.size):
-            self.xyPsiPsiDec[:, q] = self.xyPsiPsi[idxs, q]
-        self.xyPsiPsi = self.xyPsiPsiDec
+        #  self.xyPsiPsiDec = np.zeros((idxs.size, self.EigenE.size))
+        #  for q in xrange(self.EigenE.size):
+        #       self.xyPsiPsiDec[:, q] = self.xyPsiPsi[idxs, q]
+        #  self.xyPsiPsi = self.xyPsiPsiDec
+        self.xyPsiPsi = self.xyPsiPsi[idxs, :]
+        self.xyPsiPlot = self.xyPsiPlot[idxs, :]
         self.xPointsPost = self.xPoints[idxs]
+
+    def solve_psi_mtr(self):
+        # TODO: a matrix eigen solver
+        pass
 
     def basisSolve(self):
         """ solve basis for the QC device, with each basis being eigen mode of
@@ -903,24 +912,30 @@ class QCLayers(object):
         self.xPointsPost = self.xPointsPost[head:tail]
         self.xyPsi = self.xyPsi[head:tail]
         self.xyPsiPsi = self.xyPsiPsi[head:tail]
+        self.xyPsiPlot = self.xyPsi*psi_scale
 
         # implement pretty plot
         # remove long zero head and tail of the wave functions
+        # TODO: improve to cut according to range of well
         for q in xrange(self.EigenE.size):
             prettyIdxs = np.nonzero(
                 self.xyPsiPsi[:, q] >
                 wf_scale * pretty_plot_factor)[0]
             if prettyIdxs.size != 0:
                 self.xyPsiPsi[0:prettyIdxs[0], q] = np.NaN
+                self.xyPsiPlot[0:prettyIdxs[0], q] = np.NaN
                 self.xyPsiPsi[prettyIdxs[-1]:, q] = np.NaN
+                self.xyPsiPlot[prettyIdxs[-1]:, q] = np.NaN
             else:
                 self.xyPsiPsi[:, q] = np.NaN
+                self.xyPsiPlot[:, q] = np.NaN
 
         # sort by ascending energy
         sortID = np.argsort(self.EigenE)
         self.EigenE = self.EigenE[sortID]
         self.xyPsi = self.xyPsi[:, sortID]
         self.xyPsiPsi = self.xyPsiPsi[:, sortID]
+        self.xyPsiPlot = self.xyPsiPlot[:, sortID]
         self.moduleID = self.moduleID[sortID]
 
         #  #decimate plot points
