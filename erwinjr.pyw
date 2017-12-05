@@ -57,10 +57,8 @@ if __pyqt5__:
     # QString is automatically unicode
     # qsettings.value(...).toxxxx -> qsettings.value(...)
 else:
-    #  from PyQt4.QtCore import *
     from PyQt4.QtCore import (QSettings, QTimer, SIGNAL, QString, QFile,
                               QFileInfo, QVariant, Qt)
-    #  from PyQt4.QtGui import *
     from PyQt4.QtGui import (QApplication, QMainWindow, QTabWidget, QIcon,
                              QAction, QKeySequence, QPalette, QPixmap,
                              QMessageBox, QFileDialog, QInputDialog,
@@ -496,7 +494,7 @@ class MainWindow(QMainWindow):
             with open(fname, 'rU') as f:
                 SaveLoad.qclLoad(f, self.quantumWidget.qclayers,
                                  self.opticalWidget.strata)
-        except Exception as err:
+        except Exception:
             QMessageBox.warning(self, "ErwinJr - Warning",
                                 "Could not load *.qcl file.\n" +
                                 traceback.format_exc())
@@ -538,7 +536,7 @@ class MainWindow(QMainWindow):
                 f.write("Version:" + str(ejVersion) + '\n')
                 SaveLoad.qclSave(f, self.quantumWidget.qclayers,
                                  self.opticalWidget.strata)
-        except Exception as err:
+        except Exception:
             QMessageBox.warning(self, "ErwinJr - Warning",
                                 "Could not save *.qcl file.\n" +
                                 traceback.format_exc())

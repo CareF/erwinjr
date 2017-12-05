@@ -40,13 +40,23 @@ from QCLayers import h, c0, e0
 from EJcanvas import EJcanvas, EJplotControl
 
 if __pyqt5__:
-    from PyQt5.QtCore import *
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
+    from PyQt5.QtCore import pyqtSignal, QString, Qt
+    from PyQt5.QtGui import QPalette, QColor
+    from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QLabel, QComboBox,
+                                 QSpinBox, QDoubleSpinBox, QGroupBox,
+                                 QCheckBox, QTextEdit, QSizePolicy,
+                                 QGridLayout, QHBoxLayout, QPushButton,
+                                 QTableWidget, QTableWidgetItem,
+                                 QApplication, QMessageBox)
     # QString = unicode
 else:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
+    from PyQt4.QtCore import pyqtSignal, QString, Qt
+    from PyQt4.QtGui import (QWidget, QVBoxLayout, QLabel, QComboBox,
+                             QSpinBox, QDoubleSpinBox, QGroupBox, QCheckBox,
+                             QTextEdit, QSizePolicy, QGridLayout, QHBoxLayout,
+                             QPushButton, QTableWidget, QTableWidgetItem,
+                             QPalette, QColor,
+                             QApplication, QMessageBox)
 
 # ===========================================================================
 # Debug options
@@ -54,7 +64,7 @@ else:
 DEBUG = 2
 if DEBUG >= 3:
     import pickle
-    import inspect
+    #  import inspect
 
 
 class QuantumTab(QWidget):
@@ -285,12 +295,14 @@ class QuantumTab(QWidget):
 
         # Global Optimization groupbox
         GlobalOptLayout_groupBox = QGroupBox("Global Optimization")
-        self.targetWL_box = QLineEdit('')
-        self.targetWL_box.setValidator(QDoubleValidator(0, 100, 1))
+        self.targetWL_box = QDoubleSpinBox()
+        self.targetWL_box.setDecimals(1)
+        self.targetWL_box.setSuffix(u"\u03BB")
+        self.targetWL_box.setRange(0.0, 100.0)
         self.targetWL_box.setSizePolicy(QSizePolicy(
             QSizePolicy.Maximum, QSizePolicy.Ignored))
         self.targetWL_box.setMaximumWidth(LpStringBoxWidth-60)
-        self.targetWL_box.editingFinished.connect(self.set_targetWL)
+        self.targetWL_box.valueChanged.connect(self.set_targetWL)
         self.goalFuncBox = QComboBox()
         self.goalFuncBox.addItems(self.OptGoalsName)
         self.OptGoal = self.OptGoalsFunc[self.goalFuncBox.currentIndex()]
@@ -994,7 +1006,7 @@ class QuantumTab(QWidget):
                                self.qclayers.layerMaterials,
                                self.qclayers.layerDopings,
                                self.qclayers.layerDividers):
-                    layerD[0] = layerD[-1]
+                    LayerD[0] = LayerD[-1]
                 self.update_Lp_limits()
 
             elif row == self.qclayers.layerWidth.size-1:
@@ -1639,15 +1651,15 @@ class QuantumTab(QWidget):
 # ===========================================================================
 # Global Optimization
 # ===========================================================================
-    def set_targetWL(self):
+    def set_targetWL(self, *args):
         """ SLOT connected to self.targetWL_box.editingFinished()
         To set target wavelength."""
         try:
-            wl = float(self.targetWL_box.text())
+            wl = float(self.targetWL_box.value())
         except ValueError:
             QMessageBox.warning(
                 self, 'ErwinJr Error',
-                'Invalid input:%s' % (self.targetWL_box.text()))
+                'Invalid input:%s' % (self.targetWL_box.value()))
             self.targetWL_box.setText('')
         self.targetWL = wl
         self.targetWL_box.setText('%.1f' % self.targetWL)
@@ -1666,7 +1678,7 @@ class QuantumTab(QWidget):
             return
         if DEBUG >= 1:
             print "Global Optimization for %s" % self.OptGoal.__name__
-        Jaco = 0
+        print "GlabalOptimization is not implemented yet.."
 
 
 # vim: ts=4 sw=4 sts=4 expandtab
