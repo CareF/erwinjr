@@ -47,14 +47,24 @@ from Strata import Strata
 import SaveLoad
 
 if __pyqt5__:
-    from PyQt5.QtCore import *
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
+    pass
+    from PyQt5.QtCore import (QSettings, QTimer, SIGNAL, QString, QFile,
+                              QFileInfo, QVariant, Qt)
+    from PyQt5.QtGui import QIcon, QKeySequence, QPalette, QPixmap
+    from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget,
+                                 QAction, QMessageBox, QFileDialog,
+                                 QInputDialog, QSplashScreen)
     # QString is automatically unicode
     # qsettings.value(...).toxxxx -> qsettings.value(...)
 else:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
+    #  from PyQt4.QtCore import *
+    from PyQt4.QtCore import (QSettings, QTimer, SIGNAL, QString, QFile,
+                              QFileInfo, QVariant, Qt)
+    #  from PyQt4.QtGui import *
+    from PyQt4.QtGui import (QApplication, QMainWindow, QTabWidget, QIcon,
+                             QAction, QKeySequence, QPalette, QPixmap,
+                             QMessageBox, QFileDialog, QInputDialog,
+                             QSplashScreen)
 
 if __USE_MATPLOTLIB__:
     from QuantumTabMatplotlib import QuantumTab
@@ -191,7 +201,7 @@ class MainWindow(QMainWindow):
         elif tabIdx == 2:
             pass
         else:
-            assert 1==2
+            assert 1 == 2
 
     def add_actions(self, target, actions):
         for action in actions:
@@ -320,7 +330,9 @@ class MainWindow(QMainWindow):
                                 saveFileAction, saveAsFileAction,
                                 None, quit_action)
         self.file_menu.aboutToShow.connect(self.updateFileMenu)
-        # self.add_actions(self.file_menu, (newFileAction, openFileAction, saveFileAction, saveAsFileAction, None, quit_action))
+        # self.add_actions(self.file_menu, (newFileAction, openFileAction,
+        #                                   saveFileAction, saveAsFileAction,
+        #                                   None, quit_action))
 
         # help menu
         self.help_menu = self.menuBar().addMenu("&Help")
@@ -422,7 +434,7 @@ class MainWindow(QMainWindow):
             reply = QMessageBox.question(
                 self, "ErwinJr " + str(majorVersion) + " - Unsaved Changes",
                 "Save unsaved changes?",
-                QMessageBox.Yes|QMessageBox.No|QMessageBox.Cancel)
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             if reply == QMessageBox.Cancel:
                 return False
             elif reply == QMessageBox.Yes:
@@ -443,7 +455,7 @@ class MainWindow(QMainWindow):
             return False
         if not fname:
             dir = os.path.dirname(str(self.filename)) if self.filename else "."
-            fname =unicode(QFileDialog.getOpenFileName(
+            fname = unicode(QFileDialog.getOpenFileName(
                 self, "ErwinJr - Choose file", dir,
                 "ErwinJr files (*.qcl)\nAll files (*.*)"))
         # open file and determine if it is from the Matlab version of ErwinJr
@@ -486,7 +498,7 @@ class MainWindow(QMainWindow):
                                  self.opticalWidget.strata)
         except Exception as err:
             QMessageBox.warning(self, "ErwinJr - Warning",
-                                "Could not load *.qcl file.\n"+
+                                "Could not load *.qcl file.\n" +
                                 traceback.format_exc())
 
     def fileSave(self):
@@ -528,7 +540,7 @@ class MainWindow(QMainWindow):
                                  self.opticalWidget.strata)
         except Exception as err:
             QMessageBox.warning(self, "ErwinJr - Warning",
-                                "Could not save *.qcl file.\n"+
+                                "Could not save *.qcl file.\n" +
                                 traceback.format_exc())
         return True
 
@@ -697,7 +709,7 @@ def main():
             parent=form)
         firstRunBox.addButton("Blank File", QMessageBox.NoRole)
         firstRunBox.addButton("Example File", QMessageBox.YesRole)
-        ansr =firstRunBox.exec_()
+        ansr = firstRunBox.exec_()
         if ansr:
             form.fileOpen('examples/NPhoton PQLiu.qcl')
         else:
