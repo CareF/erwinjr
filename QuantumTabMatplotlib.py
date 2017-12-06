@@ -26,7 +26,6 @@
 # TODO:
 # In plot controls, add "show one period"
 # save and load pickle for qclayers
-# replace qwt by matplotlib
 
 import sys
 import traceback

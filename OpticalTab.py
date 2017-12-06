@@ -22,6 +22,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #============================================================================
+
+# TODO:
+# replace np.hstack (done, but to test)
+
 from __future__ import division
 import sys
 

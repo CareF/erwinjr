@@ -24,9 +24,7 @@
 # ===========================================================================
 
 # TODO:
-# replace np.hstack (done, but self.strata part to test)
 # find replacement for psyco
-# try to seperate this file to smaller ones (done for quantumtab
 # check unnecessary function call
 # Ctrl+z support
 # add status bar

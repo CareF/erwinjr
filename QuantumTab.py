@@ -26,7 +26,6 @@
 # TODO:
 # In plot controls, add "show one period"
 # save and load pickle for qclayers
-# replace qwt by matplotlib
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
