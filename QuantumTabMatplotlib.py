@@ -29,6 +29,7 @@
 # replace qwt by matplotlib
 
 import sys
+import traceback
 import numpy as np
 from numpy import pi, sqrt
 from functools import partial, wraps
@@ -296,10 +297,10 @@ class QuantumTab(QWidget):
         GlobalOptLayout_groupBox = QGroupBox("Global Optimization")
         self.targetWL_box = QDoubleSpinBox()
         self.targetWL_box.setDecimals(1)
-        self.targetWL_box.setSuffix(u"\u03BB")
+        self.targetWL_box.setSuffix(u" \u00B5m")
         self.targetWL_box.setRange(0.0, 100.0)
-        self.targetWL_box.setSizePolicy(QSizePolicy(
-            QSizePolicy.Maximum, QSizePolicy.Ignored))
+        # self.targetWL_box.setSizePolicy(QSizePolicy(
+        #     QSizePolicy.Maximum, QSizePolicy.Ignored))
         self.targetWL_box.setMaximumWidth(LpStringBoxWidth - 60)
         self.targetWL_box.valueChanged.connect(self.set_targetWL)
         self.goalFuncBox = QComboBox()
@@ -311,7 +312,7 @@ class QuantumTab(QWidget):
         GlobalOptLayout = QGridLayout()
         GlobalOptLayout.addWidget(QLabel(u"<b>\u03BB</b>:"), 0, 0)
         GlobalOptLayout.addWidget(self.targetWL_box, 0, 1)
-        GlobalOptLayout.addWidget(QLabel('um'), 0, 2)
+        #  GlobalOptLayout.addWidget(QLabel('um'), 0, 2)
         GlobalOptLayout.addWidget(QLabel("<b>Target function</b>"), 1, 0, 1, 3)
         GlobalOptLayout.addWidget(self.goalFuncBox, 2, 0, 1, 3)
         GlobalOptLayout.addWidget(self.GlobalOptButton, 3, 0, 1, 3)
@@ -447,9 +448,9 @@ class QuantumTab(QWidget):
         solveBox.addWidget(mtrl_groupBox)
 
         # set up plot control inputs
-        self.zoominButton = QPushButton("Zoom In")
+        self.zoominButton = QPushButton("Zoom")
         self.plotControl.set_action('zoom', self.zoominButton)
-        self.zoomOutButton = QPushButton("Zoom Out")
+        self.zoomOutButton = QPushButton("Reset")
         self.plotControl.set_action('home', self.zoomOutButton)
         self.panButton = QPushButton("Pan")  # to move
         self.plotControl.set_action('pan', self.panButton)
@@ -554,9 +555,10 @@ class QuantumTab(QWidget):
             self.inputSubstrateBox.setCurrentIndex(
                 self.qclayers.substratesList.index(
                     self.qclayers.substrate))
-        except Exception as err:
+        except Exception:
             QMessageBox.warning(self, "ErwinJr - Warning",
-                                "Substrate data wrong.\n" + str(err))
+                                "Substrate data wrong.\n" +
+                                traceback.format_exc())
 
         self.qclayers.update_alloys()
         self.qclayers.update_strain()
@@ -1425,8 +1427,9 @@ class QuantumTab(QWidget):
                 with open('qclayer.pkl', 'wb') as f:
                     pickle.dump(self.qclayers, f, pickle.HIGHEST_PROTOCOL)
                 print self.qclayers.EigenE
-        except (IndexError, TypeError) as err:
-            QMessageBox.warning(self, 'ErwinJr - Error', str(err))
+        except (IndexError, TypeError):
+            QMessageBox.warning(self, 'ErwinJr - Error',
+                                traceback.format_exc())
 
         self.Calculating(False)
 
@@ -1442,8 +1445,9 @@ class QuantumTab(QWidget):
             self.solveType = 'basis'
             self.update_quantumCanvas()
             self.pairSelectButton.setEnabled(True)
-        except (ValueError, IndexError) as err:
-            QMessageBox.warning(self, "ErwinJr - Error", str(err))
+        except (ValueError, IndexError):
+            QMessageBox.warning(self, "ErwinJr - Error",
+                                traceback.format_exc())
 
         self.Calculating(False)
 
@@ -1531,7 +1535,7 @@ class QuantumTab(QWidget):
                     upper, lower)
                 self.pairString = (
                     u"selected: %d, %d<br>"
-                    u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
+                    u"energy diff: <b>%6.1f meV</b> (%6.1f \u00B5m)<br>"
                     u"coupling: %6.1f meV<br>broadening: %6.1f meV<br>"
                     u"dipole: <b>%6.1f \u212B</b>"
                     u"<br>LO scattering: <b>%6.2g ps</b><br>") % (
@@ -1551,7 +1555,7 @@ class QuantumTab(QWidget):
                 self.transitionBroadening = 0.1 * self.eDiff  # TODO
                 self.pairString = (
                     u"selected: %d, %d<br>"
-                    u"energy diff: <b>%6.1f meV</b> (%6.1f um)<br>"
+                    u"energy diff: <b>%6.1f meV</b> (%6.1f \u00B5m)<br>"
                     u"dipole: %6.1f \u212B<br>" u"LO scattering: %6.2g ps<br>"
                 ) % (self.stateHolder[0], self.stateHolder[1], self.eDiff,
                      self.wavelength, self.opticalDipole, self.tauUpperLower)
@@ -1662,7 +1666,7 @@ class QuantumTab(QWidget):
                 'Invalid input:%s' % (self.targetWL_box.value()))
             self.targetWL_box.setText('')
         self.targetWL = wl
-        self.targetWL_box.setText('%.1f' % self.targetWL)
+        #  self.targetWL_box.setText('%.1f' % self.targetWL)
 
     def set_goal(self, goal):
         """ SLOT connected to self.goalFuncBox.currentIndexChanged(int)
