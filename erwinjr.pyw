@@ -33,7 +33,6 @@
 
 from __future__ import division
 
-__pyqt5__ = False
 __USE_MATPLOTLIB__ = True
 
 import os
@@ -44,9 +43,10 @@ import time
 
 from QCLayers import QCLayers, cst
 from Strata import Strata
+from settings import use_pyqt5
 import SaveLoad
 
-if __pyqt5__:
+if use_pyqt5:
     pass
     from PyQt5.QtCore import (QSettings, QTimer, SIGNAL, QString, QFile,
                               QFileInfo, QVariant, Qt)
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
     def addRecentFile(self, fname):
         if fname is None:
             return
-        if __pyqt5__:
+        if use_pyqt5:
             if fname not in self.recentFiles:
                 self.recentFiles.insert(0, fname)
                 while self.recentFiles.count() > 9:

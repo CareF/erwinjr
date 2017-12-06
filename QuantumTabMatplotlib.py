@@ -28,8 +28,6 @@
 # save and load pickle for qclayers
 # replace qwt by matplotlib
 
-__pyqt5__ = False
-
 import sys
 import numpy as np
 from numpy import pi, sqrt
@@ -38,8 +36,9 @@ from functools import partial, wraps
 from QCLayers import QCLayers, cst
 from QCLayers import h, c0, e0
 from EJcanvas import EJcanvas, EJplotControl
+from settings import use_pyqt5
 
-if __pyqt5__:
+if use_pyqt5:
     from PyQt5.QtCore import pyqtSignal, QString, Qt
     from PyQt5.QtGui import QPalette, QColor
     from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QLabel, QComboBox,

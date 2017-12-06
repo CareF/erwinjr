@@ -24,3 +24,6 @@ phonon_integral_factor = pretty_plot_factor/10
 # decimate factor should be an integer
 # represents plotting wavefunctions at every xth angstrom
 plot_decimate_factor = 1
+
+# weather to use pyqt5
+pyqt5 = False
