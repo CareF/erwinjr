@@ -27,7 +27,7 @@ import six
 import os
 
 import matplotlib
-matplotlib.use('Qt5Agg')
+matplotlib.use('Qt4Agg')
 from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg as
                                                 FigureCanvas)
 from matplotlib.backends.backend_qt5 import cursord
@@ -44,6 +44,8 @@ else:
     from PyQt4.QtCore import QObject, Signal
     from PyQt4.QtGui import (QSizePolicy, QMessageBox, QInputDialog,
                              QFileDialog)
+
+margin = {'l': 0.75, 'r': 0.12, 'b': 0.55, 't': 0.09}
 
 
 class EJcanvas(FigureCanvas):
@@ -76,9 +78,10 @@ class EJcanvas(FigureCanvas):
         super(EJcanvas, self).resizeEvent(event)
         height = self.figure.get_figheight()
         width = self.figure.get_figwidth()
-        self.figure.subplots_adjust(left=0.75/width, bottom=0.55/height,
-                                    right=1-0.12/width, top=1-0.09/height,
-                                    wspace=0, hspace=0)
+        self.figure.subplots_adjust(
+            left=margin['l'] / width, bottom=margin['b'] / height,
+            right=1 - margin['r'] / width, top=1 - margin['t'] / height,
+            wspace=0, hspace=0)
 
     def clear(self):
         #  print "clear"
@@ -122,8 +125,7 @@ class EJplotControl(NavigationToolbar2, QObject):
         #  self.buttons = {}
 
     def set_action(self, callback, button):
-        """
-        According to matplotlib.backend_bases, supported actions are:
+        """According to matplotlib.backend_bases, supported actions are:
         toolitems = (
             ('Home', 'Reset original view', 'home', 'home'),
             ('Back', 'Back to  previous view', 'back', 'back'),
@@ -241,8 +243,8 @@ class EJplotControl(NavigationToolbar2, QObject):
                 self.set_cursor(cursors.POINTER)
                 self._lastCursor = cursors.POINTER
         else:
-            if (self._active == 'ZOOM'
-                    and self._lastCursor != cursors.SELECT_REGION):
+            if (self._active == 'ZOOM' and
+                    self._lastCursor != cursors.SELECT_REGION):
                 self.set_cursor(cursors.SELECT_REGION)
                 self._lastCursor = cursors.SELECT_REGION
             elif (self._active == 'PAN' and
@@ -296,7 +298,7 @@ class EJplotControl(NavigationToolbar2, QObject):
                 self.parent(), caption, filename, filters, selectedFilter)
         else:
             fname, filter = QFileDialog.getSaveFileNameAndFilter(
-                    self.parent(), caption, filename, filters, selectedFilter)
+                self.parent(), caption, filename, filters, selectedFilter)
         if fname:
             try:
                 self.canvas.figure.savefig(six.text_type(fname),
