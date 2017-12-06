@@ -47,7 +47,7 @@ __MULTI_PROCESSING__ = True
 import copy
 import sys
 import numpy as np
-from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
+from numpy import sqrt, exp, pi
 from scipy import interpolate
 
 from settings import (wf_scale, psi_scale, wf_min_height, pretty_plot_factor,
@@ -59,21 +59,23 @@ if __LOG__:
     import pickle
     logcount = 0
 if __DEBUG__ >= 1:
-    from time import time
+    pass
+    #  from time import time
 
 # TODO: replace CLIB by Cython
 if __USE_CLIB__:
-    from ctypes import *
+    #  from ctypes import *
+    import ctypes as ct
     if __MULTI_PROCESSING__:
         if sys.platform in ('linux2', 'darwin', 'cygwin'):
-            cQ = CDLL('./cQCLayersMP.so')
+            cQ = ct.CDLL('./cQCLayersMP.so')
         elif sys.platform == 'win32':
-            cQ = CDLL('cQCLayersMP.dll')
+            cQ = ct.CDLL('cQCLayersMP.dll')
     else:
         if sys.platform in ('linux2', 'darwin', 'cygwin'):
-            cQ = CDLL('./cQCLayers.so')
+            cQ = ct.CDLL('./cQCLayers.so')
         elif sys.platform == 'win32':
-            cQ = CDLL('cQCLayers.dll')
+            cQ = ct.CDLL('cQCLayers.dll')
 
 # ===========================================================================
 # Global Variables
@@ -589,21 +591,21 @@ class QCLayers(object):
             # Call C function to get boundary dependence of energy EPoints[n],
             # the return value is psiEnd[n]
             # for n with psiEnd[n]=0, EPoints[n] is eigenenergy
-            cQ.psiFnEnd(Epoints.ctypes.data_as(c_void_p),
+            cQ.psiFnEnd(Epoints.ctypes.data_as(ct.c_void_p),
                         int(Epoints.size), int(xPsi.size),
-                        c_double(self.xres), c_double(self.EField),
-                        self.xVc.ctypes.data_as(c_void_p),
-                        self.xEg.ctypes.data_as(c_void_p),
-                        self.xF.ctypes.data_as(c_void_p),
-                        self.xEp.ctypes.data_as(c_void_p),
-                        self.xESO.ctypes.data_as(c_void_p),
-                        self.xMc.ctypes.data_as(c_void_p),
-                        xMcE.ctypes.data_as(c_void_p),
-                        xPsi.ctypes.data_as(c_void_p),
-                        psiEnd.ctypes.data_as(c_void_p))
+                        ct.c_double(self.xres), ct.c_double(self.EField),
+                        self.xVc.ctypes.data_as(ct.c_void_p),
+                        self.xEg.ctypes.data_as(ct.c_void_p),
+                        self.xF.ctypes.data_as(ct.c_void_p),
+                        self.xEp.ctypes.data_as(ct.c_void_p),
+                        self.xESO.ctypes.data_as(ct.c_void_p),
+                        self.xMc.ctypes.data_as(ct.c_void_p),
+                        xMcE.ctypes.data_as(ct.c_void_p),
+                        xPsi.ctypes.data_as(ct.c_void_p),
+                        psiEnd.ctypes.data_as(ct.c_void_p))
         else:
             for p, Eq in enumerate(Epoints):
-                xMcE = m0 * eff_mass(Eq)
+                xMcE = m0 * self.eff_mass(Eq)
                 xMcE[0:-1] = 0.5 * (xMcE[0:-1]+xMcE[1:])
                 xPsi[0] = 0
                 xPsi[1] = 1
@@ -638,16 +640,16 @@ class QCLayers(object):
 
             for n, Eq in enumerate(xnear):
                 if __USE_CLIB__:
-                    cQ.psiFn(c_double(Eq), int(1), int(xPsi.size),
-                             c_double(self.xres),
-                             self.xVc.ctypes.data_as(c_void_p),
-                             self.xEg.ctypes.data_as(c_void_p),
-                             self.xF.ctypes.data_as(c_void_p),
-                             self.xEp.ctypes.data_as(c_void_p),
-                             self.xESO.ctypes.data_as(c_void_p),
-                             self.xMc.ctypes.data_as(c_void_p),
-                             xMcE.ctypes.data_as(c_void_p),
-                             xPsi.ctypes.data_as(c_void_p))
+                    cQ.psiFn(ct.c_double(Eq), int(1), int(xPsi.size),
+                             ct.c_double(self.xres),
+                             self.xVc.ctypes.data_as(ct.c_void_p),
+                             self.xEg.ctypes.data_as(ct.c_void_p),
+                             self.xF.ctypes.data_as(ct.c_void_p),
+                             self.xEp.ctypes.data_as(ct.c_void_p),
+                             self.xESO.ctypes.data_as(ct.c_void_p),
+                             self.xMc.ctypes.data_as(ct.c_void_p),
+                             xMcE.ctypes.data_as(ct.c_void_p),
+                             xPsi.ctypes.data_as(ct.c_void_p))
                 else:
                     xMcE = self.eff_mass(Eq)
                     xMcE[1:] = (xMcE[:-1] + xMcE[1:])/2
@@ -661,11 +663,11 @@ class QCLayers(object):
                 fxnear[n] = xPsi[-1]
             idxs = 3*np.arange(len(self.EigenE))+1
             if __USE_CLIB__:
-                cQ.inv_quadratic_interp(xnear.ctypes.data_as(c_void_p),
-                                        fxnear.ctypes.data_as(c_void_p),
-                                        idxs.ctypes.data_as(POINTER(c_int)),
-                                        int(idxs.size),
-                                        self.EigenE.ctypes.data_as(c_void_p))
+                cQ.inv_quadratic_interp(
+                    xnear.ctypes.data_as(ct.c_void_p),
+                    fxnear.ctypes.data_as(ct.c_void_p),
+                    idxs.ctypes.data_as(ct.POINTER(ct.c_int)),
+                    int(idxs.size), self.EigenE.ctypes.data_as(ct.c_void_p))
             else:
                 for q, idx in enumerate(idxs):
                     # do quadratic interpolation
@@ -675,8 +677,6 @@ class QCLayers(object):
                     fx1 = fxnear[idx]
                     x2 = xnear[idx+1]
                     fx2 = fxnear[idx+1]
-                    d1 = (fx1-fx0)/(x1-x0)
-                    d2 = (fx2-fx1)/(x2-x1)
                     # inverse quadratic interpolation
                     x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) +\
                         x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) +\
@@ -688,24 +688,24 @@ class QCLayers(object):
             # with eigenenregy EigenE, here call C function to get wave
             # function
             self.xyPsi = np.zeros(self.xPoints.size*self.EigenE.size)
-            cQ.psiFill(int(xPsi.size), c_double(self.xres),
+            cQ.psiFill(int(xPsi.size), ct.c_double(self.xres),
                        int(self.EigenE.size),
-                       self.EigenE.ctypes.data_as(c_void_p),
-                       self.xVc.ctypes.data_as(c_void_p),
-                       self.xEg.ctypes.data_as(c_void_p),
-                       self.xF.ctypes.data_as(c_void_p),
-                       self.xEp.ctypes.data_as(c_void_p),
-                       self.xESO.ctypes.data_as(c_void_p),
-                       self.xMc.ctypes.data_as(c_void_p),
-                       xMcE.ctypes.data_as(c_void_p),
-                       self.xyPsi.ctypes.data_as(c_void_p))
+                       self.EigenE.ctypes.data_as(ct.c_void_p),
+                       self.xVc.ctypes.data_as(ct.c_void_p),
+                       self.xEg.ctypes.data_as(ct.c_void_p),
+                       self.xF.ctypes.data_as(ct.c_void_p),
+                       self.xEp.ctypes.data_as(ct.c_void_p),
+                       self.xESO.ctypes.data_as(ct.c_void_p),
+                       self.xMc.ctypes.data_as(ct.c_void_p),
+                       xMcE.ctypes.data_as(ct.c_void_p),
+                       self.xyPsi.ctypes.data_as(ct.c_void_p))
             # self.xyPsi.resize(a.xPoints.size, a.EigenE.size)
             self.xyPsi = self.xyPsi.reshape(self.xPoints.size,
                                             self.EigenE.size, order='F')
         else:
             self.xyPsi = np.zeros((self.xPoints.size, self.EigenE.size))
             for p, Eq in enumerate(self.EigenE):
-                xMcE = m0 * eff_mass(self.EigenE)
+                xMcE = m0 * self.eff_mass(self.EigenE)
                 xMcE[0:-1] = 0.5 * (xMcE[0:-1]+xMcE[1:])
                 xPsi[1] = 1
                 for q in xrange(2, xPsi.size-1):
@@ -1002,11 +1002,12 @@ class QCLayers(object):
         kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
         if __USE_CLIB__:
             inv_tau_int = cQ.inv_tau_int
-            inv_tau_int.restype = c_double
-            Iij = inv_tau_int(xPoints.size, c_double(self.xres),
-                              c_double(kl), xPoints.ctypes.data_as(c_void_p),
-                              psi_i.ctypes.data_as(c_void_p),
-                              psi_j.ctypes.data_as(c_void_p))
+            inv_tau_int.restype = ct.c_double
+            Iij = inv_tau_int(xPoints.size, ct.c_double(self.xres),
+                              ct.c_double(kl),
+                              xPoints.ctypes.data_as(ct.c_void_p),
+                              psi_i.ctypes.data_as(ct.c_void_p),
+                              psi_j.ctypes.data_as(ct.c_void_p))
         else:
             dIij = np.empty(xPoints.size)
             for n in xrange(xPoints.size):
@@ -1181,18 +1182,6 @@ class QCLayers(object):
                           ((energies - hw)**2 + gammas**2))
         alphaISB *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
         alphaISB /= e0*100
-
-        if False:  # plot loss diagram
-            hw = np.arange(0.15, 0.5, 0.001)
-            alphaISBw = np.zeros(hw.size)
-            for q, enerG in enumerate(hw):
-                alphaISBw[q] = np.sum(energies*e0/h/c0 * dipoles**2 * gammas /
-                                      ((energies - enerG)**2 + gammas**2))
-            alphaISBw *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
-            alphaISBw /= e0*100
-            plt.figure()
-            plt.plot(hw, alphaISBw)
-            plt.show()
 
         return alphaISB
 

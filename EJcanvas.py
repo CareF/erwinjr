@@ -1,50 +1,52 @@
 #!/usr/bin/env python2
 # -*- coding:utf-8 -*-
 
-#============================================================================
+# ===========================================================================
 # ErwinJr is a simulation program for quantum semiconductor lasers.
 # Copyright (C) 2017 Ming Lyu (CareF)
 #
 # The EJplotControl class of this code is inspired by
 # matplotlib.backend_qt5.NavigationToolbar2QT
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#============================================================================
+# ===========================================================================
+
+import numpy as np
+import six
+import os
+
 import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5 import cursord
 from matplotlib.backend_bases import (NavigationToolbar2, cursors)
+import matplotlib.backends.qt_editor.figureoptions as figureoptions
 from matplotlib.figure import Figure
 
-pyqt5 = False
-if pyqt5: 
-    from PyQt5.QtCore import *
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-else: 
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
+from settings import use_pyqt5
+if use_pyqt5:
+    from PyQt5.QtCore import QObject, Signal
+    from PyQt5.QtWidgets import (QSizePolicy, QMessageBox, QInputDialog,
+                                 QFileDialog)
+else:
+    from PyQt4.QtCore import QObject, Signal
+    from PyQt4.QtGui import (QSizePolicy, QMessageBox, QInputDialog,
+                             QFileDialog)
 
-import numpy as np
-import six
-import os
-from functools import partial
 
 class EJcanvas(FigureCanvas):
-#  class EJcanvas(FigureCanvas, NavigationToolbar2):
-    def __init__(self, xlabel='x', ylabel='y', parent=None): 
+    def __init__(self, xlabel='x', ylabel='y', parent=None):
         self.figure = Figure()
         super(EJcanvas, self).__init__(self.figure)
         #  NavigationToolbar2.__init__(self, self)
@@ -55,7 +57,7 @@ class EJcanvas(FigureCanvas):
         self.xlabel = xlabel
         self.ylabel = ylabel
 
-    def set_axes(self, fsize=12): 
+    def set_axes(self, fsize=12):
         self.axes.autoscale(enable=True, axis='x', tight=True)
         self.axes.autoscale(enable=True, axis='y', tight=False)
         self.axes.spines['top'].set_color('none')
@@ -67,14 +69,15 @@ class EJcanvas(FigureCanvas):
 
     def test(self):
         x = np.linspace(0, 10, 100)
-        self.axes.plot(x,np.sin(x))
+        self.axes.plot(x, np.sin(x))
 
     def resizeEvent(self, event):
         super(EJcanvas, self).resizeEvent(event)
         height = self.figure.get_figheight()
         width = self.figure.get_figwidth()
-        self.figure.subplots_adjust(left=0.75/width, bottom=0.55/height, 
-                right=1-0.12/width,top=1-0.09/height, wspace=0,hspace=0)
+        self.figure.subplots_adjust(left=0.75/width, bottom=0.55/height,
+                                    right=1-0.12/width, top=1-0.09/height,
+                                    wspace=0, hspace=0)
 
     def clear(self):
         #  print "clear"
@@ -83,8 +86,7 @@ class EJcanvas(FigureCanvas):
         #  self.draw()
 
 
-
-class EJplotControl(NavigationToolbar2, QObject): 
+class EJplotControl(NavigationToolbar2, QObject):
     """This class is mostly copied from matplotlib.backend_qt5, excpet for no
     longer necessary for any GUI"""
     message = Signal(str)
@@ -100,21 +102,21 @@ class EJplotControl(NavigationToolbar2, QObject):
 
     def _init_toolbar(self):
         pass
-        #  for text, tooltip_text, image_file, callback in self.toolitems:
-            #  if text is None:
-                #  self.addSeparator()
-            #  else:
-                #  a = self.addAction(self._icon(image_file + '.png'),
-                                   #  text, getattr(self, callback))
-                #  self._actions[callback] = a
-                #  if callback in ['zoom', 'pan']:
-                    #  a.setCheckable(True)
-                #  if tooltip_text is not None:
-                    #  a.setToolTip(tooltip_text)
-                #  if text == 'Subplots':
-                    #  a = self.addAction(self._icon("qt4_editor_options.png"),
-                                       #  'Customize', self.edit_parameters)
-                    #  a.setToolTip('Edit axis, curve and image parameters')
+        # for text, tooltip_text, image_file, callback in self.toolitems:
+        #     if text is None:
+        #         self.addSeparator()
+        #     else:
+        #         a = self.addAction(self._icon(image_file + '.png'),
+        #                            text, getattr(self, callback))
+        #         self._actions[callback] = a
+        #         if callback in ['zoom', 'pan']:
+        #             a.setCheckable(True)
+        #         if tooltip_text is not None:
+        #             a.setToolTip(tooltip_text)
+        #         if text == 'Subplots':
+        #             a = self.addAction(self._icon("qt4_editor_options.png"),
+        #                                'Customize', self.edit_parameters)
+        #             a.setToolTip('Edit axis, curve and image parameters')
 
         #  self.buttons = {}
 
@@ -126,27 +128,29 @@ class EJplotControl(NavigationToolbar2, QObject):
             ('Back', 'Back to  previous view', 'back', 'back'),
             ('Forward', 'Forward to next view', 'forward', 'forward'),
             (None, None, None, None),
-            ('Pan', 'Pan axes with left mouse, zoom with right', 'move', 'pan'),
+            ('Pan', 'Pan axes with left mouse, zoom with right', 'move',
+                'pan'),
             ('Zoom', 'Zoom to rectangle', 'zoom_to_rect', 'zoom'),
-            ('Subplots', 'Configure subplots', 'subplots', 'configure_subplots'),
+            ('Subplots', 'Configure subplots', 'subplots',
+                'configure_subplots'),
             (None, None, None, None),
             ('Save', 'Save the figure', 'filesave', 'save_figure'),
           )
         format (text, tooltip_text, image_file, callback)
         """
         if callback in (self.toolitems[n][-1] for n in
-                range(len(self.toolitems))):
+                        range(len(self.toolitems))):
             button.clicked.connect(getattr(self, callback))
             self._actions[callback] = button
             if callback in ['zoom', 'pan']:
                 button.setCheckable(True)
-        else: 
-            raise TypeError("%s not supported."%callback)
+        else:
+            raise TypeError("%s not supported." % callback)
 
     def set_custom(self, name, button, callback, cursor=cursors.HAND):
-            """cusomized callback action, 
+            """cusomized callback action,
             s.t. this class manages the button's check status
-            and its interaction with canvas. 
+            and its interaction with canvas.
             Note that callback is called when clicke on canvas"""
             self._custom_active[name] = callback
             self._actions[name] = button
@@ -184,7 +188,7 @@ class EJplotControl(NavigationToolbar2, QObject):
         # sync button checkstates to match active mode
         self._actions['pan'].setChecked(self._active == 'PAN')
         self._actions['zoom'].setChecked(self._active == 'ZOOM')
-        for mode in self._custom_active: 
+        for mode in self._custom_active:
             self._actions[mode].setChecked(self._active == mode)
 
     def pan(self, *args):
@@ -196,7 +200,7 @@ class EJplotControl(NavigationToolbar2, QObject):
         self._update_buttons_checked()
 
     def custom(self, mode):
-        if self._active == mode: 
+        if self._active == mode:
             self._active = None
         else:
             self._active = mode
@@ -212,8 +216,8 @@ class EJplotControl(NavigationToolbar2, QObject):
         if self._active:
             #  self._idPress = self.canvas.mpl_connect('button_press_event',
                                                     #  self.press[mode])
-            self._idRelease = self.canvas.mpl_connect('button_release_event', 
-                    self._custom_active[mode])
+            self._idRelease = self.canvas.mpl_connect(
+                'button_release_event', self._custom_active[mode])
             self.mode = mode
             self.canvas.widgetlock(self)
         else:
@@ -244,7 +248,7 @@ class EJplotControl(NavigationToolbar2, QObject):
                   self._lastCursor != cursors.MOVE):
                 self.set_cursor(cursors.MOVE)
                 self._lastCursor = cursors.MOVE
-            elif (self._active in self._custom_active and 
+            elif (self._active in self._custom_active and
                     self._lastCursor != self._custom_cursor[self._active]):
                 self.set_cursor(self._custom_cursor[self._active])
 
@@ -261,18 +265,19 @@ class EJplotControl(NavigationToolbar2, QObject):
     def remove_rubberband(self):
         self.canvas.drawRectangle(None)
 
-    def save_figure(self, caption="Choose a filename to save to", 
-            filename = None, default_filetype=None):
+    def save_figure(self, caption="Choose a filename to save to",
+                    filename=None, default_filetype=None):
         filetypes = self.canvas.get_supported_filetypes_grouped()
         sorted_filetypes = sorted(six.iteritems(filetypes))
-        #  if not default_filetype in self.canvas.get_supported_filetypes(): 
+        #  if not default_filetype in self.canvas.get_supported_filetypes():
         if not default_filetype:
             default_filetype = self.canvas.get_default_filetype()
 
         if not filename:
             startpath = os.path.expanduser(
                 matplotlib.rcParams['savefig.directory'])
-            filename = os.path.join(startpath, self.canvas.get_default_filename())
+            filename = os.path.join(startpath,
+                                    self.canvas.get_default_filename())
         filters = []
         selectedFilter = None
         for name, exts in sorted_filetypes:
@@ -285,19 +290,19 @@ class EJplotControl(NavigationToolbar2, QObject):
         filters = ';;'.join(filters)
 
         # for future update to pyqt5, change it to getSaveFileName
-        if pyqt5:
-            fname, filter = QFileDialog.getSaveFileName(self.parent(),
-                    caption, filename, filters, selectedFilter)
+        if use_pyqt5:
+            fname, filter = QFileDialog.getSaveFileName(
+                self.parent(), caption, filename, filters, selectedFilter)
         else:
             fname, filter = QFileDialog.getSaveFileNameAndFilter(
                     self.parent(), caption, filename, filters, selectedFilter)
         if fname:
             try:
-                self.canvas.figure.savefig(six.text_type(fname), 
-                        dpi=300, bbox_inches='tight')
+                self.canvas.figure.savefig(six.text_type(fname),
+                                           dpi=300, bbox_inches='tight')
             except Exception as e:
                 QMessageBox.critical(
-                    self.parent(), "Error saving band diagram", 
+                    self.parent(), "Error saving band diagram",
                     six.text_type(e), QMessageBox.Ok, QMessageBox.NoButton)
 
 # vim: ts=4 sw=4 sts=4 expandtab
