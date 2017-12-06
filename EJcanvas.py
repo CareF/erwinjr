@@ -28,7 +28,8 @@ import os
 
 import matplotlib
 matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg as
+                                                FigureCanvas)
 from matplotlib.backends.backend_qt5 import cursord
 from matplotlib.backend_bases import (NavigationToolbar2, cursors)
 import matplotlib.backends.qt_editor.figureoptions as figureoptions

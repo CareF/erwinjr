@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         qsettings = QSettings(parent=self)
         self.recentFiles = qsettings.value("RecentFiles").toStringList()
         self.restoreGeometry(
-                qsettings.value("MainWindow/Geometry").toByteArray())
+            qsettings.value("MainWindow/Geometry").toByteArray())
         self.restoreState(qsettings.value("MainWindow/State").toByteArray())
         self.updateFileMenu()
 
@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
         self.quantumWidget = QuantumTab(self)
         self.quantumWidget.dirty.connect(self.winUpdate)
         self.quantumWidget.toOpticalParamsButton.clicked.connect(
-                self.transfer_optical_parameters)
+            self.transfer_optical_parameters)
         self.mainTabWidget.addTab(self.quantumWidget, 'Quantum')
 
         # ##########################
@@ -242,9 +242,8 @@ class MainWindow(QMainWindow):
             "S&ave As", shortcut="Ctrl+W", slot=self.fileSaveAs,
             tip="Save ErwinJr file as", icon="filesaveas")
         exportQuantumCanvasAction = self.create_action(
-                "Export Band Diagram Image",
-                slot=self.exportBandDiagram,
-                tip="Export Band Diagram Image")
+            "Export Band Diagram Image", slot=self.exportBandDiagram,
+            tip="Export Band Diagram Image")
         exportBandCSVAction = self.create_action(
             "Export Band Diagram Data", slot=self.export_band_diagram_data,
             tip="Export Band Diagram Data")
@@ -274,21 +273,21 @@ class MainWindow(QMainWindow):
         # view menu
         self.view_menu = self.menuBar().addMenu("&View")
         VXBandAction = self.create_action(
-                "X Valley Conduction Band",
-                checkable=True, ischecked=self.quantumWidget.plotVX,
-                slot=self.quantumWidget.view_VXBand)
+            "X Valley Conduction Band", checkable=True,
+            ischecked=self.quantumWidget.plotVX,
+            slot=self.quantumWidget.view_VXBand)
         VLBandAction = self.create_action(
-                "L Valley Conduction Band",
-                checkable=True, ischecked=self.quantumWidget.plotVL,
-                slot=self.quantumWidget.view_VLBand)
+            "L Valley Conduction Band",
+            checkable=True, ischecked=self.quantumWidget.plotVL,
+            slot=self.quantumWidget.view_VLBand)
         LHBandAction = self.create_action(
-                "Light Hole Valence Band",
-                checkable=True, ischecked=self.quantumWidget.plotLH,
-                slot=self.quantumWidget.view_LHBand)
+            "Light Hole Valence Band",
+            checkable=True, ischecked=self.quantumWidget.plotLH,
+            slot=self.quantumWidget.view_LHBand)
         SOBandAction = self.create_action(
-                "Split Off Valence Band",
-                checkable=True, ischecked=self.quantumWidget.plotSO,
-                slot=self.quantumWidget.view_SOBand)
+            "Split Off Valence Band",
+            checkable=True, ischecked=self.quantumWidget.plotSO,
+            slot=self.quantumWidget.view_SOBand)
         self.add_actions(self.view_menu, (VXBandAction,
                                           VLBandAction,
                                           LHBandAction,
@@ -362,8 +361,8 @@ class MainWindow(QMainWindow):
             self.file_menu.addSeparator()
             for i, fname in enumerate(recentFiles):
                 action = QAction(
-                        "&{0}  {1}".format(i + 1, QFileInfo(
-                            fname).fileName()), self)
+                    "&{1}  {1}".format(i + 1,
+                                       QFileInfo(fname).fileName()), self)
                 action.setData(QVariant(fname))
                 action.triggered.connect(partial(self.fileOpen, fname))
                 self.file_menu.addAction(action)
@@ -552,9 +551,9 @@ class MainWindow(QMainWindow):
                            else QVariant())
             qsettings.setValue("RecentFiles", recentFiles)
             qsettings.setValue(
-                    "MainWindow/Geometry", QVariant(self.saveGeometry()))
+                "MainWindow/Geometry", QVariant(self.saveGeometry()))
             qsettings.setValue(
-                    "MainWindow/State", QVariant(self.saveState()))
+                "MainWindow/State", QVariant(self.saveState()))
         else:
             event.ignore()
 
@@ -565,7 +564,7 @@ class MainWindow(QMainWindow):
     def exportBandDiagram(self):
         if __USE_MATPLOTLIB__:
             self.quantumWidget.export_quantumCanvas(
-                    self.filename.split('.')[0])
+                self.filename.split('.')[0])
         else:
             fname = unicode(QFileDialog.getSaveFileName(
                 self, "ErwinJr - Export Band Structure Image",
@@ -700,7 +699,7 @@ def main():
         if not installDirectory:
             qsettingsSystem.setValue("installDirectory", QVariant(os.getcwd()))
         firstRunBox = QMessageBox(
-            QMessageBox.Question, 'EwrinJr '+str(majorVersion),
+            QMessageBox.Question, 'EwrinJr ' + str(majorVersion),
             ("Welcome to ErwinJr!\n"
              "Since this is your first time running the program, "
              "would you like to open an example file or a blank file?"),
