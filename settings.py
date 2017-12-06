@@ -26,4 +26,4 @@ phonon_integral_factor = pretty_plot_factor/10
 plot_decimate_factor = 1
 
 # weather to use pyqt5
-pyqt5 = False
+use_pyqt5 = False
