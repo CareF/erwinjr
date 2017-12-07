@@ -42,7 +42,7 @@ __DEBUG__ = 1
 
 __USE_CLIB__ = True
 __MORE_INTERPOLATION__ = True  # One more time interpolation for eigen solver
-__MULTI_PROCESSING__ = True
+__MULTI_PROCESSING__ = False
 
 import copy
 import sys

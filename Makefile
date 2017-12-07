@@ -1,11 +1,11 @@
-CC = icc
-CFLAGS = -march=native -Ofast -gcc-name=gcc-6 -Wall -c -fPIC
-# CC = gcc
-# CFLAGS = -O2 -Wall -c -fPIC
+# CC = icc
+# CFLAGS = -march=native -Ofast -gcc-name=gcc-6 -Wall -c -fPIC
+CC = gcc
+CFLAGS = -O2 -Wall -c -fPIC
 
 .PHONY : all
 .DEFAULT : all
-all: cQCLayers.so cStrata.so cQCLayersMP.so
+all: cQCLayers.so cStrata.so
 
 cQCLayers.so : cQCLayers.o
 	$(CC) -shared -fPIC $< -o $@ 
