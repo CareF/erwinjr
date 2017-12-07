@@ -332,14 +332,14 @@ class QuantumTab(QWidget):
         self.deleteLayerButton.clicked.connect(self.delete_layer)
         layerBox.addWidget(self.deleteLayerButton, 0, 1)
 
-        #  self.OptimizeFoMButton = QPushButton("Optimize Width (FoM)")
-        #  self.OptimizeFoMButton.setEnabled(False)
-        #  self.OptimizeFoMButton.clicked.connect(
-        #      partial(self.OptimizeLayer, goal=self.qclayers.figure_of_merit))
-        #  self.OptimizeDipoleButton = QPushButton("Optimize Width (Dipole)")
-        #  self.OptimizeDipoleButton.clicked.connect(
-        #      partial(self.OptimizeLayer, goal=self.qclayers.dipole))
-        #  self.OptimizeDipoleButton.setEnabled(False)
+        self.OptimizeFoMButton = QPushButton("Optimize Width (FoM)")
+        self.OptimizeFoMButton.setEnabled(False)
+        self.OptimizeFoMButton.clicked.connect(
+            partial(self.OptimizeLayer, goal=self.qclayers.figure_of_merit))
+        self.OptimizeDipoleButton = QPushButton("Optimize Width (Dipole)")
+        self.OptimizeDipoleButton.clicked.connect(
+            partial(self.OptimizeLayer, goal=self.qclayers.dipole))
+        self.OptimizeDipoleButton.setEnabled(False)
         #  layerBox.addWidget(self.OptimizeFoMButton, 1, 0)
         #  layerBox.addWidget(self.OptimizeDipoleButton, 1, 1)
 
