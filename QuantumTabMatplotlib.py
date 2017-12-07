@@ -316,7 +316,7 @@ class QuantumTab(QWidget):
         GlobalOptLayout.addWidget(self.goalFuncBox, 2, 0, 1, 3)
         GlobalOptLayout.addWidget(self.GlobalOptButton, 3, 0, 1, 3)
         GlobalOptLayout_groupBox.setLayout(GlobalOptLayout)
-        settingBox.addWidget(GlobalOptLayout_groupBox)
+        #  settingBox.addWidget(GlobalOptLayout_groupBox)
 
         settingBox.addStretch()
         # vBox1: settingBox end
