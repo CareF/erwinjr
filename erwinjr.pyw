@@ -24,16 +24,13 @@
 # ===========================================================================
 
 # TODO:
-# replace np.hstack (done, but self.strata part to test)
 # find replacement for psyco
-# try to seperate this file to smaller ones (done for quantumtab
 # check unnecessary function call
 # Ctrl+z support
 # add status bar
 
 from __future__ import division
 
-__pyqt5__ = False
 __USE_MATPLOTLIB__ = True
 
 import os
@@ -44,17 +41,26 @@ import time
 
 from QCLayers import QCLayers, cst
 from Strata import Strata
+from settings import use_pyqt5
 import SaveLoad
 
-if __pyqt5__:
-    from PyQt5.QtCore import *
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
+if use_pyqt5:
+    pass
+    from PyQt5.QtCore import (QSettings, QTimer, SIGNAL, QString, QFile,
+                              QFileInfo, QVariant, Qt)
+    from PyQt5.QtGui import QIcon, QKeySequence, QPalette, QPixmap
+    from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget,
+                                 QAction, QMessageBox, QFileDialog,
+                                 QInputDialog, QSplashScreen)
     # QString is automatically unicode
     # qsettings.value(...).toxxxx -> qsettings.value(...)
 else:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
+    from PyQt4.QtCore import (QSettings, QTimer, SIGNAL, QString, QFile,
+                              QFileInfo, QVariant, Qt)
+    from PyQt4.QtGui import (QApplication, QMainWindow, QTabWidget, QIcon,
+                             QAction, QKeySequence, QPalette, QPixmap,
+                             QMessageBox, QFileDialog, QInputDialog,
+                             QSplashScreen)
 
 if __USE_MATPLOTLIB__:
     from QuantumTabMatplotlib import QuantumTab
@@ -87,7 +93,7 @@ class MainWindow(QMainWindow):
         qsettings = QSettings(parent=self)
         self.recentFiles = qsettings.value("RecentFiles").toStringList()
         self.restoreGeometry(
-                qsettings.value("MainWindow/Geometry").toByteArray())
+            qsettings.value("MainWindow/Geometry").toByteArray())
         self.restoreState(qsettings.value("MainWindow/State").toByteArray())
         self.updateFileMenu()
 
@@ -139,7 +145,7 @@ class MainWindow(QMainWindow):
         self.quantumWidget = QuantumTab(self)
         self.quantumWidget.dirty.connect(self.winUpdate)
         self.quantumWidget.toOpticalParamsButton.clicked.connect(
-                self.transfer_optical_parameters)
+            self.transfer_optical_parameters)
         self.mainTabWidget.addTab(self.quantumWidget, 'Quantum')
 
         # ##########################
@@ -191,7 +197,7 @@ class MainWindow(QMainWindow):
         elif tabIdx == 2:
             pass
         else:
-            assert 1==2
+            assert 1 == 2
 
     def add_actions(self, target, actions):
         for action in actions:
@@ -234,9 +240,8 @@ class MainWindow(QMainWindow):
             "S&ave As", shortcut="Ctrl+W", slot=self.fileSaveAs,
             tip="Save ErwinJr file as", icon="filesaveas")
         exportQuantumCanvasAction = self.create_action(
-                "Export Band Diagram Image",
-                slot=self.exportBandDiagram,
-                tip="Export Band Diagram Image")
+            "Export Band Diagram Image", slot=self.exportBandDiagram,
+            tip="Export Band Diagram Image")
         exportBandCSVAction = self.create_action(
             "Export Band Diagram Data", slot=self.export_band_diagram_data,
             tip="Export Band Diagram Data")
@@ -266,21 +271,21 @@ class MainWindow(QMainWindow):
         # view menu
         self.view_menu = self.menuBar().addMenu("&View")
         VXBandAction = self.create_action(
-                "X Valley Conduction Band",
-                checkable=True, ischecked=self.quantumWidget.plotVX,
-                slot=self.quantumWidget.view_VXBand)
+            "X Valley Conduction Band", checkable=True,
+            ischecked=self.quantumWidget.plotVX,
+            slot=self.quantumWidget.view_VXBand)
         VLBandAction = self.create_action(
-                "L Valley Conduction Band",
-                checkable=True, ischecked=self.quantumWidget.plotVL,
-                slot=self.quantumWidget.view_VLBand)
+            "L Valley Conduction Band",
+            checkable=True, ischecked=self.quantumWidget.plotVL,
+            slot=self.quantumWidget.view_VLBand)
         LHBandAction = self.create_action(
-                "Light Hole Valence Band",
-                checkable=True, ischecked=self.quantumWidget.plotLH,
-                slot=self.quantumWidget.view_LHBand)
+            "Light Hole Valence Band",
+            checkable=True, ischecked=self.quantumWidget.plotLH,
+            slot=self.quantumWidget.view_LHBand)
         SOBandAction = self.create_action(
-                "Split Off Valence Band",
-                checkable=True, ischecked=self.quantumWidget.plotSO,
-                slot=self.quantumWidget.view_SOBand)
+            "Split Off Valence Band",
+            checkable=True, ischecked=self.quantumWidget.plotSO,
+            slot=self.quantumWidget.view_SOBand)
         self.add_actions(self.view_menu, (VXBandAction,
                                           VLBandAction,
                                           LHBandAction,
@@ -320,7 +325,9 @@ class MainWindow(QMainWindow):
                                 saveFileAction, saveAsFileAction,
                                 None, quit_action)
         self.file_menu.aboutToShow.connect(self.updateFileMenu)
-        # self.add_actions(self.file_menu, (newFileAction, openFileAction, saveFileAction, saveAsFileAction, None, quit_action))
+        # self.add_actions(self.file_menu, (newFileAction, openFileAction,
+        #                                   saveFileAction, saveAsFileAction,
+        #                                   None, quit_action))
 
         # help menu
         self.help_menu = self.menuBar().addMenu("&Help")
@@ -352,8 +359,8 @@ class MainWindow(QMainWindow):
             self.file_menu.addSeparator()
             for i, fname in enumerate(recentFiles):
                 action = QAction(
-                        "&{0}  {1}".format(i + 1, QFileInfo(
-                            fname).fileName()), self)
+                    "&{1}  {1}".format(i + 1,
+                                       QFileInfo(fname).fileName()), self)
                 action.setData(QVariant(fname))
                 action.triggered.connect(partial(self.fileOpen, fname))
                 self.file_menu.addAction(action)
@@ -363,7 +370,7 @@ class MainWindow(QMainWindow):
     def addRecentFile(self, fname):
         if fname is None:
             return
-        if __pyqt5__:
+        if use_pyqt5:
             if fname not in self.recentFiles:
                 self.recentFiles.insert(0, fname)
                 while self.recentFiles.count() > 9:
@@ -422,7 +429,7 @@ class MainWindow(QMainWindow):
             reply = QMessageBox.question(
                 self, "ErwinJr " + str(majorVersion) + " - Unsaved Changes",
                 "Save unsaved changes?",
-                QMessageBox.Yes|QMessageBox.No|QMessageBox.Cancel)
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             if reply == QMessageBox.Cancel:
                 return False
             elif reply == QMessageBox.Yes:
@@ -443,7 +450,7 @@ class MainWindow(QMainWindow):
             return False
         if not fname:
             dir = os.path.dirname(str(self.filename)) if self.filename else "."
-            fname =unicode(QFileDialog.getOpenFileName(
+            fname = unicode(QFileDialog.getOpenFileName(
                 self, "ErwinJr - Choose file", dir,
                 "ErwinJr files (*.qcl)\nAll files (*.*)"))
         # open file and determine if it is from the Matlab version of ErwinJr
@@ -484,9 +491,9 @@ class MainWindow(QMainWindow):
             with open(fname, 'rU') as f:
                 SaveLoad.qclLoad(f, self.quantumWidget.qclayers,
                                  self.opticalWidget.strata)
-        except Exception as err:
+        except Exception:
             QMessageBox.warning(self, "ErwinJr - Warning",
-                                "Could not load *.qcl file.\n"+
+                                "Could not load *.qcl file.\n" +
                                 traceback.format_exc())
 
     def fileSave(self):
@@ -526,9 +533,9 @@ class MainWindow(QMainWindow):
                 f.write("Version:" + str(ejVersion) + '\n')
                 SaveLoad.qclSave(f, self.quantumWidget.qclayers,
                                  self.opticalWidget.strata)
-        except Exception as err:
+        except Exception:
             QMessageBox.warning(self, "ErwinJr - Warning",
-                                "Could not save *.qcl file.\n"+
+                                "Could not save *.qcl file.\n" +
                                 traceback.format_exc())
         return True
 
@@ -542,9 +549,9 @@ class MainWindow(QMainWindow):
                            else QVariant())
             qsettings.setValue("RecentFiles", recentFiles)
             qsettings.setValue(
-                    "MainWindow/Geometry", QVariant(self.saveGeometry()))
+                "MainWindow/Geometry", QVariant(self.saveGeometry()))
             qsettings.setValue(
-                    "MainWindow/State", QVariant(self.saveState()))
+                "MainWindow/State", QVariant(self.saveState()))
         else:
             event.ignore()
 
@@ -555,7 +562,7 @@ class MainWindow(QMainWindow):
     def exportBandDiagram(self):
         if __USE_MATPLOTLIB__:
             self.quantumWidget.export_quantumCanvas(
-                    self.filename.split('.')[0])
+                self.filename.split('.')[0])
         else:
             fname = unicode(QFileDialog.getSaveFileName(
                 self, "ErwinJr - Export Band Structure Image",
@@ -690,14 +697,14 @@ def main():
         if not installDirectory:
             qsettingsSystem.setValue("installDirectory", QVariant(os.getcwd()))
         firstRunBox = QMessageBox(
-            QMessageBox.Question, 'EwrinJr '+str(majorVersion),
+            QMessageBox.Question, 'EwrinJr ' + str(majorVersion),
             ("Welcome to ErwinJr!\n"
              "Since this is your first time running the program, "
              "would you like to open an example file or a blank file?"),
             parent=form)
         firstRunBox.addButton("Blank File", QMessageBox.NoRole)
         firstRunBox.addButton("Example File", QMessageBox.YesRole)
-        ansr =firstRunBox.exec_()
+        ansr = firstRunBox.exec_()
         if ansr:
             form.fileOpen('examples/NPhoton PQLiu.qcl')
         else:

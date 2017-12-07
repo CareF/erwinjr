@@ -47,10 +47,10 @@ __MULTI_PROCESSING__ = True
 import copy
 import sys
 import numpy as np
-from numpy import sqrt, exp, sin, cos, log, pi, conj, real, imag
+from numpy import sqrt, exp, pi
 from scipy import interpolate
 
-from settings import (wf_scale, wf_min_height, pretty_plot_factor,
+from settings import (wf_scale, psi_scale, wf_min_height, pretty_plot_factor,
                       plot_decimate_factor, phonon_integral_factor)
 import MaterialConstantsDict
 cst = MaterialConstantsDict.MaterialConstantsDict()
@@ -59,21 +59,23 @@ if __LOG__:
     import pickle
     logcount = 0
 if __DEBUG__ >= 1:
-    from time import time
+    pass
+    #  from time import time
 
 # TODO: replace CLIB by Cython
 if __USE_CLIB__:
-    from ctypes import *
+    #  from ctypes import *
+    import ctypes as ct
     if __MULTI_PROCESSING__:
         if sys.platform in ('linux2', 'darwin', 'cygwin'):
-            cQ = CDLL('./cQCLayersMP.so')
+            cQ = ct.CDLL('./cQCLayersMP.so')
         elif sys.platform == 'win32':
-            cQ = CDLL('cQCLayersMP.dll')
+            cQ = ct.CDLL('cQCLayersMP.dll')
     else:
         if sys.platform in ('linux2', 'darwin', 'cygwin'):
-            cQ = CDLL('./cQCLayers.so')
+            cQ = ct.CDLL('./cQCLayers.so')
         elif sys.platform == 'win32':
-            cQ = CDLL('cQCLayers.dll')
+            cQ = ct.CDLL('cQCLayers.dll')
 
 # ===========================================================================
 # Global Variables
@@ -210,34 +212,35 @@ class QCLayers(object):
         # extend layer data for all xpoints
         for q in xrange(0, self.layerWidth.size):
             self.xBarriers[layerNumCumSum[q]:
-                           layerNumCumSum[q+1]] = self.layerBarriers[q]
+                           layerNumCumSum[q + 1]] = self.layerBarriers[q]
             if self.layerARs[q] == 1:
-                self.xARs[layerNumCumSum[q]-1:
-                          layerNumCumSum[q+1]+1] = 1
+                self.xARs[layerNumCumSum[q] - 1:
+                          layerNumCumSum[q + 1] + 1] = 1
             self.xMaterials[layerNumCumSum[q]:
-                            layerNumCumSum[q+1]] = self.layerMaterials[q]
+                            layerNumCumSum[q + 1]] = self.layerMaterials[q]
             self.xDopings[layerNumCumSum[q]:
-                          layerNumCumSum[q+1]] = self.layerDopings[q]
+                          layerNumCumSum[q + 1]] = self.layerDopings[q]
             self.xLayerNums[layerNumCumSum[q]:
-                            layerNumCumSum[q+1]] = q
+                            layerNumCumSum[q + 1]] = q
 
         # duplicate layer based on user input repeats
         #  repeats = self.repeats
         if self.repeats >= 2:
             self.xPoints = np.arange(
-                0, self.xres*(self.layerWidth.sum() +
-                              self.layerWidth[1:].sum()*(self.repeats-1)),
+                0, self.xres * (self.layerWidth.sum() +
+                                self.layerWidth[1:].sum() * (
+                                    self.repeats - 1)),
                 self.xres)
             self.xBarriers = np.concatenate((self.xBarriers, np.tile(
-                self.xBarriers[layerNumCumSum[1]:], self.repeats-1)))
+                self.xBarriers[layerNumCumSum[1]:], self.repeats - 1)))
             self.xARs = np.concatenate((self.xARs, np.tile(
-                self.xARs[layerNumCumSum[1]:], self.repeats-1)))
+                self.xARs[layerNumCumSum[1]:], self.repeats - 1)))
             self.xMaterials = np.concatenate((self.xMaterials, np.tile(
-                self.xMaterials[layerNumCumSum[1]:], self.repeats-1)))
+                self.xMaterials[layerNumCumSum[1]:], self.repeats - 1)))
             self.xDopings = np.concatenate((self.xDopings, np.tile(
-                self.xDopings[layerNumCumSum[1]:], self.repeats-1)))
+                self.xDopings[layerNumCumSum[1]:], self.repeats - 1)))
             self.xLayerNums = np.concatenate((self.xLayerNums, np.tile(
-                self.xLayerNums[layerNumCumSum[1]:], self.repeats-1)))
+                self.xLayerNums[layerNumCumSum[1]:], self.repeats - 1)))
 
         # this hack is needed because sometimes
         # self.xPoints is one element too big
@@ -257,7 +260,7 @@ class QCLayers(object):
             indx = np.nonzero(self.xMaterials == MLabel)[0]
             if indx.size != 0:
                 material = np.where(self.xBarriers[indx] == 1,
-                                    MLabel*2-1, (MLabel-1)*2)
+                                    MLabel * 2 - 1, (MLabel - 1) * 2)
                 self.xVc[indx] = (self.EcG[material] - self.xPoints[indx] *
                                   ANG * self.EField * KVpCM)
                 self.xVX[indx] = (self.EcX[material] - self.xPoints[indx] *
@@ -271,32 +274,32 @@ class QCLayers(object):
 
         # make array to show selected layer in mainCanvas
         try:
-            self.xLayerSelected = np.zeros(self.xPoints.shape)*np.NaN
+            self.xLayerSelected = np.zeros(self.xPoints.shape) * np.NaN
             layerSelected = self.layerSelected
             if layerSelected != -1:
                 if layerSelected == 0:
                     # row for first layer is selected
-                    for repeat in xrange(1, self.repeats+1):
+                    for repeat in xrange(1, self.repeats + 1):
                         base = layerNumCumSum[-1] * (repeat - 1)
                         self.xLayerSelected[
-                            base+layerNumCumSum[layerSelected]:
-                            base+layerNumCumSum[layerSelected+1]+1
+                            base + layerNumCumSum[layerSelected]:
+                            base + layerNumCumSum[layerSelected + 1] + 1
                         ] = self.xVc[
-                            base+layerNumCumSum[layerSelected]:
-                            base+layerNumCumSum[layerSelected+1]+1
+                            base + layerNumCumSum[layerSelected]:
+                            base + layerNumCumSum[layerSelected + 1] + 1
                         ]
                 elif self.layerSelected == self.layerWidth.size:
                     # last (blank) layer row is selected
                     pass
                 else:
-                    for repeat in xrange(1, self.repeats+1):
-                        base = np.sum(self.layerWidth[1:])*(repeat-1)
+                    for repeat in xrange(1, self.repeats + 1):
+                        base = np.sum(self.layerWidth[1:]) * (repeat - 1)
                         self.xLayerSelected[
-                            base+layerNumCumSum[layerSelected]-1:
-                            base+layerNumCumSum[layerSelected+1]+1
+                            base + layerNumCumSum[layerSelected] - 1:
+                            base + layerNumCumSum[layerSelected + 1] + 1
                         ] = self.xVc[
-                            base+layerNumCumSum[layerSelected]-1:
-                            base+layerNumCumSum[layerSelected+1]+1
+                            base + layerNumCumSum[layerSelected] - 1:
+                            base + layerNumCumSum[layerSelected + 1] + 1
                         ]
         except IndexError:
             # index error happens in SolveBasis when the selected layer is
@@ -327,7 +330,7 @@ class QCLayers(object):
             indx = np.nonzero(self.xMaterials == MLabel)[0]
             if indx.size != 0:
                 material = np.where(self.xBarriers[indx] == 1,
-                                    MLabel*2-1, (MLabel-1)*2)
+                                    MLabel * 2 - 1, (MLabel - 1) * 2)
                 self.xEg[indx] = self.EgLH[material]
                 self.xMc[indx] = self.me[material]
                 self.xESO[indx] = self.ESO[material]
@@ -364,19 +367,19 @@ class QCLayers(object):
         # Material are labeled by sequence [well, barrier]*4
         if self.substrate == 'InP':
             self.numMaterials = 8
-            self.Mat1 = ['InAs']*8
-            self.Mat2 = ['GaAs', 'AlAs']*4
-            MatCross = ['InGaAs', 'AlInAs']*4
+            self.Mat1 = ['InAs'] * 8
+            self.Mat2 = ['GaAs', 'AlAs'] * 4
+            MatCross = ['InGaAs', 'AlInAs'] * 4
         elif self.substrate == 'GaAs':
             self.numMaterials = 8
-            self.Mat1 = ['AlAs']*8
-            self.Mat2 = ['GaAs']*8
-            MatCross = ['AlGaAs']*8  # Note EgG_AlGaAs's moleFrac deps
+            self.Mat1 = ['AlAs'] * 8
+            self.Mat2 = ['GaAs'] * 8
+            MatCross = ['AlGaAs'] * 8  # Note EgG_AlGaAs's moleFrac deps
         elif self.substrate == 'GaSb':
             self.numMaterials = 8
-            self.Mat1 = ['InAs', 'AlSb']*4
-            self.Mat2 = ['InSb', 'GaSb']*4
-            MatCross = ['InAsSb', 'AlGaSb']*4
+            self.Mat1 = ['InAs', 'AlSb'] * 4
+            self.Mat2 = ['InSb', 'GaSb'] * 4
+            MatCross = ['InAsSb', 'AlGaSb'] * 4
             # Note EgG's bowing moleFrac deps
         else:
             raise TypeError('substrate selection not allowed')
@@ -385,27 +388,31 @@ class QCLayers(object):
             setattr(self, item, np.empty(self.numMaterials))
             para = getattr(self, item)
             for n in range(self.numMaterials):
-                para[n] = self.moleFrac[n]*getattr(cst[self.Mat1[n]], item) \
-                    + (1-self.moleFrac[n])*getattr(cst[self.Mat2[n]], item)
+                para[n] = (self.moleFrac[n] *
+                           getattr(cst[self.Mat1[n]], item) +
+                           (1 - self.moleFrac[n]) *
+                           getattr(cst[self.Mat2[n]], item))
                 if MatCross[n] in cst and hasattr(cst[MatCross[n]], item):
                     # bowing parameter
-                    para[n] -= self.moleFrac[n]*(1-self.moleFrac[n]) \
-                                * getattr(cst[MatCross[n]], item)
+                    para[n] -= (self.moleFrac[n] * (1 - self.moleFrac[n]) *
+                                getattr(cst[MatCross[n]], item))
 
         # See MaterialConstantsDict.py...
         # TODO: move to MaterialConstantsDict.py
         if self.substrate == 'GaAs':
             for n in range(self.numMaterials):
-                EgG_AlGaAs = cst['AlGaAs'].EgG + 1.310*self.moleFrac[n]
-                self.EgG[n] = self.moleFrac[n]*cst['AlAs'].EgG \
-                    + (1-self.moleFrac[n])*cst['GaAs'].EgG \
-                    - self.moleFrac[n]*(1-self.moleFrac[n])*EgG_AlGaAs
+                EgG_AlGaAs = cst['AlGaAs'].EgG + 1.310 * self.moleFrac[n]
+                self.EgG[n] = (
+                    self.moleFrac[n] * cst['AlAs'].EgG +
+                    (1 - self.moleFrac[n]) * cst['GaAs'].EgG -
+                    self.moleFrac[n] * (1 - self.moleFrac[n]) * EgG_AlGaAs)
         elif self.substrate == 'GaSb':
             for n in range(1, self.numMaterials, 2):
-                EgG_AlGaSb = cst['AlGaSb'].EgG + 1.22*self.moleFrac[n]
-                self.EgG[n] = self.moleFrac[n]*cst['AlSb'].EgG \
-                    + (1-self.moleFrac[n])*cst['GaSb'].EgG \
-                    - self.moleFrac[n]*(1-self.moleFrac[n])*EgG_AlGaSb
+                EgG_AlGaSb = cst['AlGaSb'].EgG + 1.22 * self.moleFrac[n]
+                self.EgG[n] = (
+                    self.moleFrac[n] * cst['AlSb'].EgG +
+                    (1 - self.moleFrac[n]) * cst['GaSb'].EgG -
+                    self.moleFrac[n] * (1 - self.moleFrac[n]) * EgG_AlGaSb)
         #  print "----debug----"
         #  for item in variables:
             #  ll = copy.copy(getattr(self,item))
@@ -413,7 +420,7 @@ class QCLayers(object):
             #  setattr(self, item+"_new", ll)
 
         # set this once the others are set ???
-        self.epsrho = 1 / (1/self.epsInf - 1/self.epss)
+        self.epsrho = 1 / (1 / self.epsInf - 1 / self.epss)
 
     def update_strain(self):  # c is a Material_Constant class instance
         """Update strain and strain related parameters inside each layers
@@ -457,7 +464,7 @@ class QCLayers(object):
         self.a_perp = self.alc * (1 - 2 * self.c12 / self.c11 *
                                   self.eps_parallel)
         # [2]Walle eqn 2b
-        self.eps_perp = self.a_perp/self.alc - 1
+        self.eps_perp = self.a_perp / self.alc - 1
         #             = -2*self.c12/self.c11*self.eps_parallel
 
         # total width of different material
@@ -470,17 +477,17 @@ class QCLayers(object):
             # (BUG FIXED: self.layerMaterials[1:] results in material index
             # mismatch by 1)
             # self.layerWidth includes an extra layer to promise first=last
-            indx = (self.layerMaterials == i+1)
+            indx = (self.layerMaterials == i + 1)
             indx[0] = False  # s.t. 1st layer doesn't count
-            self.MaterialWidth[2*i+1] = self.xres*np.sum(
+            self.MaterialWidth[2 * i + 1] = self.xres * np.sum(
                 self.layerWidth[indx] * self.layerBarriers[indx])
-            self.MaterialWidth[2*i] = self.xres*np.sum(
-                self.layerWidth[indx]) - self.MaterialWidth[2*i+1]
+            self.MaterialWidth[2 * i] = self.xres * np.sum(
+                self.layerWidth[indx]) - self.MaterialWidth[2 * i + 1]
         #  print "------debug-----", np.sum(self.MaterialWidth)
         self.netStrain = 100 * np.sum(
-            self.MaterialWidth*self.eps_perp
+            self.MaterialWidth * self.eps_perp
         ) / np.sum(self.MaterialWidth)  # in percentage
-        self.avghwLO = np.sum(self.MaterialWidth*self.hwLO
+        self.avghwLO = np.sum(self.MaterialWidth * self.hwLO
                               ) / np.sum(self.MaterialWidth)
 
         self.MLThickness = np.zeros(self.layerMaterials.size)
@@ -495,11 +502,11 @@ class QCLayers(object):
         # Pikus-Bir interaction correction to bands offset,
         # According to Kale's, Eq.(2.14),
         # Pec for \delta E_{c} and Pe for \delta E_{v}
-        self.Pec = (2*self.eps_parallel+self.eps_perp) * (self.acG)
-        self.Pe = (2*self.eps_parallel+self.eps_perp) * (self.av)
+        self.Pec = (2 * self.eps_parallel + self.eps_perp) * (self.acG)
+        self.Pe = (2 * self.eps_parallel + self.eps_perp) * (self.av)
         # Kale's Thesis, Eq.(2.16)
-        self.Qe = - self.b * (self.c11+2*self.c12) /\
-            self.c11 * self.eps_parallel
+        self.Qe = (- self.b * (self.c11 + 2 * self.c12) / self.c11 *
+                   self.eps_parallel)
 
         # corrections to the method used to calculate band edges,
         # thanks to Yu Song
@@ -508,23 +515,25 @@ class QCLayers(object):
         self.EcG = self.VBO + self.EgG + self.Pec - bandBaseln
         # band edge at L and X?
         # only used in diagram..
-        self.EcL = self.VBO + self.EgL + (
-            2*self.eps_parallel+self.eps_perp) * (self.acL+self.av) \
-            - bandBaseln
-        self.EcX = self.VBO + self.EgX + (
-            2*self.eps_parallel+self.eps_perp)*(self.acX+self.av) \
-            + 2/3 * self.XiX * (self.eps_perp-self.eps_parallel) \
-            - bandBaseln
+        self.EcL = (self.VBO + self.EgL +
+                    (2 * self.eps_parallel + self.eps_perp) *
+                    (self.acL + self.av) - bandBaseln)
+        self.EcX = (self.VBO + self.EgX +
+                    (2 * self.eps_parallel + self.eps_perp) *
+                    (self.acX + self.av) +
+                    2 / 3 * self.XiX * (self.eps_perp - self.eps_parallel) -
+                    bandBaseln)
 
-        self.ESO = sqrt(9*self.Qe**2+2*self.Qe*self.DSO+self.DSO**2)
-        self.EgLH = self.EgG + self.Pec + self.Pe \
-            - 1/2*(self.Qe - self.DSO + self.ESO)
-        self.EgSO = self.EgG + self.Pec + self.Pe \
-            - 1/2*(self.Qe - self.DSO - self.ESO)
+        self.ESO = sqrt(9 * self.Qe**2 + 2 * self.Qe * self.DSO + self.DSO**2)
+        self.EgLH = (self.EgG + self.Pec + self.Pe -
+                     1 / 2 * (self.Qe - self.DSO + self.ESO))
+        self.EgSO = (self.EgG + self.Pec + self.Pe -
+                     1 / 2 * (self.Qe - self.DSO - self.ESO))
 
         # Varsh correction comes here
         # temperature correction to conduction band edge, Eq.(2.10) in Kale's
-        self.Varsh = - self.alG*cst.Temperature**2/(cst.Temperature+self.beG)
+        self.Varsh = (- self.alG * cst.Temperature**2 /
+                      (cst.Temperature + self.beG))
         # the Varsh correction should be part conduction band, part valence
         # 1st MAJOR assumption:
         #   Varshney contribution to band edge is in proportion to percent
@@ -545,21 +554,21 @@ class QCLayers(object):
         self.EcG += percentCB * self.Varsh
         self.EcL += percentCB * self.Varsh
         self.EcX += percentCB * self.Varsh
-        self.EvLH = self.EcG - self.EgLH - ((1-percentCB) * self.Varsh)
-        self.EvSO = self.EcG - self.EgSO - ((1-percentCB) * self.Varsh)
+        self.EvLH = self.EcG - self.EgLH - ((1 - percentCB) * self.Varsh)
+        self.EvSO = self.EcG - self.EgSO - ((1 - percentCB) * self.Varsh)
 
         # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
-        self.me = 1 / ((1+2*self.F) + self.Ep/self.EgLH * (
-            self.EgLH+2/3*self.ESO)/(self.EgLH + self.ESO))
+        self.me = 1 / ((1 + 2 * self.F) + self.Ep / self.EgLH * (
+            self.EgLH + 2 / 3 * self.ESO) / (self.EgLH + self.ESO))
 
     def eff_mass(self, E):
         """Calculate effective mass according to energy E,
         according to Eq.(2.20) in Kale's thesis
         """
         #  xMcE = self.xMc * (1 - (self.xVc - E) / self.xEg)
-        xMcE = 1 / (1+2*self.xF + self.xEp/3 * (
-            2 / ((E-self.xVc)+self.xEg) + 1 / (
-                 (E-self.xVc)+self.xEg+self.xESO)))
+        xMcE = 1 / (1 + 2 * self.xF + self.xEp / 3 * (
+            2 / ((E - self.xVc) + self.xEg) + 1 / (
+                (E - self.xVc) + self.xEg + self.xESO)))
         return xMcE
 
     def solve_psi(self):
@@ -578,8 +587,8 @@ class QCLayers(object):
         TODO: try matrix eigen solver?
         """
         Epoints = np.arange(min(self.xVc),
-                            max(self.xVc-115*self.EField*1e-5),  # ?115e-5?
-                            self.vertRes/1000)
+                            max(self.xVc - 115 * self.EField * 1e-5),
+                            self.vertRes / 1000)
         xMcE = np.zeros(self.xPoints.shape)
         xPsi = np.zeros(self.xPoints.shape)
         psiEnd = np.zeros(Epoints.size)
@@ -589,29 +598,30 @@ class QCLayers(object):
             # Call C function to get boundary dependence of energy EPoints[n],
             # the return value is psiEnd[n]
             # for n with psiEnd[n]=0, EPoints[n] is eigenenergy
-            cQ.psiFnEnd(Epoints.ctypes.data_as(c_void_p),
+            cQ.psiFnEnd(Epoints.ctypes.data_as(ct.c_void_p),
                         int(Epoints.size), int(xPsi.size),
-                        c_double(self.xres), c_double(self.EField),
-                        self.xVc.ctypes.data_as(c_void_p),
-                        self.xEg.ctypes.data_as(c_void_p),
-                        self.xF.ctypes.data_as(c_void_p),
-                        self.xEp.ctypes.data_as(c_void_p),
-                        self.xESO.ctypes.data_as(c_void_p),
-                        self.xMc.ctypes.data_as(c_void_p),
-                        xMcE.ctypes.data_as(c_void_p),
-                        xPsi.ctypes.data_as(c_void_p),
-                        psiEnd.ctypes.data_as(c_void_p))
+                        ct.c_double(self.xres), ct.c_double(self.EField),
+                        self.xVc.ctypes.data_as(ct.c_void_p),
+                        self.xEg.ctypes.data_as(ct.c_void_p),
+                        self.xF.ctypes.data_as(ct.c_void_p),
+                        self.xEp.ctypes.data_as(ct.c_void_p),
+                        self.xESO.ctypes.data_as(ct.c_void_p),
+                        self.xMc.ctypes.data_as(ct.c_void_p),
+                        xMcE.ctypes.data_as(ct.c_void_p),
+                        xPsi.ctypes.data_as(ct.c_void_p),
+                        psiEnd.ctypes.data_as(ct.c_void_p))
         else:
             for p, Eq in enumerate(Epoints):
-                xMcE = m0 * eff_mass(Eq)
-                xMcE[0:-1] = 0.5 * (xMcE[0:-1]+xMcE[1:])
+                xMcE = m0 * self.eff_mass(Eq)
+                xMcE[0:-1] = 0.5 * (xMcE[0:-1] + xMcE[1:])
                 xPsi[0] = 0
                 xPsi[1] = 1
-                for q in xrange(1, xPsi.size-1):
-                    xPsi[q+1] = xMcE[q] * ((2 * (self.xres*1e-10 / hbar)**2 *
-                                           (self.xVc[q] - Eq)*e0 +
-                                           1 / xMcE[q] + 1 / xMcE[q-1]) *
-                                           xPsi[q] - xPsi[q-1] / xMcE[q-1])
+                for q in xrange(1, xPsi.size - 1):
+                    xPsi[q + 1] = xMcE[q] * (
+                        (2 * (self.xres * ANG / hbar)**2 *
+                         (self.xVc[q] - Eq) * e0 + 1 / xMcE[q] +
+                         1 / xMcE[q - 1]) * xPsi[q] -
+                        xPsi[q - 1] / xMcE[q - 1])
                 psiEnd[p] = xPsi[-1]
         if __LOG__:
             global logcount
@@ -626,96 +636,94 @@ class QCLayers(object):
         if __MORE_INTERPOLATION__:
             # Near the above approximation result,
             # try to get a more precise result
-            xnear = np.empty(3*len(self.EigenE))
-            fxnear = np.empty(3*len(self.EigenE))
+            xnear = np.empty(3 * len(self.EigenE))
+            fxnear = np.empty(3 * len(self.EigenE))
             for q in xrange(self.EigenE.size):
                 # 100000 is an estimate for the precision of above
                 # approximation
                 # TODO: change the three calls of psiFn to loop
-                approxwidth = self.vertRes/100000
-                xnear[3*q:3*q+3] = self.EigenE[q] + approxwidth * \
+                approxwidth = self.vertRes / 100000
+                xnear[3 * q: 3 * q + 3] = self.EigenE[q] + approxwidth * \
                     np.arange(-1, 2)
 
             for n, Eq in enumerate(xnear):
                 if __USE_CLIB__:
-                    cQ.psiFn(c_double(Eq), int(1), int(xPsi.size),
-                             c_double(self.xres),
-                             self.xVc.ctypes.data_as(c_void_p),
-                             self.xEg.ctypes.data_as(c_void_p),
-                             self.xF.ctypes.data_as(c_void_p),
-                             self.xEp.ctypes.data_as(c_void_p),
-                             self.xESO.ctypes.data_as(c_void_p),
-                             self.xMc.ctypes.data_as(c_void_p),
-                             xMcE.ctypes.data_as(c_void_p),
-                             xPsi.ctypes.data_as(c_void_p))
+                    cQ.psiFn(ct.c_double(Eq), int(1), int(xPsi.size),
+                             ct.c_double(self.xres),
+                             self.xVc.ctypes.data_as(ct.c_void_p),
+                             self.xEg.ctypes.data_as(ct.c_void_p),
+                             self.xF.ctypes.data_as(ct.c_void_p),
+                             self.xEp.ctypes.data_as(ct.c_void_p),
+                             self.xESO.ctypes.data_as(ct.c_void_p),
+                             self.xMc.ctypes.data_as(ct.c_void_p),
+                             xMcE.ctypes.data_as(ct.c_void_p),
+                             xPsi.ctypes.data_as(ct.c_void_p))
                 else:
                     xMcE = self.eff_mass(Eq)
-                    xMcE[1:] = (xMcE[:-1] + xMcE[1:])/2
+                    xMcE[1:] = (xMcE[:-1] + xMcE[1:]) / 2
                     xPsi[0] = 0
                     for x in range(1, xPsi.size):
                         # not tested.. C files are better
-                        xPsi[x] = (xPsi[x] * (
-                            2*(self.xres*ANG/hbar)**2 * (self.xVc[x] - Eq) *
-                            e0 + 1/xMcE[x] + 1/xMcE[n-1]) -
-                                   xPsi[x-1]/xMcE[x-1]) * xMcE[x]
+                        xPsi[x] = (xPsi[x] * (2 * (self.xres * ANG / hbar)**2 *
+                                              (self.xVc[x] - Eq) * e0 +
+                                              1 / xMcE[x] + 1 / xMcE[n - 1]) -
+                                   xPsi[x - 1] / xMcE[x - 1]) * xMcE[x]
                 fxnear[n] = xPsi[-1]
-            idxs = 3*np.arange(len(self.EigenE))+1
+            idxs = 3 * np.arange(len(self.EigenE)) + 1
             if __USE_CLIB__:
-                cQ.inv_quadratic_interp(xnear.ctypes.data_as(c_void_p),
-                                        fxnear.ctypes.data_as(c_void_p),
-                                        idxs.ctypes.data_as(POINTER(c_int)),
-                                        int(idxs.size),
-                                        self.EigenE.ctypes.data_as(c_void_p))
+                cQ.inv_quadratic_interp(
+                    xnear.ctypes.data_as(ct.c_void_p),
+                    fxnear.ctypes.data_as(ct.c_void_p),
+                    idxs.ctypes.data_as(ct.POINTER(ct.c_int)),
+                    int(idxs.size), self.EigenE.ctypes.data_as(ct.c_void_p))
             else:
                 for q, idx in enumerate(idxs):
                     # do quadratic interpolation
-                    x0 = xnear[idx-1]
-                    fx0 = fxnear[idx-1]
+                    x0 = xnear[idx - 1]
+                    fx0 = fxnear[idx - 1]
                     x1 = xnear[idx]
                     fx1 = fxnear[idx]
-                    x2 = xnear[idx+1]
-                    fx2 = fxnear[idx+1]
-                    d1 = (fx1-fx0)/(x1-x0)
-                    d2 = (fx2-fx1)/(x2-x1)
+                    x2 = xnear[idx + 1]
+                    fx2 = fxnear[idx + 1]
                     # inverse quadratic interpolation
-                    x3 = x0*fx1*fx2/(fx0-fx1)/(fx0-fx2) +\
-                        x1*fx0*fx2/(fx1-fx0)/(fx1-fx2) +\
-                        x2*fx0*fx1/(fx2-fx0)/(fx2-fx1)
+                    x3 = (x0 * fx1 * fx2 / (fx0 - fx1) / (fx0 - fx2) +
+                          x1 * fx0 * fx2 / (fx1 - fx0) / (fx1 - fx2) +
+                          x2 * fx0 * fx1 / (fx2 - fx0) / (fx2 - fx1))
                     self.EigenE[q] = x3
 
         # make array for Psi and fill it in
         if __USE_CLIB__:
             # with eigenenregy EigenE, here call C function to get wave
             # function
-            self.xyPsi = np.zeros(self.xPoints.size*self.EigenE.size)
-            cQ.psiFill(int(xPsi.size), c_double(self.xres),
+            self.xyPsi = np.zeros(self.xPoints.size * self.EigenE.size)
+            cQ.psiFill(int(xPsi.size), ct.c_double(self.xres),
                        int(self.EigenE.size),
-                       self.EigenE.ctypes.data_as(c_void_p),
-                       self.xVc.ctypes.data_as(c_void_p),
-                       self.xEg.ctypes.data_as(c_void_p),
-                       self.xF.ctypes.data_as(c_void_p),
-                       self.xEp.ctypes.data_as(c_void_p),
-                       self.xESO.ctypes.data_as(c_void_p),
-                       self.xMc.ctypes.data_as(c_void_p),
-                       xMcE.ctypes.data_as(c_void_p),
-                       self.xyPsi.ctypes.data_as(c_void_p))
+                       self.EigenE.ctypes.data_as(ct.c_void_p),
+                       self.xVc.ctypes.data_as(ct.c_void_p),
+                       self.xEg.ctypes.data_as(ct.c_void_p),
+                       self.xF.ctypes.data_as(ct.c_void_p),
+                       self.xEp.ctypes.data_as(ct.c_void_p),
+                       self.xESO.ctypes.data_as(ct.c_void_p),
+                       self.xMc.ctypes.data_as(ct.c_void_p),
+                       xMcE.ctypes.data_as(ct.c_void_p),
+                       self.xyPsi.ctypes.data_as(ct.c_void_p))
             # self.xyPsi.resize(a.xPoints.size, a.EigenE.size)
             self.xyPsi = self.xyPsi.reshape(self.xPoints.size,
                                             self.EigenE.size, order='F')
         else:
             self.xyPsi = np.zeros((self.xPoints.size, self.EigenE.size))
             for p, Eq in enumerate(self.EigenE):
-                xMcE = m0 * eff_mass(self.EigenE)
-                xMcE[0:-1] = 0.5 * (xMcE[0:-1]+xMcE[1:])
+                xMcE = m0 * self.eff_mass(self.EigenE)
+                xMcE[0:-1] = 0.5 * (xMcE[0:-1] + xMcE[1:])
                 xPsi[1] = 1
-                for q in xrange(2, xPsi.size-1):
-                    xPsi[q+1] = ((2 * (self.xres*1e-10 / hbar)**2 *
-                                  (self.xVc[q] - Eq)*e0 + 1 / xMcE[q] +
-                                  1 / xMcE[q-1]) *
-                                 xPsi[q] - xPsi[q-1] / xMcE[q-1]) * xMcE[q]
+                for q in xrange(2, xPsi.size - 1):
+                    xPsi[q + 1] = ((2 * (self.xres * ANG / hbar)**2 *
+                                   (self.xVc[q] - Eq) * e0 + 1 / xMcE[q] +
+                                    1 / xMcE[q - 1]) * xPsi[q] -
+                                   xPsi[q - 1] / xMcE[q - 1]) * xMcE[q]
                 psiInt = np.sum(xPsi**2 * (
-                    1+(Eq-self.xVc)/(Eq-self.xVc+self.xEg)))
-                A = 1 / sqrt(self.xres * 1e-10 * psiInt)
+                    1 + (Eq - self.xVc) / (Eq - self.xVc + self.xEg)))
+                A = 1 / sqrt(self.xres * ANG * psiInt)
                 self.xyPsi[:, p] = A * xPsi
 
         # remove states that come from oscillating end points
@@ -728,14 +736,14 @@ class QCLayers(object):
             #  idxs = abs(psiEnd)<10
             #  idxs = np.nonzero(abs(psiEnd)<10)[0]
             psiEnd = self.xyPsi[-2, :]
-            idxs = np.abs(psiEnd) < 200/self.xres
+            idxs = np.abs(psiEnd) < 200 / self.xres
             # 200 depends on how precise we want about eigenenergy solver
             # (TODO: more analysis and test about this value
             self.EigenE = self.EigenE[idxs]
             self.xyPsi = self.xyPsi[:, idxs]
 
         # 4.5e-10 scales size of wavefunctions, arbitrary for nice plots
-        self.xyPsiPsi = self.xyPsi*self.xyPsi*wf_scale
+        self.xyPsiPsi = self.xyPsi * self.xyPsi * wf_scale
 
         # remove states that are smaller than minimum height (remove zero
         # solutions?)-test case not showing any effect
@@ -743,11 +751,12 @@ class QCLayers(object):
         # 0.014 is arbitrary; changes if 4.5e-10 changes
         #  idxs = np.nonzero(self.xyPsiPsi.max(0) >
         #                   wf_scale * wf_min_height)[0]
-        idxs = self.xyPsiPsi.max(0) > wf_scale*wf_min_height
+        idxs = self.xyPsiPsi.max(0) > wf_scale * wf_min_height
         self.EigenE = self.EigenE[idxs]
         self.xyPsi = self.xyPsi[:, idxs]
         self.xyPsiPsi = self.xyPsiPsi[:, idxs]
-        self.xyPsiPsi2 = copy.deepcopy(self.xyPsiPsi)
+        #  self.xyPsiPsi2 = copy.deepcopy(self.xyPsiPsi)
+        self.xyPsiPlot = self.xyPsi * psi_scale
 
         # implement pretty plot:
         # remove long zero head and tail of the wave functions
@@ -758,16 +767,24 @@ class QCLayers(object):
                 self.xyPsiPsi[:, q] >
                 wf_scale * pretty_plot_factor)[0]
             self.xyPsiPsi[0:prettyIdxs[0], q] = np.NaN
+            self.xyPsiPlot[0:prettyIdxs[0], q] = np.NaN
             self.xyPsiPsi[prettyIdxs[-1]:, q] = np.NaN
+            self.xyPsiPlot[prettyIdxs[-1]:, q] = np.NaN
 
         # decimate plot points: seems for better time and memory performance?
         idxs = np.arange(0, self.xPoints.size, int(
-            plot_decimate_factor/self.xres), dtype=int)
-        self.xyPsiPsiDec = np.zeros((idxs.size, self.EigenE.size))
-        for q in xrange(self.EigenE.size):
-            self.xyPsiPsiDec[:, q] = self.xyPsiPsi[idxs, q]
-        self.xyPsiPsi = self.xyPsiPsiDec
+            plot_decimate_factor / self.xres), dtype=int)
+        #  self.xyPsiPsiDec = np.zeros((idxs.size, self.EigenE.size))
+        #  for q in xrange(self.EigenE.size):
+        #       self.xyPsiPsiDec[:, q] = self.xyPsiPsi[idxs, q]
+        #  self.xyPsiPsi = self.xyPsiPsiDec
+        self.xyPsiPsi = self.xyPsiPsi[idxs, :]
+        self.xyPsiPlot = self.xyPsiPlot[idxs, :]
         self.xPointsPost = self.xPoints[idxs]
+
+    def solve_psi_mtr(self):
+        # TODO: a matrix eigen solver
+        pass
 
     def basisSolve(self):
         """ solve basis for the QC device, with each basis being eigen mode of
@@ -790,13 +807,13 @@ class QCLayers(object):
         # TODO: try always at left
         zeroTOone = []
         oneTOzero = []
-        for q in xrange(0, self.layerARs.size-1):
-            if self.layerARs[q] == 0 and self.layerARs[q+1] == 1:
+        for q in xrange(0, self.layerARs.size - 1):
+            if self.layerARs[q] == 0 and self.layerARs[q + 1] == 1:
                 zeroTOone.append(q)
-            if self.layerARs[q] == 1 and self.layerARs[q+1] == 0:
-                oneTOzero.append(q+1)
+            if self.layerARs[q] == 1 and self.layerARs[q + 1] == 0:
+                oneTOzero.append(q + 1)
 
-        dividers = [0, self.layerARs.size-1]
+        dividers = [0, self.layerARs.size - 1]
         if self.basisInjectorAR:
             dividers += zeroTOone
         if self.basisARInjector:
@@ -811,29 +828,27 @@ class QCLayers(object):
         dCL = []
         # for first period only
         # this handles all of the solving
-        for n in range(len(dividers)-1):
+        for n in range(len(dividers) - 1):
             dCL.append(copy.deepcopy(self))
             dCL[n].repeats = 1
 
             # substitute proper layer characteristics into dCL[n], hear/tail
             #  padding
-            layer = range(dividers[n], dividers[n+1]+1)
+            layer = range(dividers[n], dividers[n + 1] + 1)
             dCL[n].layerWidth = np.concatenate(
-                    ([int(PAD_HEAD/self.xres)],
-                        self.layerWidth[layer],
-                        [int(PAD_TAIL/self.xres)]))
+                ([int(PAD_HEAD / self.xres)], self.layerWidth[layer],
+                 [int(PAD_TAIL / self.xres)]))
             dCL[n].layerBarriers = np.concatenate(
-                    ([1], self.layerBarriers[layer], [1]))
+                ([1], self.layerBarriers[layer], [1]))
             dCL[n].layerARs = np.concatenate(
-                    ([0], self.layerARs[layer], [0]))
+                ([0], self.layerARs[layer], [0]))
             dCL[n].layerMaterials = np.concatenate(
-                    ([self.layerMaterials[layer][0]],
-                        self.layerMaterials[layer],
-                        [self.layerMaterials[layer][-1]]))
+                ([self.layerMaterials[layer][0]], self.layerMaterials[layer],
+                 [self.layerMaterials[layer][-1]]))
             dCL[n].layerDopings = np.concatenate(
-                    ([0], self.layerDopings[layer], [0]))
+                ([0], self.layerDopings[layer], [0]))
             dCL[n].layerDividers = np.concatenate(
-                    ([0], self.layerDividers[layer], [0]))
+                ([0], self.layerDividers[layer], [0]))
 
             # update and solve
             dCL[n].update_alloys()
@@ -844,9 +859,9 @@ class QCLayers(object):
 
             # caculate offsets
             dCL[n].widthOffset = self.xres * np.sum(
-                    self.layerWidth[range(0, dividers[n])])
-            dCL[n].fieldOffset = -(dCL[n].widthOffset-PAD_HEAD) *\
-                ANG * dCL[n].EField * KVpCM
+                self.layerWidth[range(0, dividers[n])])
+            dCL[n].fieldOffset = (-(dCL[n].widthOffset - PAD_HEAD) * ANG *
+                                  dCL[n].EField * KVpCM)
 
         # create dCL's and offsets for repeat periods
         period = len(dCL)
@@ -856,10 +871,10 @@ class QCLayers(object):
                 for p in xrange(0, period):
                     dCL.append(copy.deepcopy(dCL[p]))
                     dCL[counter].widthOffset = self.xres * np.sum(
-                            self.layerWidth[1:])*q + dCL[p].widthOffset
-                    dCL[counter].fieldOffset = -(
-                        dCL[counter].widthOffset-100) * \
-                        ANG * dCL[counter].EField * KVpCM
+                        self.layerWidth[1:]) * q + dCL[p].widthOffset
+                    dCL[counter].fieldOffset = (-(dCL[counter].widthOffset -
+                                                  100) * ANG *
+                                                dCL[counter].EField * KVpCM)
                     counter += 1
         return dCL
 
@@ -881,7 +896,7 @@ class QCLayers(object):
         self.xPointsPost = np.arange(-PAD_HEAD, self.xPoints[-1] + PAD_TAIL +
                                      self.xres, self.xres)
         self.xyPsi = np.zeros((self.xPointsPost.size, numWFs))
-        self.xyPsiPsi = np.NaN*np.zeros(self.xyPsi.shape)
+        self.xyPsiPsi = np.NaN * np.zeros(self.xyPsi.shape)
         self.EigenE = np.zeros(numWFs)
         self.moduleID = np.zeros(numWFs, dtype=np.int8)
         counter = 0
@@ -890,7 +905,7 @@ class QCLayers(object):
                 self.EigenE[counter] = dC.EigenE[q] + dC.fieldOffset
                 self.moduleID[counter] = n
                 wf = np.zeros(self.xPointsPost.size)
-                begin = int(dC.widthOffset/self.xres)
+                begin = int(dC.widthOffset / self.xres)
                 end = begin + dC.xyPsi[:, q].size
                 wf[begin:end] = dC.xyPsi[:, q]
                 self.xyPsi[:, counter] = wf
@@ -898,29 +913,35 @@ class QCLayers(object):
                 counter += 1
 
         # cut head and tial to promise the figure is in the right place?
-        head = int(PAD_HEAD/self.xres)
-        tail = -int(PAD_TAIL/self.xres)
+        head = int(PAD_HEAD / self.xres)
+        tail = -int(PAD_TAIL / self.xres)
         self.xPointsPost = self.xPointsPost[head:tail]
         self.xyPsi = self.xyPsi[head:tail]
         self.xyPsiPsi = self.xyPsiPsi[head:tail]
+        self.xyPsiPlot = self.xyPsi * psi_scale
 
         # implement pretty plot
         # remove long zero head and tail of the wave functions
+        # TODO: improve to cut according to range of well
         for q in xrange(self.EigenE.size):
             prettyIdxs = np.nonzero(
                 self.xyPsiPsi[:, q] >
                 wf_scale * pretty_plot_factor)[0]
             if prettyIdxs.size != 0:
                 self.xyPsiPsi[0:prettyIdxs[0], q] = np.NaN
+                self.xyPsiPlot[0:prettyIdxs[0], q] = np.NaN
                 self.xyPsiPsi[prettyIdxs[-1]:, q] = np.NaN
+                self.xyPsiPlot[prettyIdxs[-1]:, q] = np.NaN
             else:
                 self.xyPsiPsi[:, q] = np.NaN
+                self.xyPsiPlot[:, q] = np.NaN
 
         # sort by ascending energy
         sortID = np.argsort(self.EigenE)
         self.EigenE = self.EigenE[sortID]
         self.xyPsi = self.xyPsi[:, sortID]
         self.xyPsiPsi = self.xyPsiPsi[:, sortID]
+        self.xyPsiPlot = self.xyPsiPlot[:, sortID]
         self.moduleID = self.moduleID[sortID]
 
         #  #decimate plot points
@@ -951,7 +972,7 @@ class QCLayers(object):
         #  print "---debug---"
         #  print "E_i = %f; E_j=%f"%(E_i, E_j)
 
-        if E_i-E_j-self.hwLO[0] < 0:
+        if E_i - E_j - self.hwLO[0] < 0:
             # energy difference is smaller than a LO phonon
             # LO phonon scatering doesn't happen
             return INV_INF
@@ -975,41 +996,42 @@ class QCLayers(object):
 
         xMcE_j = self.eff_mass(E_j)
         # weight non-parabolic effective mass by probability density
-        McE_j = m0*np.sum(xMcE_j[idx_first:idx_last] * psi_j**2) /\
-            np.sum(psi_j**2)
+        McE_j = (m0 * np.sum(xMcE_j[idx_first:idx_last] * psi_j**2) /
+                 np.sum(psi_j**2))
         xMcE_i = self.eff_mass(E_i)
         # weight non-parabolic effective mass by probability density
-        McE_i = m0*np.sum(xMcE_i[idx_first:idx_last] * psi_i**2) /\
-            np.sum(psi_i**2)
+        McE_i = (m0 * np.sum(xMcE_i[idx_first:idx_last] * psi_i**2) /
+                 np.sum(psi_i**2))
         #  print McE_i, McE_j
 
         # Kale's thesis Eq.(2.68)
-        kl = sqrt(2*McE_j/hbar**2 * (E_i-E_j-self.hwLO[0])*e0)
+        kl = sqrt(2 * McE_j / hbar**2 * (E_i - E_j - self.hwLO[0]) * e0)
         if __USE_CLIB__:
             inv_tau_int = cQ.inv_tau_int
-            inv_tau_int.restype = c_double
-            Iij = inv_tau_int(xPoints.size, c_double(self.xres),
-                              c_double(kl), xPoints.ctypes.data_as(c_void_p),
-                              psi_i.ctypes.data_as(c_void_p),
-                              psi_j.ctypes.data_as(c_void_p))
+            inv_tau_int.restype = ct.c_double
+            Iij = inv_tau_int(xPoints.size, ct.c_double(self.xres),
+                              ct.c_double(kl),
+                              xPoints.ctypes.data_as(ct.c_void_p),
+                              psi_i.ctypes.data_as(ct.c_void_p),
+                              psi_j.ctypes.data_as(ct.c_void_p))
         else:
             dIij = np.empty(xPoints.size)
             for n in xrange(xPoints.size):
-                x1 = xPoints[n]*ANG
-                x2 = xPoints*ANG
+                x1 = xPoints[n] * ANG
+                x2 = xPoints * ANG
                 # first integral for eq.(2.69)
-                dIij[n] = np.sum(psi_i*psi_j * exp(-kl*abs(x1-x2)) *
-                                 psi_i[n]*psi_j[n] * (self.xres*ANG)**2)
+                dIij[n] = np.sum(psi_i * psi_j * exp(-kl * abs(x1 - x2)) *
+                                 psi_i[n] * psi_j[n] * (self.xres * ANG)**2)
             Iij = np.sum(dIij)
             #  psi_corr = self.xres*ANG * psi_i * psi_j
             #  x = np.outer(xPoints * ANG, np.ones(xPoints.size))
             #  dIij = np.outer(psi_corr, psi_corr) * exp(-kl * np.abs(x-x.T))
             #  Iij = np.sum(dIij)
         # looks similiar with eq.(2.69) but not exact in detail
-        inverse_tau = sqrt(McE_j*McE_i) * e0**2 * self.hwLO[0]*e0/hbar * \
-            Iij / (4 * hbar**2 * self.epsrho[0]*eps0 * kl)
+        inverse_tau = (sqrt(McE_j * McE_i) * e0**2 * self.hwLO[0] * e0 / hbar *
+                       Iij / (4 * hbar**2 * self.epsrho[0] * eps0 * kl))
         #  print "rate = %f"%(inverse_tau/1e12)
-        return inverse_tau/1e12  # to ps
+        return inverse_tau / 1e12  # to ps
 
     def lo_life_time(self, state):
         """ return the life time due to LO phonon scattering of the
@@ -1020,7 +1042,7 @@ class QCLayers(object):
                 for q in range(state)]
         #  print "---debug---", rate
         rate = sum(rate)
-        return 1/rate
+        return 1 / rate
 
     def dipole(self, upper, lower):
         """ Return optical dipole between self's upper level state
@@ -1041,13 +1063,14 @@ class QCLayers(object):
         #  print max(xMcE_i/self.xMc), min(xMcE_i/self.xMc)
         xMcE_j = self.eff_mass(E_j)
         #  print xMcE_j/self.xMc
-        xMcE_j_avg = 0.5 * (xMcE_j[0:-1]+xMcE_j[1:])
-        psi_i_avg = 0.5 * (psi_i[0:-1]+psi_i[1:])
+        xMcE_j_avg = 0.5 * (xMcE_j[0:-1] + xMcE_j[1:])
+        psi_i_avg = 0.5 * (psi_i[0:-1] + psi_i[1:])
         # Kale's (2.43) and (2.47), however for varying eff mass model, this
         # should start with (2.36)
-        z = np.sum(psi_i_avg * np.diff(psi_j/xMcE_i) +
-                   1/xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
-        z *= hbar**2/(2*(E_i-E_j)*e0*m0) / ANG  # e0 transform eV to J
+        z = np.sum(psi_i_avg * np.diff(psi_j / xMcE_i) +
+                   1 / xMcE_j_avg * (psi_i_avg * np.diff(psi_j)))
+        z *= hbar**2 / (2 * (E_i - E_j) * e0 * m0) / ANG
+        # e0 transform eV to J
         return z
 
     def coupling_energy(self, dCL, upper, lower):
@@ -1095,16 +1118,16 @@ class QCLayers(object):
         if module_j - module_i != 1:
             return 0
         DeltaV = np.ones(self.xPointsPost.size)
-        first = int(dCL[module_i].widthOffset/self.xres)
+        first = int(dCL[module_i].widthOffset / self.xres)
         last = first + dCL[module_i].xBarriers[
-                int(PAD_HEAD/self.xres):int(PAD_TAIL/self.xres)].size
+            int(PAD_HEAD / self.xres): int(PAD_TAIL / self.xres)].size
         #  print "---debug--- coupling_energy"
         #  print first,last
         DeltaV[first:last] = dCL[module_i].xBarriers[
-                int(PAD_HEAD/self.xres):int(PAD_TAIL/self.xres)]
+            int(PAD_HEAD / self.xres): int(PAD_TAIL / self.xres)]
         DeltaV = 1 - DeltaV  # =is well
-        jMat = int(self.xMaterials[last+1])
-        DeltaV *= (self.EcG[2*jMat-1] - self.EcG[2*(jMat-1)])/meV  # unit meV
+        jMat = int(self.xMaterials[last + 1])
+        DeltaV *= (self.EcG[2 * jMat - 1] - self.EcG[2 * (jMat - 1)]) / meV
         couplingEnergy = (np.sum(psi_i * (DeltaV + Ej) * psi_j)) * \
             self.xres * ANG
         return couplingEnergy  # unit meV
@@ -1119,12 +1142,12 @@ class QCLayers(object):
         transitions = np.bitwise_xor(self.xBarriers[0:-1].astype(bool),
                                      self.xBarriers[1:].astype(bool))
         transitions = np.append(transitions, False)  # last element is not
-        psi2int2 = np.sum((psi_i[transitions]**2-psi_j[transitions]**2)**2)
+        psi2int2 = np.sum((psi_i[transitions]**2 - psi_j[transitions]**2)**2)
         DeltaLambda = 0.76 * 1e-9 * 1e-9  # 0.79nm^2
         # effective mass (self.me) update?
-        twogamma = pi*self.me[0]*m0*e0**2/hbar**2 * DeltaLambda**2 *\
-            (self.EcG[1] - self.EcG[0])**2 * psi2int2
-        twogamma /= meV*e0  # convert to meV
+        twogamma = (pi * self.me[0] * m0 * e0**2 / hbar**2 * DeltaLambda**2 *
+                    (self.EcG[1] - self.EcG[0])**2 * psi2int2)
+        twogamma /= meV * e0  # convert to meV
         return twogamma
 
     def alphaISB(self, stateR, lower):
@@ -1133,23 +1156,23 @@ class QCLayers(object):
         dipoles = []
         gammas = []
         energies = []
-        for q in xrange(stateR+1, self.EigenE.size):
+        for q in xrange(stateR + 1, self.EigenE.size):
             dp = self.dipole(q, stateR)
             if abs(dp) > 1e-6:
                 statesQ.append(q)
                 dipoles.append(dp)
         for q in statesQ:
-            gamma = self.broadening_energy(q, stateR)/2
+            gamma = self.broadening_energy(q, stateR) / 2
             gammas.append(gamma)
-            energies.append(self.EigenE[q]-self.EigenE[stateR])
+            energies.append(self.EigenE[q] - self.EigenE[stateR])
 
-        dipoles = np.array(dipoles)*1e-10   # in m
-        gammas = np.array(gammas)/1000      # from meV to eV
+        dipoles = np.array(dipoles) * 1e-10   # in m
+        gammas = np.array(gammas) / 1000      # from meV to eV
         energies = abs(np.array(energies))  # in eV
 
         neff = 3
         Lp = self.xres * np.sum(self.layerWidth[1:]) * 1e-10  # in m
-        Nq = np.sum(self.layerDopings[1:]*self.layerWidth[1:]) /\
+        Nq = np.sum(self.layerDopings[1:] * self.layerWidth[1:]) /\
             np.sum(self.layerWidth[1:])
         Nq *= 100**3  # convert from cm^-3 to m^-3
         Ns = self.xres * np.sum(self.layerDopings[1:] *
@@ -1162,22 +1185,10 @@ class QCLayers(object):
         #     alphaISB = np.sum(energies * dipoles**2 * gammas / (
         #         #(energies - enerG)**2 + gammas**2))
 
-        alphaISB = np.sum(energies*e0/h/c0 * dipoles**2 * gammas /
+        alphaISB = np.sum(energies * e0 / h / c0 * dipoles**2 * gammas /
                           ((energies - hw)**2 + gammas**2))
-        alphaISB *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
-        alphaISB /= e0*100
-
-        if False:  # plot loss diagram
-            hw = np.arange(0.15, 0.5, 0.001)
-            alphaISBw = np.zeros(hw.size)
-            for q, enerG in enumerate(hw):
-                alphaISBw[q] = np.sum(energies*e0/h/c0 * dipoles**2 * gammas /
-                                      ((energies - enerG)**2 + gammas**2))
-            alphaISBw *= 4*pi*e0**2 / (eps0*neff) * pi/(2*Lp) * Ns
-            alphaISBw /= e0*100
-            plt.figure()
-            plt.plot(hw, alphaISBw)
-            plt.show()
+        alphaISB *= 4 * pi * e0**2 / (eps0 * neff) * pi / (2 * Lp) * Ns
+        alphaISB /= e0 * 100
 
         return alphaISB
 
@@ -1186,9 +1197,9 @@ class QCLayers(object):
             upper, lower = lower, upper
         tauLower = self.lo_life_time(lower)
         tauUpper = self.lo_life_time(upper)
-        tauUpperLower = 1/self.lo_transition_rate(upper, lower)
+        tauUpperLower = 1 / self.lo_transition_rate(upper, lower)
         opticalDipole = self.dipole(upper, lower)
-        return opticalDipole**2 * tauUpper * (1 - tauLower/tauUpperLower)
+        return opticalDipole**2 * tauUpper * (1 - tauLower / tauUpperLower)
 
 
 if __name__ == "__main__":

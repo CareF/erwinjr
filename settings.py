@@ -3,8 +3,10 @@
 # antialias mainCanvas plot (False will speed up rendering)
 antialiased = True
 
-# arbitrary scale of wavefunction size (height) on plots
+# arbitrary scale of wavefunction^2 size (height) on plots
 wf_scale = 4.5e-10
+# arbitrary scale of wavefunction size (height) on plots
+psi_scale = 2E-6
 
 # minimum height for wavefunctions (wf_scale * wf_min_height = 0.014)
 # affects states that are far above band edge
@@ -22,3 +24,6 @@ phonon_integral_factor = pretty_plot_factor/10
 # decimate factor should be an integer
 # represents plotting wavefunctions at every xth angstrom
 plot_decimate_factor = 1
+
+# weather to use pyqt5
+use_pyqt5 = False
