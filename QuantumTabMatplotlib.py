@@ -183,9 +183,9 @@ class QuantumTab(QWidget):
             DescriptionBoxWidth = 220
             LpStringBoxWidth = 150
         elif sys.platform == 'darwin':
-            layerTableSize = 300
+            layerTableSize = 250
             DescriptionBoxWidth = 285
-            LpStringBoxWidth = 130
+            LpStringBoxWidth = 100
         elif sys.platform == 'linux2':
             layerTableSize = 365
             DescriptionBoxWidth = 240
@@ -243,7 +243,7 @@ class QuantumTab(QWidget):
         settingBox.addWidget(self.inputVertResBox)
 
         settingBox.addWidget(QLabel(
-            '<center><b>Structure Repeats</b></center>'))
+            '<center><b>Structure<br>Repeats</b></center>'))
         self.inputRepeatsBox = QSpinBox()
         self.inputRepeatsBox.setValue(1)
         self.inputRepeatsBox.setRange(1, 5)
@@ -285,10 +285,10 @@ class QuantumTab(QWidget):
         self.LpStringBox.setMaximumWidth(LpStringBoxWidth)
         LpLayout = QGridLayout()
         LpLayout.addWidget(QLabel('<b>first</b>'), 0, 0)
-        LpLayout.addWidget(QLabel('<b>last</b>'), 0, 1)
         LpLayout.addWidget(self.LpFirstSpinbox, 1, 0)
-        LpLayout.addWidget(self.LpLastSpinbox, 1, 1)
-        LpLayout.addWidget(self.LpStringBox, 2, 0, 1, 2)
+        LpLayout.addWidget(QLabel('<b>last</b>'), 2, 0)
+        LpLayout.addWidget(self.LpLastSpinbox, 3, 0)
+        LpLayout.addWidget(self.LpStringBox, 4, 0)
         LpLayout_groupBox.setLayout(LpLayout)
         settingBox.addWidget(LpLayout_groupBox)
 
@@ -721,7 +721,7 @@ class QuantumTab(QWidget):
         if Lp == 0:
             Lp_string += u"wells: NA%%<br>"
             # average doping of the layers
-            Lp_string += (u"n<sub>D</sub>: NA\u00D710<sup>17</sup>"
+            Lp_string += (u"n<sub>D</sub>: NA\u00D7\n&nbsp;10<sup>17</sup>"
                           u"cm<sup>-3</sup><br>")
         else:
             Lp_string += u"wells: %6.1f%%<br>" % (100.0 * Lw / Lp)
@@ -729,13 +729,13 @@ class QuantumTab(QWidget):
             nD = self.qclayers.xres * sum(
                 self.qclayers.layerDopings[LpFirst:LpLast] *
                 self.qclayers.layerWidth[LpFirst:LpLast]) / Lp
-            Lp_string += (u"n<sub>D</sub>: %6.3f\u00D710<sup>17</sup>"
+            Lp_string += (u"n<sub>D</sub>: %6.3f\u00D7\n&nbsp;10<sup>17</sup>"
                           u"cm<sup>-3</sup><br>") % nD
         # 2D carrier density in 1E11cm-2
         ns = self.qclayers.xres * sum(
             self.qclayers.layerDopings[LpFirst:LpLast] *
             self.qclayers.layerWidth[LpFirst:LpLast]) * 1e-2
-        Lp_string += (u"n<sub>s</sub>: %6.3f\u00D710<sup>11</sup>"
+        Lp_string += (u"n<sub>s</sub>: %6.3f\u00D7\n&nbsp;10<sup>11</sup>"
                       u"cm<sup>-2</sup") % ns
         self.LpStringBox.setText(Lp_string)
 
