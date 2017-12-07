@@ -183,7 +183,7 @@ class QuantumTab(QWidget):
             DescriptionBoxWidth = 220
             LpStringBoxWidth = 150
         elif sys.platform == 'darwin':
-            layerTableSize = 405
+            layerTableSize = 300
             DescriptionBoxWidth = 285
             LpStringBoxWidth = 130
         elif sys.platform == 'linux2':
@@ -332,16 +332,16 @@ class QuantumTab(QWidget):
         self.deleteLayerButton.clicked.connect(self.delete_layer)
         layerBox.addWidget(self.deleteLayerButton, 0, 1)
 
-        self.OptimizeFoMButton = QPushButton("Optimize Width (FoM)")
-        self.OptimizeFoMButton.setEnabled(False)
-        self.OptimizeFoMButton.clicked.connect(
-            partial(self.OptimizeLayer, goal=self.qclayers.figure_of_merit))
-        self.OptimizeDipoleButton = QPushButton("Optimize Width (Dipole)")
-        self.OptimizeDipoleButton.clicked.connect(
-            partial(self.OptimizeLayer, goal=self.qclayers.dipole))
-        self.OptimizeDipoleButton.setEnabled(False)
-        layerBox.addWidget(self.OptimizeFoMButton, 1, 0)
-        layerBox.addWidget(self.OptimizeDipoleButton, 1, 1)
+        #  self.OptimizeFoMButton = QPushButton("Optimize Width (FoM)")
+        #  self.OptimizeFoMButton.setEnabled(False)
+        #  self.OptimizeFoMButton.clicked.connect(
+        #      partial(self.OptimizeLayer, goal=self.qclayers.figure_of_merit))
+        #  self.OptimizeDipoleButton = QPushButton("Optimize Width (Dipole)")
+        #  self.OptimizeDipoleButton.clicked.connect(
+        #      partial(self.OptimizeLayer, goal=self.qclayers.dipole))
+        #  self.OptimizeDipoleButton.setEnabled(False)
+        #  layerBox.addWidget(self.OptimizeFoMButton, 1, 0)
+        #  layerBox.addWidget(self.OptimizeDipoleButton, 1, 1)
 
         # set up layerTable
         self.layerTable = QTableWidget()
@@ -352,7 +352,7 @@ class QuantumTab(QWidget):
         self.layerTable.itemChanged.connect(self.layerTable_itemChanged)
         self.layerTable.itemSelectionChanged.connect(
             self.layerTable_itemSelectionChanged)
-        layerBox.addWidget(self.layerTable, 2, 0, 1, 2)
+        layerBox.addWidget(self.layerTable, 1, 0, 1, 2)
         # vBox2: layerBox end
 
         # ######################################################
