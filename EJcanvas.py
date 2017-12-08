@@ -25,6 +25,7 @@
 import numpy as np
 import six
 import os
+import sys
 
 import matplotlib
 matplotlib.use('Qt4Agg')
@@ -45,7 +46,14 @@ else:
     from PyQt4.QtGui import (QSizePolicy, QMessageBox, QInputDialog,
                              QFileDialog)
 
-margin = {'l': 0.75, 'r': 0.12, 'b': 0.55, 't': 0.09}
+if sys.platform == 'win32':
+    margin = {'l': 0.75, 'r': 0.12, 'b': 0.55, 't': 0.09}
+elif sys.platform == 'darwin':
+    margin = {'l': 0.90, 'r': 0.12, 'b': 0.55, 't': 0.09}
+elif sys.platform == 'linux2':
+    margin = {'l': 0.75, 'r': 0.12, 'b': 0.55, 't': 0.09}
+else:
+    margin = {'l': 0.75, 'r': 0.12, 'b': 0.55, 't': 0.09}
 
 
 class EJcanvas(FigureCanvas):

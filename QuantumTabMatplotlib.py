@@ -183,9 +183,9 @@ class QuantumTab(QWidget):
             DescriptionBoxWidth = 220
             LpStringBoxWidth = 150
         elif sys.platform == 'darwin':
-            layerTableSize = 405
-            DescriptionBoxWidth = 285
-            LpStringBoxWidth = 130
+            layerTableSize = 250
+            DescriptionBoxWidth = 190
+            LpStringBoxWidth = 90
         elif sys.platform == 'linux2':
             layerTableSize = 365
             DescriptionBoxWidth = 240
