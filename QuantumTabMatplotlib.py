@@ -390,7 +390,7 @@ class QuantumTab(QWidget):
         self.DescriptionBox.setReadOnly(False)
         self.DescriptionBox.setSizePolicy(QSizePolicy(
             QSizePolicy.Fixed, QSizePolicy.Fixed))
-        self.DescriptionBox.setMaximumHeight(40)
+        self.DescriptionBox.setMaximumHeight(60)
         self.DescriptionBox.setMaximumWidth(DescriptionBoxWidth)
         self.DescriptionBox.textChanged.connect(self.input_description)
         DescLayout = QVBoxLayout()
@@ -404,45 +404,68 @@ class QuantumTab(QWidget):
         self.mtrl_barr = QLabel()
         self.input_substrate('InP')
         # TODO: set these according to substrate dict
-        self.MoleFracWellBox = []
-        self.MoleFracBarrBox = []
-        self.offsetLabel = []
-        for n in range(self.numMaterials // 2):
-            self.MoleFracWellBox.append(QDoubleSpinBox())
-            self.MoleFracWellBox[n].setDecimals(3)
-            self.MoleFracWellBox[n].setValue(0.53)
-            self.MoleFracWellBox[n].setRange(0.0, 1.0)
-            self.MoleFracWellBox[n].setSingleStep(0.001)
-            self.MoleFracWellBox[n].editingFinished.connect(
-                partial(self.input_moleFrac, 2 * n))
-            self.MoleFracBarrBox.append(QDoubleSpinBox())
-            self.MoleFracBarrBox[n].setDecimals(3)
-            self.MoleFracBarrBox[n].setValue(0.52)
-            self.MoleFracBarrBox[n].setRange(0.0, 1.0)
-            self.MoleFracBarrBox[n].setSingleStep(0.001)
-            self.MoleFracBarrBox[n].editingFinished.connect(
-                partial(self.input_moleFrac, 2 * n + 1))
-            self.offsetLabel.append(QLabel(''))
+        #  self.MoleFracWellBox = []
+        #  self.MoleFracBarrBox = []
+        #  self.offsetLabel = []
+        #  for n in range(self.numMaterials // 2):
+        #      self.MoleFracWellBox.append(QDoubleSpinBox())
+        #      self.MoleFracWellBox[n].setDecimals(3)
+        #      self.MoleFracWellBox[n].setValue(0.53)
+        #      self.MoleFracWellBox[n].setRange(0.0, 1.0)
+        #      self.MoleFracWellBox[n].setSingleStep(0.001)
+        #      self.MoleFracWellBox[n].editingFinished.connect(
+        #          partial(self.input_moleFrac, 2 * n))
+        #      self.MoleFracBarrBox.append(QDoubleSpinBox())
+        #      self.MoleFracBarrBox[n].setDecimals(3)
+        #      self.MoleFracBarrBox[n].setValue(0.52)
+        #      self.MoleFracBarrBox[n].setRange(0.0, 1.0)
+        #      self.MoleFracBarrBox[n].setSingleStep(0.001)
+        #      self.MoleFracBarrBox[n].editingFinished.connect(
+        #          partial(self.input_moleFrac, 2 * n + 1))
+        #      self.offsetLabel.append(QLabel(''))
+        self.MoleFracWellBox = QDoubleSpinBox()
+        self.MoleFracWellBox.setDecimals(3)
+        self.MoleFracWellBox.setValue(0.53)
+        self.MoleFracWellBox.setRange(0.0, 1.0)
+        self.MoleFracWellBox.setSingleStep(0.001)
+        self.MoleFracWellBox.editingFinished.connect(
+            partial(self.input_moleFrac, 0))
+        self.MoleFracBarrBox = QDoubleSpinBox()
+        self.MoleFracBarrBox.setDecimals(3)
+        self.MoleFracBarrBox.setValue(0.52)
+        self.MoleFracBarrBox.setRange(0.0, 1.0)
+        self.MoleFracBarrBox.setSingleStep(0.001)
+        self.MoleFracBarrBox.editingFinished.connect(
+            partial(self.input_moleFrac, 1))
+        self.offsetLabel = QLabel('')
         self.strainDescription = QLabel('')
         self.LOPhononDescription = QLabel('')
         mtrl_grid = QGridLayout()
-        mtrl_grid.addWidget(QLabel(
-            '<center><b>Mole Fractions</b></center>'), 0, 0, 1, 4)
+        #  mtrl_grid.addWidget(QLabel(
+        #      '<center><b>Mole Fractions</b></center>'), 0, 0, 1, 3)
+        mtrl_grid.addWidget(QLabel(u'<center><b>#</b></center>'), 1, 0)
         mtrl_grid.addWidget(self.mtrl_well, 1, 1)
         mtrl_grid.addWidget(self.mtrl_barr, 1, 2)
-        mtrl_grid.addWidget(QLabel(u'<center><b>ΔE<sub>c</sub></b></center>'),
-                            1, 3)
-        for n in range(self.numMaterials // 2):
-            mtrl_grid.addWidget(QLabel(
-                '<center><b>#%d</b></center>' % (n + 1)), 2 + n, 0)
-            mtrl_grid.addWidget(self.MoleFracWellBox[n], 2 + n, 1)
-            mtrl_grid.addWidget(self.MoleFracBarrBox[n], 2 + n, 2)
-            mtrl_grid.addWidget(self.offsetLabel[n], 2 + n, 3)
-        mtrl_grid.addWidget(QLabel('<center>(well)</center>'), 6, 1)
-        mtrl_grid.addWidget(QLabel('<center>(barrier)</center>'), 6, 2)
-        mtrl_grid.addWidget(self.strainDescription, 7, 0, 1, 4)
-        mtrl_grid.addWidget(self.LOPhononDescription, 8, 0, 1, 4)
-        mtrl_groupBox = QGroupBox()
+        self.mtrl_indxBox = QComboBox()
+        self.mtrl_indxBox.addItems(['1', '2', '3', '4'])
+        #  self.mtrl_indxBox.setSizeAdjustPolicy(0)
+        self.mtrl_indxBox.setSizePolicy(
+            QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed))
+        mtrl_grid.addWidget(self.mtrl_indxBox, 2, 0)
+        mtrl_grid.addWidget(self.MoleFracWellBox, 2, 1)
+        mtrl_grid.addWidget(self.MoleFracBarrBox, 2, 2)
+        #  for n in range(self.numMaterials // 2):
+        #      mtrl_grid.addWidget(QLabel(
+        #          '<center><b>#%d</b></center>' % (n + 1)), 2 + n, 0)
+        #      mtrl_grid.addWidget(self.MoleFracWellBox[n], 2 + n, 1)
+        #      mtrl_grid.addWidget(self.MoleFracBarrBox[n], 2 + n, 2)
+        #      mtrl_grid.addWidget(self.offsetLabel[n], 2 + n, 3)
+        mtrl_grid.addWidget(QLabel('<center>(well)</center>'), 3, 1)
+        mtrl_grid.addWidget(QLabel('<center>(barrier)</center>'), 3, 2)
+        mtrl_grid.addWidget(self.offsetLabel, 4, 0, 1, 3)
+        mtrl_grid.addWidget(self.strainDescription, 5, 0, 1, 3)
+        mtrl_grid.addWidget(self.LOPhononDescription, 6, 0, 1, 3)
+        mtrl_groupBox = QGroupBox("Mole Fractions")
         mtrl_groupBox.setLayout(mtrl_grid)
         solveBox.addWidget(mtrl_groupBox)
 
@@ -562,12 +585,21 @@ class QuantumTab(QWidget):
         self.qclayers.update_alloys()
         self.qclayers.update_strain()
         self.qclayers.populate_x()
-        for n in range(self.numMaterials // 2):
-            self.MoleFracWellBox[n].setValue(self.qclayers.moleFrac[2 * n])
-            self.MoleFracBarrBox[n].setValue(self.qclayers.moleFrac[2 * n + 1])
-            self.offsetLabel[n].setText("%6.0f meV" % (
-                (self.qclayers.EcG[2 * n + 1] -
-                 self.qclayers.EcG[2 * n]) * 1000))
+        mtrl_indx = int(unicode(self.mtrl_indxBox.currentText())) - 1
+        self.MoleFracWellBox.setValue(
+            self.qclayers.moleFrac[2 * mtrl_indx])
+        self.MoleFracBarrBox.setValue(
+            self.qclayers.moleFrac[2 * mtrl_indx + 1])
+        self.offsetLabel.setText(
+            u'<center>ΔE<sub>c</sub>: <b>%6.0f meV </b></center>' % (
+                (self.qclayers.EcG[2 * mtrl_indx + 1] -
+                 self.qclayers.EcG[2 * mtrl_indx]) * 1000))
+        #  for n in range(self.numMaterials // 2):
+        #      self.MoleFracWellBox[n].setValue(self.qclayers.moleFrac[2 * n])
+        #      self.MoleFracBarrBox[n].setValue(self.qclayers.moleFrac[2*n+1])
+        #      self.offsetLabel[n].setText("%6.0f meV" % (
+        #          (self.qclayers.EcG[2 * n + 1] -
+        #           self.qclayers.EcG[2 * n]) * 1000))
 
         self.DescriptionBox.setText(self.qclayers.description)
         strainString = ("<center>Net Strain: <b>%6.3f%%</b></center>" %
@@ -575,8 +607,8 @@ class QuantumTab(QWidget):
         self.strainDescription.setText(strainString)
         hwLOString = ("<center>E<sub>LO</sub>:"
                       "<b>%4.1f ~ %4.1f meV</b></center>") % (
-                          min(self.qclayers.hwLO) * 1000,
-                          max(self.qclayers.hwLO) * 1000)
+                          self.qclayers.hwLO[2 * mtrl_indx] * 1000,
+                          self.qclayers.hwLO[2 * mtrl_indx + 1] * 1000)
         self.LOPhononDescription.setText(hwLOString)
 
         self.inputVertResBox.setValue(self.qclayers.vertRes)
@@ -747,13 +779,28 @@ class QuantumTab(QWidget):
         self.dirty.emit()
 
     @settingslot
+    def select_mtrl_indx(self, *args):
+        """ SLOT connected to mtrl_indxBox.currentIndexChanged(int)
+        change material index shown in UI"""
+        mtrl_indx = int(unicode(self.mtrl_indxBox.currentText())) - 1
+        self.MoleFracWellBox.setValue(
+            self.qclayers.moleFrac[2 * mtrl_indx])
+        self.MoleFracWellBox.editingFinished.connect(
+            partial(self.input_moleFrac, 2 * mtrl_indx))
+        self.MoleFracWellBox.setValue(
+            self.qclayers.moleFrac[2 * mtrl_indx + 1])
+        self.MoleFracBarrBox.editingFinished.connect(
+            partial(self.input_moleFrac, 2 * mtrl_indx + 1))
+
+    @settingslot
     def input_moleFrac(self, boxID):
-        """ SLOT connected to self.MoleFracWellBox[n].editingFinished()
+        """ SLOT connected to self.MoleFracWellBox.editingFinished()
+            shen mtrl_indx is n
             and MoleFracBarrBox[n].editingFinished()
         Update moleFrac for material."""
         self.qclayers.moleFrac[boxID] = float(
-            self.MoleFracWellBox[boxID // 2].value() if boxID % 2 == 0
-            else self.MoleFracBarrBox[(boxID - 1) // 2].value())
+            self.MoleFracWellBox.value() if boxID % 2 == 0
+            else self.MoleFracBarrBox.value())
         self.dirty.emit()
 
         self.update_inputBoxes()
