@@ -175,7 +175,7 @@ class QuantumTab(QWidget):
         self.pairSelected = False
         # plotType can be mode, wf or DoS (TODO)
         self.plotType = "mode"
-        self.fillplot = 0.3  # alpha of fill; False for not fill
+        self.fillplot = False  # alpha of fill; False for not fill
 
         # Platform dependent settings, eg. layerout size settings
         if sys.platform == 'win32':
