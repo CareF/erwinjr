@@ -1,7 +1,7 @@
-CC = icc
-CFLAGS = -march=native -Ofast -gcc-name=gcc-6 -Wall -c -fPIC
-# CC = gcc
-# CFLAGS = -O2 -Wall -c -fPIC
+# CC = icc
+# CFLAGS = -march=native -Ofast -gcc-name=gcc-6 -Wall -c -fPIC
+CC = gcc
+CFLAGS = -O2 -Wall -c -fPIC
 
 .PHONY : all
 .DEFAULT : all
