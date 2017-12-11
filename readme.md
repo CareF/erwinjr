@@ -1,7 +1,7 @@
 ABOUT
 =====
 
-ErwinJr is an open source design and simulation program for quantum semiconductor devices including quantum cascade lasers. It is useful for modeling intersubband semiconductor devices.  The code base was written at the NASA Jet Propulsion Laboratory.
+ErwinJr is an open source design and simulation program for quantum semiconductor devices including quantum cascade lasers. It is useful for modeling intersubband semiconductor devices.  The code base (Version before 3.0) was written at the NASA Jet Propulsion Laboratory. And now it's updating and maintained by minglyu@princeton. 
 
 ErwinJr is a multi-platform application that runs on most desktop operating systems including Windows, Mac OS X, and Linux.  This is because it is written in Python and uses the Qt graphical user interface framework.
 
@@ -9,7 +9,9 @@ ErwinJr is a multi-platform application that runs on most desktop operating syst
 
 (Update: GUI under Win is not tested for Ver>=3.0 because qwt support for new WIndows installation is out of date.)
 
-1) Do a FULL install of pythonxy from http://www.pythonxy.com/
+1) Do a FULL install of pythonxy from http://www.pythonxy.com/ 
+
+1*) (Recommended) if you are not going to use optical cavity design tab, try `noOptic` branch (which get rid of qwt dependence), and it should be able to work under any Python distribution with numpy, scipy and matplotlib.. (And mock package is also needed for blocking optical tab). Anaconda is recommended. 
 
 2) Under Start|Run type cmd
 
