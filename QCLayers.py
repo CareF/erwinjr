@@ -742,6 +742,14 @@ class QCLayers(object):
             self.EigenE = self.EigenE[idxs]
             self.xyPsi = self.xyPsi[:, idxs]
 
+        # remove states that come from oscillating end points
+        # This doesn't really help for free levels, but accidentally removes
+        # the duplicate states on 0th layer.. (TODO)
+        psiEnd = self.xyPsi[-1, :]
+        idxs = np.nonzero(abs(psiEnd) < 10)[0]
+        self.EigenE = self.EigenE[idxs]
+        self.xyPsi = self.xyPsi[:, idxs]
+
         # 4.5e-10 scales size of wavefunctions, arbitrary for nice plots
         self.xyPsiPsi = self.xyPsi * self.xyPsi * wf_scale
 
@@ -807,11 +815,19 @@ class QCLayers(object):
         # TODO: try always at left
         zeroTOone = []
         oneTOzero = []
-        for q in xrange(0, self.layerARs.size - 1):
-            if self.layerARs[q] == 0 and self.layerARs[q + 1] == 1:
-                zeroTOone.append(q)
-            if self.layerARs[q] == 1 and self.layerARs[q + 1] == 0:
-                oneTOzero.append(q + 1)
+
+        layerAR = np.insert(self.layerARs, 0, self.layerARs[-1])
+        for q in xrange(0, layerAR.size - 1):
+            if layerAR[q] == 0 and layerAR[q + 1] == 1:
+                zeroTOone.append(q - 1)
+            if layerAR[q] == 1 and layerAR[q + 1] == 0:
+                oneTOzero.append(q)
+
+        #  for q in xrange(0, self.layerARs.size - 1):
+        #      if self.layerARs[q] == 0 and self.layerARs[q + 1] == 1:
+        #          zeroTOone.append(q)
+        #      if self.layerARs[q] == 1 and self.layerARs[q + 1] == 0:
+        #          oneTOzero.append(q + 1)
 
         dividers = [0, self.layerARs.size - 1]
         if self.basisInjectorAR:
@@ -822,6 +838,7 @@ class QCLayers(object):
         # and then back into a list.
         dividers = list(set(dividers))
         dividers.sort()
+        print dividers
 
         # this is dataClassesList.
         # it holds all of the Data classes for each individual solve section
@@ -835,6 +852,7 @@ class QCLayers(object):
             # substitute proper layer characteristics into dCL[n], hear/tail
             #  padding
             layer = range(dividers[n], dividers[n + 1] + 1)
+
             dCL[n].layerWidth = np.concatenate(
                 ([int(PAD_HEAD / self.xres)], self.layerWidth[layer],
                  [int(PAD_TAIL / self.xres)]))
@@ -856,6 +874,7 @@ class QCLayers(object):
             dCL[n].populate_x()
             dCL[n].populate_x_band()
             dCL[n].solve_psi()
+            print dCL[n].xVc
 
             # caculate offsets
             dCL[n].widthOffset = self.xres * np.sum(
