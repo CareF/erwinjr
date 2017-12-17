@@ -49,8 +49,9 @@ class OpticalTab(QWidget):
     """The Optical Tab of ErwiJr. This isdesigned to be a GUI wrapper of the
     class Strata
     """
-    def __init__(self, parent=None):
+    def __init__(self, quantumWidget, parent=None):
         super(OpticalTab, self).__init__(parent)
+        self.quantumWidget = quantumWidget
         self.strata = Strata()
         self.stratumMaterialsList = ['Active Core', 
                                      'InP',

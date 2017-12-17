@@ -153,7 +153,7 @@ class MainWindow(QMainWindow):
         # Optical Tab
         #
         # ##########################
-        self.opticalWidget = OpticalTab(self)
+        self.opticalWidget = OpticalTab(self.quantumWidget, self)
         self.mainTabWidget.addTab(self.opticalWidget, 'Optical')
         #  self.mainTabWidget.addTab(thermalWidget, 'Thermal')
         self.mainTabWidget.currentChanged.connect(self.change_main_tab)
