@@ -28,20 +28,26 @@ import os
 import sys
 
 import matplotlib
-matplotlib.use('Qt4Agg')
-from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg as
-                                                FigureCanvas)
-from matplotlib.backends.backend_qt5 import cursord
-from matplotlib.backend_bases import (NavigationToolbar2, cursors)
-import matplotlib.backends.qt_editor.figureoptions as figureoptions
-from matplotlib.figure import Figure
-
 from settings import use_pyqt5
 if use_pyqt5:
+    matplotlib.use('Qt5Agg')
+    from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg as
+                                                    FigureCanvas)
+    from matplotlib.backends.backend_qt5 import cursord
+    from matplotlib.backend_bases import (NavigationToolbar2, cursors)
+    import matplotlib.backends.qt_editor.figureoptions as figureoptions
+    from matplotlib.figure import Figure
     from PyQt5.QtCore import QObject, Signal
     from PyQt5.QtWidgets import (QSizePolicy, QMessageBox, QInputDialog,
                                  QFileDialog)
 else:
+    matplotlib.use('Qt4Agg')
+    from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg as
+                                                    FigureCanvas)
+    from matplotlib.backends.backend_qt4 import cursord
+    from matplotlib.backend_bases import (NavigationToolbar2, cursors)
+    import matplotlib.backends.qt_editor.figureoptions as figureoptions
+    from matplotlib.figure import Figure
     from PyQt4.QtCore import QObject, Signal
     from PyQt4.QtGui import (QSizePolicy, QMessageBox, QInputDialog,
                              QFileDialog)
