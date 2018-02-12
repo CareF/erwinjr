@@ -7,28 +7,28 @@ ErwinJr is a multi-platform application that runs on most desktop operating syst
 
 ### WINDOWS INSTALLATION ###
 
-(Update: GUI under Win is not tested for Ver>=3.0 because qwt support for new WIndows installation is out of date.)
+(Update: GUI under Win is not tested for Ver>=3.0 because qwt support for new Windows installation is out of date.)
 
-1) Do a FULL install of pythonxy from http://www.pythonxy.com/ 
+1) Do a FULL install of pythonxy from http://www.pythonxy.com/  (no longer recommended)
 
-1*) (Recommended) if you are not going to use optical cavity design tab, try `noOptic` branch (which get rid of qwt dependence), and it should be able to work under any Python distribution with numpy, scipy and matplotlib.. (And mock package is also needed for blocking optical tab). Anaconda is recommended. 
+1*) (Recommended) if you are not going to use optical cavity design tab, try `noOptic` branch (which gets rid of qwt dependence), and it should be able to work under any Python distribution with pyqt4, numpy, scipy and matplotlib.. (And mock package is also needed for blocking optical tab). Anaconda is recommended. 
 
-2) Under Start|Run type cmd
+~~2) Under Start|Run type cmd~~
 
 3) type the following at the command prompt (See following section about compiling using Visual Studio)
 
 		cd \erwinjr
 		make
 
-4) open (double click) on the file erwinjr.pyw
+4) open (double click) on the file erwinjr.pyw, or in command line, `python erwinjr.pyw`
 
 ### Multiprocessing Support ###
 
-The cFunctionsMP is with openmp support, tested under Linux with openmp (ver>=5.0) and Windows with Visual Studio 2017. 
+The multiprocessing feature (cQCLayersMP) requires openmp support, tested under Linux with openmp (ver>=5.0) and Windows with Visual Studio 2017. 
 
-To compile for cFunctionsMP, using following command: 
+To compile for cQCLayersMP under *nix, using following command: 
 
-	make cFunctionsMP.so
+	make cQCLayersMP.so
 
 See Makefile for building detail. 
 
