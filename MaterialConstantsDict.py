@@ -46,6 +46,33 @@ class Material(object):
     def set_temperature(self, Temperature):
         self.Temperature = Temperature
 
+    def bowing(self, x, params):
+        """Get parameter(params) for material self with mole fraction x for
+        material self.Comp[0] using Bowing parameter"""
+        res = (x*getattr(self.Comp[0], params) +
+               (1-x)*getattr(self.Comp[1], params))
+        if hasattr(self, params):
+            res -= x * (1-x) * getattr(self, params)
+        return res
+
+    def SetComp(self, Mat1, Mat2):
+        """Set components for a compund"""
+        self.Comp = (Mat1, Mat2)
+        for s in ('EgG', 'EgL', 'EgX', 'VBO', 'DSO',  # unit eV
+                  'me0',                # 1/m0: effective mass
+                  'acG', 'acL', 'acX',  # Pikus-Bir interaction parameter
+                  'Ep', 'F',  # effective mass parameter
+                  'XiX',      # strain correction to band at X point
+                  'b', 'av', 'alG',  # strain correction to bands at Gamma
+                  'beG', 'alL',      # Varsh correction
+                  'epss', 'epsInf',  # static and high-freq permitivity
+                  'hwLO',            # LO phonon energy, unit eV
+                  'alc',             # lattice const, unit angstrom
+                  'c11', 'c12'      # elestic stiffness constants
+                  ):
+            # Default compond parameters calculator
+            setattr(self, s+'f', (lambda x, s=s: self.bowing(x, s)))
+
 
 class MaterialConstantsDict(dict):
     def __init__(self, Temperature=300):
@@ -110,7 +137,7 @@ class MaterialConstantsDict(dict):
             M for material; wl for wavelength
             """
             if wl < M.minwl or wl > M.maxwl:
-                warn(("Wavelength %.2f nm exceed the range (%.2f ~ %.2f nm) "
+                warn(("Wavelength %.2f nm exceed the range (%.2f ~ %.2f um) "
                       "for known reflection index of %s") %
                      (wl, M.minwl, M.maxwl, M.Name), UserWarning)
                 wl = M.minwl if wl < M.minwl else M.maxwl
@@ -327,6 +354,7 @@ class MaterialConstantsDict(dict):
         self['InP'].rIndx = MethodType(rIndx, self['InP'])
 
         # TODO: consider transform bowing parameter to function
+
         # InGaAs constants
         self['InGaAs'] = Material('InGaAs')
         self['InGaAs'].EgG = 0.477
@@ -340,6 +368,7 @@ class MaterialConstantsDict(dict):
         self['InGaAs'].me0 = 0.0091
         self['InGaAs'].Ep = -1.48
         self['InGaAs'].F = 1.77
+        self['InGaAs'].SetComp(self['InAs'], self['GaAs'])
 
         # AlInAs constants
         self['AlInAs'] = Material('AlInAs')
@@ -354,6 +383,8 @@ class MaterialConstantsDict(dict):
         self['AlInAs'].me0 = 0.049
         self['AlInAs'].Ep = -4.81
         self['AlInAs'].F = -4.44
+        self['AlInAs'].SetComp(self['InAs'], self['AlAs'])
+        # Note: inverse order
 
         # AlGaAs constants
         self['AlGaAs'] = Material('AlGaAs')
@@ -372,17 +403,22 @@ class MaterialConstantsDict(dict):
         self['AlGaAs'].me0 = 0
         self['AlGaAs'].Ep = 0
         self['AlGaAs'].F = 0
+        self['AlGaAs'].SetComp(self['AlAs'], self['GaAs'])
+        self['AlGaAs'].EgGf = lambda x: (x*self['AlAs'].EgG +
+                                         (1-x)*self['GaAs'].EgG -
+                                         x*(1-x)*(self['AlGaAs'].EgG+1.310*x))
 
         # AlAsSb constants
-        self['AlAsSb'] = Material('AlGaAs')
+        self['AlAsSb'] = Material('AlAsSb')
         self['AlAsSb'].EgG = 0.8
         self['AlAsSb'].EgL = 0.28
         self['AlAsSb'].EgX = 0.28
         self['AlAsSb'].DSO = 0.15
         self['AlAsSb'].VBO = -1.71
+        self['AlAsSb'].SetComp(self['AlAs'], self['AlSb'])
 
         # AlGaSb constants
-        self['AlGaSb'] = Material('AlGaAs')
+        self['AlGaSb'] = Material('AlGaSb')
         self['AlGaSb'].EgG = -0.044  # + 1.22*x(Al), same as AlGaAs
         self['AlGaSb'].EgL = 0
         self['AlGaSb'].EgX = 0
@@ -394,6 +430,10 @@ class MaterialConstantsDict(dict):
         self['AlGaSb'].me0 = 0
         self['AlGaSb'].Ep = 0
         self['AlGaSb'].F = 0
+        self['AlGaSb'].SetComp(self['AlSb'], self['GaSb'])
+        self['AlGaSb'].EgGf = lambda x: (x*self['AlSb'].EgG +
+                                         (1-x)*self['GaSb'].EgG -
+                                         x*(1-x)*(self['AlGaSb'].EgG+1.22*x))
 
         # InAsSb constants
         self['InAsSb'] = Material('InAsSb')
@@ -408,5 +448,6 @@ class MaterialConstantsDict(dict):
         self['InAsSb'].me0 = 0.035
         self['InAsSb'].Ep = 0
         self['InAsSb'].F = 0
+        self['InAsSb'].SetComp(self['InAs'], self['InSb'])
 
 # vim: ts=4 sw=4 sts=4 expandtab

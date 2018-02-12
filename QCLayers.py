@@ -347,7 +347,7 @@ class QCLayers(object):
                                supported
             self.epsrho: ???
         """
-        variables = [
+        variables = (
             'EgG', 'EgL', 'EgX', 'VBO', 'DSO',  # unit eV
             'me0',                # seems not used
             'acG', 'acL', 'acX',  # Pikus-Bir interaction parameter
@@ -360,7 +360,7 @@ class QCLayers(object):
             'hwLO',            # LO phonon energy, unit eV
             'alc',             # lattice const, unit angstrom
             'c11', 'c12'      # elestic stiffness constants
-        ]
+        )
         #  print "----debug--- substrate is "+self.substrate
         # substrate restriction on layer material,
         # see doc string of QCLayers class
@@ -388,36 +388,32 @@ class QCLayers(object):
             setattr(self, item, np.empty(self.numMaterials))
             para = getattr(self, item)
             for n in range(self.numMaterials):
-                para[n] = (self.moleFrac[n] *
-                           getattr(cst[self.Mat1[n]], item) +
-                           (1 - self.moleFrac[n]) *
-                           getattr(cst[self.Mat2[n]], item))
-                if MatCross[n] in cst and hasattr(cst[MatCross[n]], item):
-                    # bowing parameter
-                    para[n] -= (self.moleFrac[n] * (1 - self.moleFrac[n]) *
-                                getattr(cst[MatCross[n]], item))
+                para[n] = getattr(cst[MatCross[n]],
+                                  item+'f')(self.moleFrac[n])
+                #  para[n] = (self.moleFrac[n] *
+                #             getattr(cst[self.Mat1[n]], item) +
+                #             (1 - self.moleFrac[n]) *
+                #             getattr(cst[self.Mat2[n]], item))
+                #  if MatCross[n] in cst and hasattr(cst[MatCross[n]], item):
+                #      # bowing parameter
+                #      para[n] -= (self.moleFrac[n] * (1 - self.moleFrac[n]) *
+                #                  getattr(cst[MatCross[n]], item))
 
         # See MaterialConstantsDict.py...
-        # TODO: move to MaterialConstantsDict.py
-        if self.substrate == 'GaAs':
-            for n in range(self.numMaterials):
-                EgG_AlGaAs = cst['AlGaAs'].EgG + 1.310 * self.moleFrac[n]
-                self.EgG[n] = (
-                    self.moleFrac[n] * cst['AlAs'].EgG +
-                    (1 - self.moleFrac[n]) * cst['GaAs'].EgG -
-                    self.moleFrac[n] * (1 - self.moleFrac[n]) * EgG_AlGaAs)
-        elif self.substrate == 'GaSb':
-            for n in range(1, self.numMaterials, 2):
-                EgG_AlGaSb = cst['AlGaSb'].EgG + 1.22 * self.moleFrac[n]
-                self.EgG[n] = (
-                    self.moleFrac[n] * cst['AlSb'].EgG +
-                    (1 - self.moleFrac[n]) * cst['GaSb'].EgG -
-                    self.moleFrac[n] * (1 - self.moleFrac[n]) * EgG_AlGaSb)
-        #  print "----debug----"
-        #  for item in variables:
-            #  ll = copy.copy(getattr(self,item))
-            #  #  print item, getattr(self, item)
-            #  setattr(self, item+"_new", ll)
+        #  if self.substrate == 'GaAs':
+        #      for n in range(self.numMaterials):
+        #          EgG_AlGaAs = cst['AlGaAs'].EgG + 1.310 * self.moleFrac[n]
+        #          self.EgG[n] = (
+        #              self.moleFrac[n] * cst['AlAs'].EgG +
+        #              (1 - self.moleFrac[n]) * cst['GaAs'].EgG -
+        #              self.moleFrac[n] * (1 - self.moleFrac[n]) * EgG_AlGaAs)
+        #  elif self.substrate == 'GaSb':
+        #      for n in range(1, self.numMaterials, 2):
+        #          EgG_AlGaSb = cst['AlGaSb'].EgG + 1.22 * self.moleFrac[n]
+        #          self.EgG[n] = (
+        #              self.moleFrac[n] * cst['AlSb'].EgG +
+        #              (1 - self.moleFrac[n]) * cst['GaSb'].EgG -
+        #              self.moleFrac[n] * (1 - self.moleFrac[n]) * EgG_AlGaSb)
 
         # set this once the others are set ???
         self.epsrho = 1 / (1 / self.epsInf - 1 / self.epss)
