@@ -26,6 +26,8 @@
 # TODO:
 # In plot controls, add "show one period"
 # save and load pickle for qclayers
+# Reverse layers
+# Bug: when delete all layers
 
 import sys
 import traceback
@@ -174,8 +176,10 @@ class QuantumTab(QWidget):
         self.stateHolder = []
         self.pairSelected = False
         # plotType can be mode, wf or DoS (TODO)
-        self.plotType = "wf"
+        #  self.plotType = "wf"
+        self.plotType = "mode"
         self.fillplot = 0.3  # alpha of fill; False for not fill
+        self.fillplot = False
 
         # Platform dependent settings, eg. layerout size settings
         if sys.platform == 'win32':
@@ -1584,7 +1588,7 @@ class QuantumTab(QWidget):
                     u"energy diff: <b>%6.1f meV</b> (%6.1f \u00B5m)<br>"
                     u"coupling: %6.1f meV<br>broadening: %6.1f meV<br>"
                     u"dipole: <b>%6.1f \u212B</b>"
-                    u"<br>LO scattering: <b>%6.2g ps</b><br>") % (
+                    u"<br>LO scattering: <b>%6.3g ps</b><br>") % (
                         self.stateHolder[0],
                         self.stateHolder[1],
                         self.eDiff, self.wavelength,
@@ -1602,7 +1606,7 @@ class QuantumTab(QWidget):
                 self.pairString = (
                     u"selected: %d, %d<br>"
                     u"energy diff: <b>%6.1f meV</b> (%6.1f \u00B5m)<br>"
-                    u"dipole: %6.1f \u212B<br>" u"LO scattering: %6.2g ps<br>"
+                    u"dipole: %6.1f \u212B<br>" u"LO scattering: %6.3g ps<br>"
                 ) % (self.stateHolder[0], self.stateHolder[1], self.eDiff,
                      self.wavelength, self.opticalDipole, self.tauUpperLower)
             else:
@@ -1633,10 +1637,10 @@ class QuantumTab(QWidget):
         self.alphaISB = self.qclayers.alphaISB(upper, lower)
 
         self.FoMString = (
-            u"<i>\u03C4<sub>upper</sub></i> : %6.2f ps<br>"
-            u"<i>\u03C4<sub>lower</sub></i> : %6.2f ps"
+            u"<i>\u03C4<sub>upper</sub></i> : %6.3f ps<br>"
+            u"<i>\u03C4<sub>lower</sub></i> : %6.3f ps"
             u"<br>FoM: <b>%6.0f ps \u212B<sup>2</sup></b>"
-            u"<br><i>\u03B1<sub>ISB</sub></i> : %.2f cm<sup>2</sup>") % (
+            u"<br><i>\u03B1<sub>ISB</sub></i> : %.3f cm<sup>2</sup>") % (
                 self.tauUpper, self.tauLower, self.FoM, self.alphaISB)
         self.pairSelectString.setText(self.pairString + self.FoMString)
 
