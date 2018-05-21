@@ -228,8 +228,9 @@ class QuantumTab(QWidget):
         settingBox.addWidget(QLabel(
             '<center><b>Horizontal<br>Resolution</b></center>'))
         self.inputHorzResBox = QComboBox()
-        # TODO: add unit here (angstrom)
-        self.inputHorzResBox.addItems(['1.0', '0.5', '0.25', '0.2', '0.1'])
+        self.HorzRes = (1.0, 0.5, 0.25, 0.2, 0.1)
+        self.inputHorzResBox.addItems([u'%.2f \u212B'%res for res in
+                                       self.HorzRes])
         # remove 0.25? because to 0.1
         self.inputHorzResBox.currentIndexChanged.connect(self.input_horzRes)
         settingBox.addWidget(self.inputHorzResBox)
@@ -617,8 +618,11 @@ class QuantumTab(QWidget):
 
         self.inputVertResBox.setValue(self.qclayers.vertRes)
         self.inputEFieldBox.setValue(self.qclayers.EField)
-        self.inputHorzResBox.setCurrentIndex(self.inputHorzResBox.findText(
-            QString(unicode(self.qclayers.xres))))
+        try:
+            n = self.HorzRes.index(self.qclayers.xres)
+        except ValueError:
+            print "Horizontal resolution error: %.2f"%self.qclayers.xres
+        self.inputHorzResBox.setCurrentIndex(n)
         self.inputRepeatsBox.setValue(self.qclayers.repeats)
         self.update_Lp_box()
 
@@ -695,8 +699,7 @@ class QuantumTab(QWidget):
     def input_horzRes(self, *args):
         """ SLOT connected to inputHorzResBox.currentIndexChanged(int)
         update position resolution (xres), in angstrom """
-        horzRes = unicode(self.inputHorzResBox.currentText())
-        horzRes = float(horzRes)
+        horzRes = self.HorzRes[self.inputHorzResBox.currentIndex()]
         self.qclayers.set_xres(horzRes)
         self.qclayers.populate_x()
         self.update_quantumCanvas()
