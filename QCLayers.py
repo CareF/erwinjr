@@ -68,12 +68,12 @@ if __USE_CLIB__:
     import ctypes as ct
     if __MULTI_PROCESSING__:
         if sys.platform in ('linux2', 'darwin', 'cygwin'):
-            cQ = np.ctypeslib.ctypes_load_library('cQCLayersMP', '.')
+            cQ = np.ctypeslib.load_library('cQCLayersMP', '.')
         elif sys.platform == 'win32':
             cQ = ct.CDLL('cQCLayersMP.dll')
     else:
         if sys.platform in ('linux2', 'darwin', 'cygwin'):
-            cQ = np.ctypeslib.ctypes_load_library('cQCLayers', '.')
+            cQ = np.ctypeslib.load_library('cQCLayers', '.')
         elif sys.platform == 'win32':
             cQ = ct.CDLL('cQCLayers.dll')
 
