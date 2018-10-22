@@ -117,13 +117,15 @@ OUTPUT:
 	const double extLength=200; /*nm, the extend length for start point*/ 
 	int q;
 #ifdef __MP
-#pragma omp parallel for private(xMcE, xPsi)
+#pragma omp parallel private(xMcE, xPsi)
+	{
+		xMcE = (double *)malloc(xPsiSize * sizeof(double));
+		xPsi = (double *)malloc(xPsiSize * sizeof(double));
+#pragma omp for
 #endif
 	for(q=0; q<eEqSize; q++)
 	{
 #ifdef __MP
-		xMcE = (double *)malloc(xPsiSize * sizeof(double));
-		xPsi = (double *)malloc(xPsiSize * sizeof(double));
 #endif
 		double Eq = eEq[q];
 		/* set start point, according to energy offset and external field */
@@ -135,13 +137,14 @@ OUTPUT:
 		psiFn(Eq, startpoint, xPsiSize, xres, 
 				xVc, xEg, xF, xEp, xESO, xMc, xMcE, xPsi);
 		xPsiEnd[q] = xPsi[xPsiSize-1];
-#ifdef __MP
-		free(xMcE);
-		free(xPsi);
-#endif
 		//printf("%d: %g %d        ", q, eEq[q], startpoint);
 		//printf("%d  ", startpoint);
 	}
+#ifdef __MP
+		free(xMcE);
+		free(xPsi);
+	}
+#endif
 
 	return 1;
 }
