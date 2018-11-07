@@ -26,6 +26,8 @@
 # TODO:
 # In plot controls, add "show one period"
 # save and load pickle for qclayers
+# Bug: cannot add layer after last layer deleted
+# non-parabolic effective mass switch off option
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *

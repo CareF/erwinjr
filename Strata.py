@@ -46,7 +46,7 @@ try:
     elif sys.platform == 'win32':
         cS = CDLL('cStrata.dll')
 except:
-    print "unable to load cQCLayers"
+    print "unable to load cStrata"
 
 # =============================================================================
 # Global Variables
