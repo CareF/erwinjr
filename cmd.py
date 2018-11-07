@@ -39,7 +39,7 @@ if sys.platform == 'darwin':
 def qclLoad(fname):
     qclayers = QCLayers()
     #  print "Loading "+fname
-    filehandle = open(fname, 'r')
+    filehandle = open(fname, 'rU')
     SaveLoad.qclLoad(filehandle, qclayers, None)
     qclayers.update_alloys()
     qclayers.update_strain()
