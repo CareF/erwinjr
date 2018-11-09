@@ -41,7 +41,7 @@ class QCEncoder(json.JSONEncoder):
 JSONTemplate = """{
     "FileType": "ErwinJr2 Data File", 
     "Version": "181107", 
-    "Descrption": %s, 
+    "Description": %s, 
     "Substrate": %s, 
     "EField": %s, 
     "x resolution": %s, 
@@ -73,7 +73,7 @@ def qclSaveJSON(fhandle, qclayers):
     materialList = materialList.astype(int)
     layerWidth = o.layerWidth * o.xres
     parameters = [json.encoder.encode_basestring(o.description)] + [
-        repr(s).replace("'","\"") for s in (
+        json.dumps(s) for s in (
             o.substrate, o.EField, o.xres, o.vertRes, o.solver, 
             o.Temperature, o.repeats, 
             qcMaterial[o.substrate] * usedMaterial, 
