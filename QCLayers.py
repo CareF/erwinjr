@@ -539,6 +539,9 @@ class QCLayers(object):
         #   the Gamma valley
         # ??But why is it working on offset between wells and barriers, not
         # within the same material? This is not reasonable! (TODO)
+        # [?] Edward, T. Yu, James O. McCaldin, and Thomas C. McGill. "Band
+        # offsets in semiconductor heterojunctions." Solid state physics.
+        # Vol. 46. Academic Press, 1992. 1-146.
         barrs = np.array([1, 3, 5, 7])
         wells = np.array([0, 2, 4, 6])
         CBOffset = self.EcG[barrs] - self.EcG[wells]
@@ -547,11 +550,11 @@ class QCLayers(object):
         percentCB = CBOffset / (CBOffset + VBOffset)
         percentCB = np.column_stack([percentCB, percentCB]).flatten()
         # applies percent CV to both well and barrier slots
+        self.EvLH = self.EcG - self.EgLH - ((1 - percentCB) * self.Varsh)
+        self.EvSO = self.EcG - self.EgSO - ((1 - percentCB) * self.Varsh)
         self.EcG += percentCB * self.Varsh
         self.EcL += percentCB * self.Varsh
         self.EcX += percentCB * self.Varsh
-        self.EvLH = self.EcG - self.EgLH - ((1 - percentCB) * self.Varsh)
-        self.EvSO = self.EcG - self.EgSO - ((1 - percentCB) * self.Varsh)
 
         # Eq.(2.20) in Kale's, with Eq=0. Note that E(C-SO) = EgSO = ESO+EgLH
         self.me = 1 / ((1 + 2 * self.F) + self.Ep / self.EgLH * (
